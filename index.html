@@ -42,8 +42,9 @@
         }
 
         .media-container {
-            margin-bottom: 25px;
-            text-align: center;
+            display: flex;
+            flex-direction: column;   /* ← row instead of column */
+            gap: 2rem;             /* space between each group */
         }
 
         .media-container img, .media-container video, .media-container iframe {
@@ -53,6 +54,18 @@
              display: block;
              border: 1px solid #ddd;
              box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .group-images {
+            display: flex;   /* line the two APNGs side-by-side */
+            gap: 1rem;       /* space between the two images */
+        }
+
+        .group-images img {
+        max-width: 50%;  /* each takes up half the row */
+        height: auto;
+        border: 1px dashed #ccc;
+        padding: 4px;
         }
 
         .caption {
@@ -161,7 +174,7 @@
 
   <h3>Implementation Details and Variations</h3>
   <p>
-      Our final implementation evolved significantly from the initial proposal. We originally planned to explore multiple distinct NPR styles (sketch, watercolor) and compare them against Path Tracing or PBR. However, we pivoted to focus exclusively on the OpenGL rasterization pipeline and dedicated our efforts to exploring the creative possibilities *within* toon shading. This involved implementing not just a basic toon shader but also several variations to showcase different artistic effects achievable by modifying the core toon shading principles, often incorporating additional data like depth or screen position. Consequently, the path tracing integration, implementation of other broad NPR styles, and direct PBR/efficiency comparisons were set aside. The vertex deduplication logic remained a necessary implementation detail for efficient OBJ handling in OpenGL.
+      Our final implementation evolved significantly from the initial proposal. We originally planned to explore multiple distinct NPR styles (sketch, watercolor) and compare them against Path Tracing or PBR. However, we pivoted to focus exclusively on the OpenGL rasterization pipeline and dedicated our efforts to exploring the creative possibilities within toon shading. This involved implementing not just a basic toon shader but also several variations to showcase different artistic effects achievable by modifying the core toon shading principles, often incorporating additional data like depth or screen position.
   </p>
 
     <h3>Problems Encountered</h3>
@@ -169,7 +182,6 @@
         <li><b>OBJ Loading and Normals:</b> A significant initial challenge involved correctly loading and processing OBJ files using `tinyobjloader`. We encountered issues with models that potentially had missing or incorrectly formatted vertex normal data. This required careful debugging of the loading logic (`loadObjModel`) to ensure normals were present and correctly associated with vertices, or implementing fallback behavior (e.g., using a default normal).</li>
         <li><b>Scope Management:</b> The initial scope proposed (multiple advanced NPR styles, path tracing integration, PBR comparison) proved too ambitious for the timeframe. We had to rescale our goals during the project (as reflected in the milestone ) to focus on delivering a functional application with at least one well-implemented NPR technique.</li>
         <li><b>Shader Debugging:</b> Identifying issues with lighting calculations, texture mapping, and visual artifacts required repetitive testing and careful inspection of the visual output.</li>
-         <li></li>
     </ul>
 
     <h3>Lessons Learned</h3>
@@ -183,58 +195,64 @@
     </ul>
 
     <h2>Results</h2>
-    <p>
-        Our application successfully loads OBJ models and renders them using the implemented toon/cel shader. The visual output exhibits the characteristic features of toon shading: areas of flat color with sharp transitions between lit and shadowed regions, determined by the quantized lighting calculation in the GLSL fragment shader. The shading dynamically updates based on the model's orientation relative to the defined light sources and the camera's viewpoint. Users can interactively rotate the model and zoom the camera to inspect the effect from different angles. The automatic camera orbit provides a continuous showcase of the rendered object.
-    </p>
-    <p>
-        [Describe results of the Chromadepth Polka Dot shader here, if applicable, and include relevant media.]
-    </p>
 
     <div class="media-container">
-        <h3>Project Showcase Clip</h3>
-        <p style="border: 1px dashed #ccc; padding: 20px; color: #777;">
-            [Our Showcase GIF/Video Here - e.g., <br>
-            <code>&lt;video controls src="videos/showcase_clip.mp4"&gt;&lt;/video&gt;</code> or <br>
-            <code>&lt;img src="images/showcase_clip.gif" alt="Showcase Animation"&gt;</code>]
-        </p>
-        <p class="caption">Short video/animation demonstrating the final toon shader effect and interaction.</p>
+    
+      <!-- Thermal Group -->
+      <div class="showcase-group">
+        <h3>Thermal</h3>
+        <div class="group-images">
+          <img src="images/tung_thermal.apng" alt="tung_thermal">
+          <img src="images/tralala_thermal.apng" alt="tralala_thermal">
+        </div>
+        <p class="caption">Tung Tung Tung Sahur and Tralalero Tralala with termal coloring shader.</p>
+      </div>
+    
+      <!-- Polka Dot Group -->
+      <div class="showcase-group">
+        <h3>Polka Dot</h3>
+        <div class="group-images">
+          <img src="images/tung_polka.apng" alt="tung_polka">
+          <img src="images/tralala_polka.apng" alt="tralala_polka">
+        </div>
+        <p class="caption">Tung Tung Tung Sahur and Tralalero Tralala with polka dot shader.</p>
+      </div>
+    
+      <!-- Notebook Group -->
+      <div class="showcase-group">
+        <h3>Notebook</h3>
+        <div class="group-images">
+          <img src="images/tung_notebook.apng" alt="tung_notebook">
+          <img src="images/tralala_notebook.apng" alt="tralala_notebook">
+        </div>
+        <p class="caption">Tung Tung Tung Sahur and Tralalero Tralala with notebook shader.</p>
+      </div>
+    
     </div>
+    
 
-    <div class="media-container">
-        <h3>Toon Shaded Teapot</h3>
-         <p style="border: 1px dashed #ccc; padding: 20px; color: #777;">
-            [Image of Toon Shaded Teapot - e.g., <br>
-            <code>&lt;img src="images/toon_teapot.png" alt="Toon shaded teapot model"&gt;</code>]
-        </p>
-         <p class="caption">Example render of the Utah Teapot using our toon shader.</p>
-    </div>
 
-     <div class="media-container">
-        <h3>[Result Title 2 - e.g., Different Model or Angle]</h3>
-         <p style="border: 1px dashed #ccc; padding: 20px; color: #777;">
-            [Another Result Image/Video Here]
-        </p>
-         <p class="caption">[Caption for result 2]</p>
-    </div>
 
     <h2 class="references">References</h2>
     <ul>
         <li>Gooch, Bruce, and Amy Gooch. *Non-Photorealistic Rendering*. A K Peters/CRC Press, 2001.</li>
         <li>Rosales, M., et al. "A Survey on Non-photorealistic Rendering Approaches for Point Cloud Visualization." *Visual Informatics*, vol. 5, no. 1, 2021, pp. 49-64.</li>
-        <li>Komikaze NPR. Toon Shader Pack. (Reference for desired outcome style) URL: `komikaze.nl/toon_shader_pack.html` (Link might be outdated).</li>
-        <li>OpenGL Documentation: [https://www.opengl.org/](https://www.opengl.org/)</li>
-        <li>GLEW (The OpenGL Extension Wrangler Library): [http://glew.sourceforge.net/](http://glew.sourceforge.net/)</li>
-        <li>GLFW (An Open Source, multi-platform library for OpenGL): [https://www.glfw.org/](https://www.glfw.org/)</li>
-        <li>GLM (OpenGL Mathematics): [https://glm.g-truc.net/](https://glm.g-truc.net/)</li>
-        <li>TinyObjLoader: [https://github.com/tinyobjloader/tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)</li>
-        <li>LearnOpenGL: [https://learnopengl.com/](https://learnopengl.com/) (General tutorials and reference)</li>
+        <li>Komikaze NPR. Toon Shader Pack. (Reference for desired outcome style) URL: `https://superhivemarket.com/products/komikaze`.</li>
+        <li>OpenGL Documentation: [https://www.opengl.org/]</li>
+        <li>GLEW (The OpenGL Extension Wrangler Library): [http://glew.sourceforge.net/]</li>
+        <li>GLFW (An Open Source, multi-platform library for OpenGL): [https://www.glfw.org/]</li>
+        <li>GLM (OpenGL Mathematics): [https://glm.g-truc.net/]</li>
+        <li>TinyObjLoader: [https://github.com/tinyobjloader/tinyobjloader]</li>
+        <li>LearnOpenGL: [https://learnopengl.com/] (General tutorials and reference)</li>
+        <li>Alex CGW. Tralalero Tralala 3D Game ready model FREE. Sketchfab, 15 Apr. 2025. URL: <a href="https://sketchfab.com/3d-models/tralalero-tralala-3d-game-ready-model-free-e043ac3561f9417b800b6cd04a0de163">https://sketchfab.com/3d-models/tralalero-tralala-3d-game-ready-model-free-e043ac3561f9417b800b6cd04a0de163</a></li>
+        <li>ESO. Tung Tung Sahur [NOT AI]. Sketchfab, 25 Apr. 2025. URL: <a href="https://sketchfab.com/3d-models/tung-tung-sahur-not-ai-3577ea207ce647f2a3158f4c3235089d">https://sketchfab.com/3d-models/tung-tung-sahur-not-ai-3577ea207ce647f2a3158f4c3235089d</a></li>
         </ul>
 
 
     <h2 class="contributions">Contributions</h2>
     <ul>
         <li><strong>Minjae Kwak:</strong> [Describe specific contribution...]</li>
-        <li><strong>Zixun Wang:</strong> [Describe specific contribution...]</li>
+        <li><strong>Zixun Wang:</strong> I worked mainly on basic toon shading framework, and camera interactions. I helped with drafting the write-up website.</li>
         <li><strong>Shashwat Bansal:</strong> I mostly worked on the <code>.frag</code> files, building on top of the toon shader to implement renderings like its 5-tones variant and adding reverse shading to make the entire object colored. I also implemented the spotlight/chroma shader and the polka dots shader, for the former of which I added multiple lighting sourcees to <code>main.cpp</code>.</li>
         <li><strong>Jaymes Ryan Garbe:</strong> I helped build the camera rotation mechanism to automatically keep rotating the models while keeping light sources fixed. I also helped setup the OpenGL framework.</fli>
     </ul>
