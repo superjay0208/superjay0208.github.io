@@ -161,16 +161,15 @@
 
   <h3>Implementation Details and Variations</h3>
   <p>
-      Our final implementation evolved significantly from the initial proposal. We originally planned to explore multiple distinct NPR styles (sketch, watercolor) and compare them against Path Tracing or PBR. However, we pivoted to focus exclusively on the OpenGL rasterization pipeline and dedicated our efforts to exploring the creative possibilities *within* toon shading. This involved implementing not just a basic toon shader but also several variations (Colored, Chroma, Polka) to showcase different artistic effects achievable by modifying the core toon shading principles, often incorporating additional data like depth or screen position. Consequently, the path tracing integration, implementation of other broad NPR styles, and direct PBR/efficiency comparisons were set aside. The vertex deduplication logic remained a necessary implementation detail for efficient OBJ handling in OpenGL.
+      Our final implementation evolved significantly from the initial proposal. We originally planned to explore multiple distinct NPR styles (sketch, watercolor) and compare them against Path Tracing or PBR. However, we pivoted to focus exclusively on the OpenGL rasterization pipeline and dedicated our efforts to exploring the creative possibilities *within* toon shading. This involved implementing not just a basic toon shader but also several variations to showcase different artistic effects achievable by modifying the core toon shading principles, often incorporating additional data like depth or screen position. Consequently, the path tracing integration, implementation of other broad NPR styles, and direct PBR/efficiency comparisons were set aside. The vertex deduplication logic remained a necessary implementation detail for efficient OBJ handling in OpenGL.
   </p>
-
 
     <h3>Problems Encountered</h3>
     <ul>
         <li><b>OBJ Loading and Normals:</b> A significant initial challenge involved correctly loading and processing OBJ files using `tinyobjloader`. We encountered issues with models that potentially had missing or incorrectly formatted vertex normal data. This required careful debugging of the loading logic (`loadObjModel`) to ensure normals were present and correctly associated with vertices, or implementing fallback behavior (e.g., using a default normal).</li>
         <li><b>Scope Management:</b> The initial scope proposed (multiple advanced NPR styles, path tracing integration, PBR comparison) proved too ambitious for the timeframe. We had to rescale our goals during the project (as reflected in the milestone ) to focus on delivering a functional application with at least one well-implemented NPR technique.</li>
-        <li><b>Shader Debugging:</b> Debugging GLSL shaders can be challenging. Identifying issues with lighting calculations, matrix transformations, or uniform variable passing required iterative testing and careful inspection of the visual output.</li>
-         <li>[Add any other specific technical hurdles encountered, e.g., build issues, library integration problems, unexpected visual artifacts]</li>
+        <li><b>Shader Debugging:</b> Identifying issues with lighting calculations, texture mapping, and visual artifacts required repetitive testing and careful inspection of the visual output.</li>
+         <li></li>
     </ul>
 
     <h3>Lessons Learned</h3>
