@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <title>CS 184 Final Report - Exploring Non-Photorealistic Rendering</title>
     <style>
-        /* Basic styling adapted from the example */
         body {
             font-family: sans-serif;
             padding: 20px;
             line-height: 1.6;
-            max-width: 900px; /* Limit width for readability */
-            margin: 20px auto; /* Center the content */
+            max-width: 900px;
+            margin: 20px auto;
         }
 
         h1, h2, h3 {
@@ -44,16 +43,16 @@
 
         .media-container {
             margin-bottom: 25px;
-            text-align: center; /* Center images/videos */
+            text-align: center;
         }
 
         .media-container img, .media-container video, .media-container iframe {
-             max-width: 90%; /* Prevent large media from overflowing */
+             max-width: 90%;
              height: auto;
              margin: 10px auto;
              display: block;
-             border: 1px solid #ddd; /* Optional border */
-             box-shadow: 2px 2px 5px rgba(0,0,0,0.1); /* Optional shadow */
+             border: 1px solid #ddd;
+             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
         }
 
         .caption {
@@ -69,12 +68,12 @@
             padding: 0;
         }
         .contributions li {
-            margin-bottom: 15px; /* Increased spacing */
+            margin-bottom: 15px;
             padding-left: 10px;
-            border-left: 3px solid #ccc; /* Add a visual indicator */
+            border-left: 3px solid #ccc;
         }
         .contributions strong {
-            display: block; /* Make name appear on its own line */
+            display: block;
             margin-bottom: 5px;
         }
 
@@ -96,7 +95,7 @@
 
     <h2>Abstract</h2>
     <p>
-      This project explores the domain of Non-Photorealistic Rendering (NPR) by developing an interactive 3D rendering application. Focusing on artistic expression over strict realism, we implemented several variations of toon/cel shading using OpenGL and GLSL shaders, leveraging multiple light sources for added complexity. The application allows users to load OBJ models, view them with distinct stylized appearances including basic toon shading, colored variations, depth-influenced "toon chroma," and patterned "toon polka" effects, and interactively rotate and zoom the models using mouse controls. While our initial proposal envisioned exploring broader NPR styles and comparisons, we focused our efforts on building a robust OpenGL framework and investigating the versatility within toon shading techniques via rasterization, providing a foundation for viewing diverse stylized 3D graphics.
+      This project explores the domain of Non-Photorealistic Rendering (NPR) by developing an interactive 3D rendering application using OpenGL. We implemented several shaders using OpenGL and GLSL, allowing users to view any <code>.obj</code> model with distinct stylized appearances including basic toon shading, colored variations, chroma, and polka dot effects, and interactively rotate and zoom the models using mouse controls.
     </p>
 
     <h2>Technical Approach</h2>
@@ -117,7 +116,7 @@
 
     <h3>Model Loading</h3>
     <p>
-        To render 3D models, we integrated the `tinyobjloader` library (`tiny_obj_loader.h`). Our `loadObjModel` function parses `.obj` files specified via command-line arguments or uses a default path (`teapot.obj`). This function extracts vertex positions and normals from the OBJ file. It handles triangulation implicitly by iterating through faces and processing only triangles . To optimize rendering and handle vertices shared by multiple faces (with potentially different normals or texture coordinates), we implemented a vertex de-duplication mechanism . It uses an `std::unordered_map` to store unique combinations of vertex/normal indices, ensuring that identical vertices are stored only once in the final vertex buffer, while generating the correct element indices for drawing.
+        To render 3D models, we integrated the `tinyobjloader` library (`tiny_obj_loader.h`). Our `loadObjModel` function parses `.obj` files specified via command-line arguments. This function extracts vertex positions and normals from the OBJ file. It handles triangulation implicitly by iterating through faces and processing only triangles. To optimize rendering and handle vertices shared by multiple faces (with potentially different normals or texture coordinates), we implemented a vertex de-duplication mechanism. It uses an `std::unordered_map` to store unique combinations of vertex/normal indices, ensuring that identical vertices are stored only once in the final vertex buffer, while generating the correct element indices for drawing.
     </p>
 
     <h3>Shader Implementation</h3>
@@ -131,10 +130,10 @@
     </li>
   
     <li>
-      <b>Thermal, 5-Tone Palette, Best:</b><br/>
+      <b>Thermal, 5-Tone Palette, Yellow-Blue:</b><br/>
       <p><strong>Thermal:</strong> In <code>shaders/toon_thermal.frag</code>, you quantize the usual diffuse term (<code>diff = max(dot(norm, lightDir), 0.0)</code>) into a handful of ranges (e.g. 0–0.2, 0.2–0.4, …). Each range is then mapped—via a small <code>vec3</code> array or 1D texture lookup—to a classic heat-map gradient (blue → cyan → green → yellow → red). You combine that ramp color with a base ambient term and your object color to give a warm-to-hot feel to each band.</p>
       <p><strong>5-Tone Palette:</strong> See <code>shaders/toon_5_tones.frag</code>. After computing <code>diff</code>, the shader uses <code>floor()</code> and <code>mod()</code> to index into an array of exactly five chosen colors (e.g. purple, blue, cyan, green, yellow). The bands repeat over successive lighting ranges, producing a bold, cyclical color effect that’s perfect for stylized visuals.</p>
-      <p><strong>“Best” Stylized Glow:</strong> In <code>shaders/toon_best.frag</code>, the diffuse term is split into four hard bands—deep shadow, mid-blue, cool highlight, warm gold—via an <code>if/else</code> ladder. After combining with ambient and object color, a reverse “glow” (driven by <code>1.0 – diff</code>) tints shadowed regions in soft purple, adding painterly rim and shadow glow in a single pass.</p>
+      <p><strong>Yellow-Blue Stylized Glow:</strong> In <code>shaders/toon_best.frag</code>, the diffuse term is split into four hard bands—deep shadow, mid-blue, cool highlight, warm gold—via an <code>if/else</code> ladder. After combining with ambient and object color, a reverse “glow” (driven by <code>1.0 – diff</code>) tints shadowed regions in soft purple, adding painterly rim and shadow glow in a single pass.</p>
     </li>
   
     <li>
