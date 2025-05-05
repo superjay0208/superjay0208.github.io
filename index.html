@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CS 184 Final Report - Exploring Non-Photorealistic Rendering</title>
+    <style>
+        /* Basic styling adapted from the example */
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+            max-width: 900px; /* Limit width for readability */
+            margin: 20px auto; /* Center the content */
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .media-container {
+            margin-bottom: 25px;
+            text-align: center; /* Center images/videos */
+        }
+
+        .media-container img, .media-container video, .media-container iframe {
+             max-width: 90%; /* Prevent large media from overflowing */
+             height: auto;
+             margin: 10px auto;
+             display: block;
+             border: 1px solid #ddd; /* Optional border */
+             box-shadow: 2px 2px 5px rgba(0,0,0,0.1); /* Optional shadow */
+        }
+
+        .caption {
+            font-style: italic;
+            color: #555;
+            margin-top: 5px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .contributions ul {
+            list-style: none;
+            padding: 0;
+        }
+        .contributions li {
+            margin-bottom: 15px; /* Increased spacing */
+            padding-left: 10px;
+            border-left: 3px solid #ccc; /* Add a visual indicator */
+        }
+        .contributions strong {
+            display: block; /* Make name appear on its own line */
+            margin-bottom: 5px;
+        }
+
+        .references ul {
+            list-style: disc;
+            padding-left: 20px;
+        }
+        .references li {
+            margin-bottom: 8px;
+        }
+
+    </style>
+    </head>
+<body>
+
+    <h1>Exploring Non-Photorealistic Rendering</h1>
+
+    <p style="text-align: center;"><strong>Team Members:</strong> Minjae Kwak, Zixun Wang, Shashwat Bansal, Jaymes Ryan Garbe</p>
+
+    <h2>Abstract</h2>
+    <p>
+        This project explores the domain of Non-Photorealistic Rendering (NPR) by developing an interactive 3D rendering application. Focusing on artistic expression and clarity over strict realism, we implemented a toon/cel shading technique using OpenGL and GLSL shaders. The application allows users to load OBJ models, view them with the characteristic flat-shaded, quantized lighting style of toon shading, and interactively rotate and zoom the models using mouse controls. While our initial proposal envisioned exploring multiple NPR styles (like sketch and watercolor) and comparing them with Path Tracing and PBR, we focused our efforts on building a robust OpenGL framework and successfully implementing toon shading via rasterization, providing a foundation for viewing stylized 3D graphics.
+    </p>
+
+    <h2>Technical Approach</h2>
+    <p>
+        Our technical approach centered on creating a flexible testbed for NPR shaders using standard C++ and OpenGL. We utilized several libraries to handle windowing, OpenGL extensions, mathematics, and model loading. The core components of our system include the application framework, model loading pipeline, shader implementation, and interaction controls.
+    </p>
+
+    <h3>Framework and Libraries</h3>
+    <p>
+        We developed a standalone C++ application. The core framework relies on:
+        <ul>
+            <li><b>GLFW:</b> For creating and managing the OpenGL context and window, and handling user input (keyboard, mouse).</li>
+            <li><b>GLEW:</b> To manage OpenGL extensions, ensuring access to necessary modern OpenGL functions across different platforms.</li>
+            <li><b>GLM:</b> For handling vector and matrix operations essential for 3D graphics transformations (model, view, projection matrices).</li>
+        </ul>
+        This setup provides a standard, cross-platform base for rendering 3D scenes with custom shaders. The build process was managed using CMake (`CMakeLists.txt`) which handled finding dependencies and compiling the application.
+    </p>
+
+    <h3>Model Loading</h3>
+    <p>
+        To render 3D models, we integrated the `tinyobjloader` library (`tiny_obj_loader.h`). Our `loadObjModel` function parses `.obj` files specified via command-line arguments or uses a default path (`teapot.obj`). This function extracts vertex positions and normals from the OBJ file. It handles triangulation implicitly by iterating through faces and processing only triangles . To optimize rendering and handle vertices shared by multiple faces (with potentially different normals or texture coordinates), we implemented a vertex de-duplication mechanism . It uses an `std::unordered_map` to store unique combinations of vertex/normal indices, ensuring that identical vertices are stored only once in the final vertex buffer, while generating the correct element indices for drawing.
+    </p>
+
+    <h3>Shader Implementation</h3>
+    <p>
+        We implemented a custom shader system encapsulated in a `Shader` class (`shader.h`, `shader.cpp`). This class handles reading GLSL shader source code from files (vertex and fragment shaders), compiling them, and linking them into a shader program. It also provides utility functions (`setMat4`, `setVec3`, etc.) for easily setting uniform variables in the shaders from the C++ application.
+    </p>
+    <p>
+        The primary NPR technique implemented was **Toon Shading** (also known as Cel Shading), defined in `shaders/toon.vert` and `shaders/toon.frag`. The core idea of our toon shader is to quantize the diffuse lighting calculation. Instead of a smooth gradient of light, the intensity is mapped to a few discrete levels, creating the characteristic hard-edged shadows and flat color bands seen in cartoons or comics. The fragment shader calculates the dot product between the surface normal and the light direction, clamps it, and then uses conditional logic or step functions to determine which discrete color band to apply. We also implemented support for multiple light sources to add complexity to the scene lighting, although each contributes in a quantized manner. The `normalMatrix` is calculated and passed to the vertex shader to correctly transform normals into view space, even when the model is non-uniformly scaled .
+    </p>
+     <p>
+        We also experimented with a **Chromadepth Polka Dot Shader** (visible in `main_chroma_polka.txt` and associated shader files, if included). [Describe the Chromadepth Polka Dot shader implementation details here if it was completed and integrated].
+    </p>
+
+
+    <h3>Interaction and Camera</h3>
+    <p>
+        The application provides user interaction:
+        <ul>
+            <li><b>Mouse Rotation:</b> Users can click and drag the left mouse button to rotate the loaded model around the X and Y axes (`modelPitch`, `modelYaw`).</li>
+            <li><b>Mouse Zoom:</b> Scrolling the mouse wheel adjusts the camera's field of view (`fov`), creating a zoom effect.</li>
+            <li><b>Automatic Orbit:</b> The camera automatically orbits around the scene based on trigonometric functions (`sin`, `cos`) updated each frame , providing a continuous view of the model.</li>
+        </ul>
+        Camera parameters like position (`cameraPos`), target direction (`cameraFront`), and up vector (`cameraUp`) are used to construct the view matrix via `glm::lookAt` . Projection is handled by `glm::perspective`.
+    </p>
+
+    <h3>Implementation Details and Variations</h3>
+    <p>
+        Our final implementation deviated from the initial proposal in a few key ways. We originally planned to explore multiple NPR styles (sketch, watercolor, pixel shading) and potentially integrate them with path tracing , alongside efficiency comparisons with PBR . Based on the progress during the milestone, we recognized the complexity involved and decided to focus primarily on establishing a solid OpenGL/GLSL rasterization framework and fully implementing one core NPR style: toon/cel shading . Consequently, the path tracing integration, implementation of other NPR styles, and direct PBR/efficiency comparisons were deferred . The vertex deduplication logic was a necessary implementation detail to handle standard OBJ file structures efficiently for OpenGL rendering.
+    </p>
+
+    <h3>Problems Encountered</h3>
+    <ul>
+        <li><b>OBJ Loading and Normals:</b> A significant initial challenge involved correctly loading and processing OBJ files using `tinyobjloader`. We encountered issues with models that potentially had missing or incorrectly formatted vertex normal data. This required careful debugging of the loading logic (`loadObjModel`) to ensure normals were present and correctly associated with vertices, or implementing fallback behavior (e.g., using a default normal) .</li>
+        <li><b>Scope Management:</b> The initial scope proposed (multiple advanced NPR styles, path tracing integration, PBR comparison) proved too ambitious for the timeframe. We had to rescale our goals during the project (as reflected in the milestone ) to focus on delivering a functional application with at least one well-implemented NPR technique.</li>
+        <li><b>Shader Debugging:</b> Debugging GLSL shaders can be challenging. Identifying issues with lighting calculations, matrix transformations, or uniform variable passing required iterative testing and careful inspection of the visual output.</li>
+         <li>[Add any other specific technical hurdles encountered, e.g., build issues, library integration problems, unexpected visual artifacts]</li>
+    </ul>
+
+    <h3>Lessons Learned</h3>
+    <ul>
+        <li><b>OpenGL/GLSL Fundamentals:</b> Gained practical experience setting up an OpenGL rendering pipeline, writing vertex and fragment shaders in GLSL, managing shader compilation/linking, and passing data (vertex attributes, uniforms) from the CPU to the GPU.</li>
+        <li><b>3D Math and Transformations:</b> Reinforced understanding of essential 3D graphics concepts like model, view, and projection matrices, normal transformations, and vector operations (dot products, normalization) used in lighting calculations.</li>
+        <li><b>NPR Techniques:</b> Learned the core principles behind toon/cel shading, specifically how quantizing lighting calculations can achieve a stylized, non-photorealistic look.</li>
+        <li><b>OBJ File Format and Loading:</b> Gained familiarity with the structure of OBJ files and the complexities of parsing them, including handling vertex indexing, normals, and the need for vertex de-duplication for efficient rendering.</li>
+        <li><b>Project Scoping:</b> Learned the importance of accurately estimating the time and effort required for different features and adjusting project scope based on progress and encountered difficulties. Starting with a smaller, achievable core goal is often more effective.</li>
+        <li><b>Build Systems and Dependencies:</b> Gained experience using CMake to manage project builds and integrate external libraries like GLEW, GLFW, GLM, and tinyobjloader.</li>
+    </ul>
+
+    <h2>Results</h2>
+    <p>
+        Our application successfully loads OBJ models and renders them using the implemented toon/cel shader. The visual output exhibits the characteristic features of toon shading: areas of flat color with sharp transitions between lit and shadowed regions, determined by the quantized lighting calculation in the GLSL fragment shader. The shading dynamically updates based on the model's orientation relative to the defined light sources and the camera's viewpoint . Users can interactively rotate the model and zoom the camera to inspect the effect from different angles. The automatic camera orbit provides a continuous showcase of the rendered object.
+    </p>
+    <p>
+        [Describe results of the Chromadepth Polka Dot shader here, if applicable, and include relevant media.]
+    </p>
+
+    <div class="media-container">
+        <h3>Project Showcase Clip</h3>
+        <p style="border: 1px dashed #ccc; padding: 20px; color: #777;">
+            [Your Showcase GIF/Video Here - e.g., <br>
+            <code>&lt;video controls src="videos/showcase_clip.mp4"&gt;&lt;/video&gt;</code> or <br>
+            <code>&lt;img src="images/showcase_clip.gif" alt="Showcase Animation"&gt;</code>]
+        </p>
+        <p class="caption">Short video/animation demonstrating the final toon shader effect and interaction.</p>
+    </div>
+
+    <div class="media-container">
+        <h3>Toon Shaded Teapot</h3>
+         <p style="border: 1px dashed #ccc; padding: 20px; color: #777;">
+            [Image of Toon Shaded Teapot - e.g., <br>
+            <code>&lt;img src="images/toon_teapot.png" alt="Toon shaded teapot model"&gt;</code>]
+        </p>
+         <p class="caption">Example render of the Utah Teapot using our toon shader.</p>
+    </div>
+
+     <div class="media-container">
+        <h3>[Result Title 2 - e.g., Different Model or Angle]</h3>
+         <p style="border: 1px dashed #ccc; padding: 20px; color: #777;">
+            [Another Result Image/Video Here]
+        </p>
+         <p class="caption">[Caption for result 2]</p>
+    </div>
+
+    <h2 class="references">References</h2>
+    <ul>
+        <li>Gooch, Bruce, and Amy Gooch. *Non-Photorealistic Rendering*. A K Peters/CRC Press, 2001.</li>
+        <li>Rosales, M., et al. "A Survey on Non-photorealistic Rendering Approaches for Point Cloud Visualization." *Visual Informatics*, vol. 5, no. 1, 2021, pp. 49-64.</li>
+        <li>Komikaze NPR. Toon Shader Pack. (Reference for desired outcome style) URL: `komikaze.nl/toon_shader_pack.html` (Link might be outdated).</li>
+        <li>OpenGL Documentation: [https://www.opengl.org/](https://www.opengl.org/)</li>
+        <li>GLEW (The OpenGL Extension Wrangler Library): [http://glew.sourceforge.net/](http://glew.sourceforge.net/)</li>
+        <li>GLFW (An Open Source, multi-platform library for OpenGL): [https://www.glfw.org/](https://www.glfw.org/)</li>
+        <li>GLM (OpenGL Mathematics): [https://glm.g-truc.net/](https://glm.g-truc.net/)</li>
+        <li>TinyObjLoader: [https://github.com/tinyobjloader/tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)</li>
+        <li>LearnOpenGL: [https://learnopengl.com/](https://learnopengl.com/) (General tutorials and reference)</li>
+        </ul>
+
+
+    <h2 class="contributions">Contributions</h2>
+    <ul>
+        <li><strong>Minjae Kwak:</strong> [Describe specific contribution...]</li>
+        <li><strong>Zixun Wang:</strong> [Describe specific contribution...]</li>
+        <li><strong>Shashwat Bansal:</strong> [Describe specific contribution...]</li>
+        <li><strong>Jaymes Ryan Garbe:</strong> [Describe specific contribution...]</li>
+    </ul>
+
+</body>
+</html>
