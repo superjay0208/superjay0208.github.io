@@ -177,7 +177,7 @@
   </ul>
 
   <h3>Implementation Details and Variations</h3>
-      Our final implementation evolved significantly from the initial proposal. We originally planned to explore multiple distinct NPR styles (sketch, watercolor) and compare them against Path Tracing or PBR. However, we pivoted to focus exclusively on the OpenGL rasterization pipeline and dedicated our efforts to exploring the creative possibilities within toon shading. This involved implementing not just a basic toon shader but also several variations to showcase different artistic effects achievable by modifying the core toon shading principles, often incorporating additional data like depth or screen position.
+      We originally planned to explore multiple distinct NPR styles and compare them against Path Tracing or PBR. However, we pivoted to focus exclusively on the OpenGL rasterization pipeline and dedicated our efforts to any shaders we found on the Komikaze website. After completing the OpenGL setup, a majority of the shaders were implemented in <code>.frag</code> files since vertices did not need modifications, and we weren't working with textures. We ended up eyeballing key visual details on the sample NPR renderings and did our best to implement something similar.
   </p>
 
     <h3>Problems Encountered</h3>
@@ -233,8 +233,6 @@
       </div>
     
     </div>
-    
-
 
 
     <h2 class="references">References</h2>
@@ -257,7 +255,7 @@
     <ul>
         <li><strong>Minjae Kwak:</strong> I worked on exploring textured NPR methods with crosshatch pattern and recording the results for the final presentation and the website. </li>
         <li><strong>Zixun Wang:</strong> I worked mainly on basic toon shading framework, and camera interactions. I helped with drafting the write-up website.</li>
-        <li><strong>Shashwat Bansal:</strong> I mostly worked on the <code>.frag</code> files, building on top of the toon shader to implement renderings like its 5-tones variant and adding reverse shading to make the entire object colored. I also implemented the spotlight/chroma shader and the polka dots shader, for the former of which I added multiple lighting sourcees to <code>main.cpp</code>.</li>
+        <li><strong>Shashwat Bansal:</strong> I mainly worked on the upgrades of the toon shader, along with some other shaders such as Notebook and Polka Dot. I also implemented the chroma shader and the guap shader, for the former of which I added multiple lighting sources to <code>main.cpp</code>.</li>
         <li><strong>Jaymes Ryan Garbe:</strong> I helped build the camera rotation mechanism to automatically keep rotating the models while keeping light sources fixed. I also helped setup the OpenGL framework.</fli>
     </ul>
 
