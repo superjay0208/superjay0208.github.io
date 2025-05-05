@@ -170,6 +170,10 @@
       <b>Guap:</b><br/>
       <p>See <code>shaders/guap.frag</code>. This overlay uses a repeating equilateral-triangle grid: we compute local UV within each cell, apply a triangle-distance function to mask out the triangles, and stagger every other row by offsetting X. On top of that, the shader mixes two color ramps based on <code>diff</code> (or time): for shadows it leans toward a deep green, for mid-tones a soft teal, and for highlights a pale white. Due to the large number of triangles, guap suffers from heavy aliasing.</p>
     </li>
+    <li>
+      <b>Textured NPR:</b><br/>
+      <p>We load a 2D texture (crosshatch pattern) and pass it into the fragment shader as a <code>sampler2D</code>. The model's UV coordinates are interpolated per fragment and used to sample the texture. We then modulate this sampled texture with our quantized lighting or color bands, adding hatching line surface details. This extra layer of texture enriches the NPR effect by giving surfaces an enhanced stylazed look.</p>
+    </li>
   </ul>
 
   <h3>Implementation Details and Variations</h3>
@@ -251,7 +255,7 @@
 
     <h2 class="contributions">Contributions</h2>
     <ul>
-        <li><strong>Minjae Kwak:</strong> I worked on exploring textured NPR methods and recording the results for the final presentation and the website. </li>
+        <li><strong>Minjae Kwak:</strong> I worked on exploring textured NPR methods with crosshatch pattern and recording the results for the final presentation and the website. </li>
         <li><strong>Zixun Wang:</strong> I worked mainly on basic toon shading framework, and camera interactions. I helped with drafting the write-up website.</li>
         <li><strong>Shashwat Bansal:</strong> I mostly worked on the <code>.frag</code> files, building on top of the toon shader to implement renderings like its 5-tones variant and adding reverse shading to make the entire object colored. I also implemented the spotlight/chroma shader and the polka dots shader, for the former of which I added multiple lighting sourcees to <code>main.cpp</code>.</li>
         <li><strong>Jaymes Ryan Garbe:</strong> I helped build the camera rotation mechanism to automatically keep rotating the models while keeping light sources fixed. I also helped setup the OpenGL framework.</fli>
