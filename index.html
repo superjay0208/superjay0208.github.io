@@ -126,41 +126,38 @@
   <ul>
     <li>
       <b>Basic Toon Shading (greyscale):</b><br/>
-      <p>Defined in <code>shaders/toon.vert</code> and <code>shaders/toon.frag</code>. This implements the fundamental toon effect by quantizing the diffuse lighting calculation. The dot product between the surface normal and the light direction is calculated, clamped, and then mapped to a few discrete intensity levels using conditional logic or step functions. This creates the characteristic hard-edged shadows and flat greyscale bands, while the <code>normalMatrix</code> ensures correct normal transformation.
+      <p>Defined in <code>shaders/toon.vert</code> and <code>shaders/toon_gray.frag</code>. We implemented this grayscale toon shader by quantizing the diffuse lighting into discrete bands based on the dot product between the surface normal and light direction, combining it with a constant ambient term to produce stylized shading with sharp grayscale transitions.</p>
     </li>
   
     <li>
       <b>Thermal, 5-Tone Palette, Yellow-Blue:</b><br/>
-      <p><strong>Thermal:</strong> In <code>shaders/toon_thermal.frag</code>, you quantize the usual diffuse term (<code>diff = max(dot(norm, lightDir), 0.0)</code>) into a handful of ranges (e.g. 0–0.2, 0.2–0.4, …). Each range is then mapped—via a small <code>vec3</code> array or 1D texture lookup—to a classic heat-map gradient (blue → cyan → green → yellow → red). You combine that ramp color with a base ambient term and your object color to give a warm-to-hot feel to each band.</p>
-      <p><strong>5-Tone Palette:</strong> See <code>shaders/toon_5_tones.frag</code>. After computing <code>diff</code>, the shader uses <code>floor()</code> and <code>mod()</code> to index into an array of exactly five chosen colors (e.g. purple, blue, cyan, green, yellow). The bands repeat over successive lighting ranges, producing a bold, cyclical color effect that’s perfect for stylized visuals.</p>
-      <p><strong>Yellow-Blue Stylized Glow:</strong> In <code>shaders/toon_best.frag</code>, the diffuse term is split into four hard bands—deep shadow, mid-blue, cool highlight, warm gold—via an <code>if/else</code> ladder. After combining with ambient and object color, a reverse “glow” (driven by <code>1.0 – diff</code>) tints shadowed regions in soft purple, adding painterly rim and shadow glow in a single pass.</p>
-    </li>
+      <p><strong>Yellow-Blue Stylized Glow:</strong> In <code>shaders/toon_best.frag</code>, the diffuse term is split into four hard bands via an <code>if/else</code> ladder. After combining with ambient and object color, a reverse “glow” (driven by <code>1.0 – diff</code>) tints shadowed regions in soft purple.</p>
+      <p><strong>Thermal:</strong> In <code>shaders/toon_thermal.frag</code>, we quantize the usual diffuse term (<code>diff = max(dot(norm, lightDir), 0.0)</code>) into a handful of ranges. Each range is then mapped—via a small <code>vec3</code> array or 1D texture lookup—to a classic heat-map gradient.</p>
+      <p><strong>5-Tone Palette:</strong> See <code>shaders/toon_5_tones.frag</code>. After computing <code>diff</code>, the shader indexes into an array of exactly five chosen colors. The bands repeat over successive lighting ranges.</p>
+      </li>
   
     <li>
       <b>Polka Dots, Stipple:</b><br/>
-      <p><strong>Polka Dots:</strong> Implemented in <code>shaders/polka_dot.frag</code>, this shader tiles the surface into cells using <code>fract()</code> on UV or world-space coordinates. Within each cell it draws a perfect circle (via a simple distance function) at the center, coloring it by hashing the cell index into a small palette. The background of each cell remains a flat complement color, yielding a uniform grid of colored dots.</p>
+      <p><strong>Polka Dots:</strong> Implemented in <code>shaders/polka_dot.frag</code>, this shader tiles the surface into cells using <code>fract()</code> on UV or world-space coordinates. Within each cell it draws a perfect circle (via a simple distance function) at the center, coloring it by hashing the cell index into a small palette randomly.</p>
       <p><strong>Stipple:</strong> See <code>shaders/stipple.frag</code>. The cells are the same, but each dot’s center is jittered by a <code>rand()</code> function for a more organic look. Dot radius is interpolated between two sizes based on lighting (<code>mix()</code>), and <code>smoothstep()</code> gives the dot edge a soft falloff—mimicking hand-drawn stippling in dark and light regions.</p>
     </li>
   
     <li>
       <b>Notebook, Sine-Wave:</b><br/>
-      <p><strong>Notebook:</strong> In <code>shaders/notebook.frag</code>, the surface is treated as lined paper. You compute <code>yPos = fs_in.FragPos.y + time*smallSpeed</code>, then apply <code>sin(yPos * lineFreq)</code> and a <code>smoothstep()</code> threshold to draw crisp horizontal lines. A vertical margin line (at X = constant) is added with another <code>smoothstep()</code>, all over a white base.</p>
-      <p><strong>Sine-Wave Bands:</strong> See <code>shaders/sine_waves.frag</code>. Here, each fragment’s Y is offset by <code>sin(fs_in.FragPos.x * waveFreq + time)</code>. You then compute <code>bandPos = fract((yOffset) * bandCount)</code>, carve out a sharp line with <code>smoothstep()</code>, and fade above it for a flowing wave pattern. A uniform wave color is blended over white for a continuous, undulating band effect.</p>
+      <p><strong>Notebook:</strong> In <code>shaders/notebook.frag</code>, the surface is treated as lined paper. We compute <code>yPos = fs_in.FragPos.y + time*smallSpeed</code>, then apply <code>sin(yPos * lineFreq)</code> and a <code>smoothstep()</code> threshold to draw crisp horizontal lines. A vertical margin line (at X = constant) is added with another <code>smoothstep()</code>, all over a white base. Lastly, the same is done once vertically for the red margin line.</p>
+      <p><strong>Sine-Wave Bands:</strong> See <code>shaders/sine_waves.frag</code>. Here, each fragment’s Y is offset by <code>sin(fs_in.FragPos.x * waveFreq + time)</code>. We then compute <code>bandPos = fract((yOffset) * bandCount)</code>, carve out a sharp line with <code>smoothstep()</code>, and fade above it for a flowing wave pattern. A uniform wave color is blended over white for a continuous diminishing band effect.</p>
     </li>
   
     <li>
       <b>Chroma:</b><br/>
-      <p>Implemented in <code>shaders/chroma.frag</code>. First, you take the basic <code>diff</code> and perturb it per channel: for example, <code>diffR = diff + sin(depth*freqR)</code>, <code>diffG = diff + sin(depth*freqG + phase)</code>, and <code>diffB = diff + sin(depth*freqB + phase*2)</code>. Each is then clamped and quantized, creating slight hue shifts per channel that emphasize depth.</p>
-      <p>Additionally, you can map world-space Z (camera depth) through a rainbow palette texture (1D lookup), then blend that result with your quantized bands—combining depth-based chroma shifts with classic toon steps for a vivid, form-accentuating effect.</p>
+      <p>Implemented in <code>shaders/chroma.frag</code>. First, we take the basic <code>diff</code> and perturb it per channel: <code>diffR = diff + sin(depth*freqR)</code>, <code>diffG = diff + sin(depth*freqG + phase)</code>, and <code>diffB = diff + sin(depth*freqB + phase*2)</code>. Each is then clamped and quantized, creating slight hue shifts per channel that emphasize depth. Lastly, we moved to a vector of light sources in <code>main.cpp</code> to allow for more well-distributed lighting.</p>
     </li>
   
     <li>
-      <b>Gulp:</b><br/>
-      <p>See <code>shaders/guap.frag</code>. This overlay uses a repeating equilateral-triangle grid: you compute local UV within each cell, apply a triangle-distance function to mask out the triangles, and stagger every other row by offsetting X. The pattern is static geometry in screen-space but wraps around your model.</p>
-      <p>On top of that, the shader mixes two color ramps based on <code>diff</code> (or time): for shadows it leans toward a deep green, for mid-tones a soft teal, and for highlights a pale cream. This dynamic blending—combined with the triangle mask—gives a halftone-like “gulp” pattern that reacts to lighting.</p>
+      <b>Guap:</b><br/>
+      <p>See <code>shaders/guap.frag</code>. This overlay uses a repeating equilateral-triangle grid: we compute local UV within each cell, apply a triangle-distance function to mask out the triangles, and stagger every other row by offsetting X. On top of that, the shader mixes two color ramps based on <code>diff</code> (or time): for shadows it leans toward a deep green, for mid-tones a soft teal, and for highlights a pale white. Due to the large number of triangles, guap suffers from heavy aliasing.</p>
     </li>
   </ul>
-  
 
   <h3>Implementation Details and Variations</h3>
   <p>
@@ -197,7 +194,7 @@
     <div class="media-container">
         <h3>Project Showcase Clip</h3>
         <p style="border: 1px dashed #ccc; padding: 20px; color: #777;">
-            [Your Showcase GIF/Video Here - e.g., <br>
+            [Our Showcase GIF/Video Here - e.g., <br>
             <code>&lt;video controls src="videos/showcase_clip.mp4"&gt;&lt;/video&gt;</code> or <br>
             <code>&lt;img src="images/showcase_clip.gif" alt="Showcase Animation"&gt;</code>]
         </p>
