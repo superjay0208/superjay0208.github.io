@@ -96,7 +96,7 @@
 
     <h2>Abstract</h2>
     <p>
-        This project explores the domain of Non-Photorealistic Rendering (NPR) by developing an interactive 3D rendering application. Focusing on artistic expression and clarity over strict realism, we implemented a toon/cel shading technique using OpenGL and GLSL shaders. The application allows users to load OBJ models, view them with the characteristic flat-shaded, quantized lighting style of toon shading, and interactively rotate and zoom the models using mouse controls. While our initial proposal envisioned exploring multiple NPR styles (like sketch and watercolor) and comparing them with Path Tracing and PBR, we focused our efforts on building a robust OpenGL framework and successfully implementing toon shading via rasterization, providing a foundation for viewing stylized 3D graphics.
+      This project explores the domain of Non-Photorealistic Rendering (NPR) by developing an interactive 3D rendering application. Focusing on artistic expression over strict realism, we implemented several variations of toon/cel shading using OpenGL and GLSL shaders, leveraging multiple light sources for added complexity. The application allows users to load OBJ models, view them with distinct stylized appearances including basic toon shading, colored variations, depth-influenced "toon chroma," and patterned "toon polka" effects, and interactively rotate and zoom the models using mouse controls. While our initial proposal envisioned exploring broader NPR styles and comparisons, we focused our efforts on building a robust OpenGL framework and investigating the versatility within toon shading techniques via rasterization, providing a foundation for viewing diverse stylized 3D graphics.
     </p>
 
     <h2>Technical Approach</h2>
@@ -122,31 +122,28 @@
 
     <h3>Shader Implementation</h3>
     <p>
-        We implemented a custom shader system encapsulated in a `Shader` class (`shader.h`, `shader.cpp`). This class handles reading GLSL shader source code from files (vertex and fragment shaders), compiling them, and linking them into a shader program. It also provides utility functions (`setMat4`, `setVec3`, etc.) for easily setting uniform variables in the shaders from the C++ application.
-    </p>
-    <p>
-        The primary NPR technique implemented was **Toon Shading** (also known as Cel Shading), defined in `shaders/toon.vert` and `shaders/toon.frag`. The core idea of our toon shader is to quantize the diffuse lighting calculation. Instead of a smooth gradient of light, the intensity is mapped to a few discrete levels, creating the characteristic hard-edged shadows and flat color bands seen in cartoons or comics. The fragment shader calculates the dot product between the surface normal and the light direction, clamps it, and then uses conditional logic or step functions to determine which discrete color band to apply. We also implemented support for multiple light sources to add complexity to the scene lighting, although each contributes in a quantized manner. The `normalMatrix` is calculated and passed to the vertex shader to correctly transform normals into view space, even when the model is non-uniformly scaled .
-    </p>
-     <p>
-        We also experimented with a **Chromadepth Polka Dot Shader** (visible in `main_chroma_polka.txt` and associated shader files, if included). [Describe the Chromadepth Polka Dot shader implementation details here if it was completed and integrated].
-    </p>
+      We implemented a custom shader system encapsulated in a `Shader` class (`shader.h`, `shader.cpp`), handling GLSL compilation, linking, and uniform setting. Our core exploration focused on variations of toon shading, all supporting multiple light sources whose contributions are typically summed before quantization. The key variations include:
+  </p>
+  <ul>
+      <li>
+          <b>Basic Toon Shading:</b> Defined in `shaders/toon.vert` and `shaders/toon.frag`. This implements the fundamental toon effect by quantizing the diffuse lighting calculation. The dot product between the surface normal and the light direction is calculated, clamped, and then mapped to a few discrete intensity levels using conditional logic or step functions. This creates the characteristic hard-edged shadows and flat color bands. The `normalMatrix` ensures correct normal transformation.
+      </li>
+      <li>
+          <b>Colored Toon Variation:</b> [Describe this implementation. E.g., How are colors chosen? Based on light color? Using a specific ramp? Did you use separate shader files? Example: This variation modifies the basic toon shader by incorporating the color of the light sources into the final quantized color bands, allowing for more vibrant or mood-specific results. OR: It uses a predefined color ramp texture lookup based on the lighting intensity level.]
+          </li>
+      <li>
+          <b>Toon Chroma:</b> [Integrate details from your chromadepth shader experiment, re-framing it as a toon variation. Example: Likely based on the shaders referenced in `main_chroma_polka.txt`. This shader combines toon shading principles with depth information. The final color or intensity band might be modulated based on the fragment's distance from the camera, potentially shifting colors or adding effects to enhance the perception of depth within the stylized rendering.]
+           </li>
+      <li>
+          <b>Toon Polka:</b> [Integrate details from your polka dot shader experiment, re-framing it as a toon variation. Example: Likely based on the shaders referenced in `main_chroma_polka.txt`. This variation overlays a screen-space pattern, like polka dots, onto the toon-shaded object. The pattern generation likely uses fragment coordinates (`gl_FragCoord`) and mathematical functions (e.g., modulo, distance) combined with the calculated toon color.]
+          </li>
+  </ul>
 
+  <h3>Implementation Details and Variations</h3>
+  <p>
+      Our final implementation evolved significantly from the initial proposal. We originally planned to explore multiple distinct NPR styles (sketch, watercolor) and compare them against Path Tracing or PBR . However, we pivoted to focus exclusively on the OpenGL rasterization pipeline and dedicated our efforts to exploring the creative possibilities *within* toon shading. This involved implementing not just a basic toon shader but also several variations (Colored, Chroma, Polka) to showcase different artistic effects achievable by modifying the core toon shading principles, often incorporating additional data like depth or screen position. Consequently, the path tracing integration, implementation of other broad NPR styles, and direct PBR/efficiency comparisons were set aside . The vertex deduplication logic remained a necessary implementation detail for efficient OBJ handling in OpenGL.
+  </p>
 
-    <h3>Interaction and Camera</h3>
-    <p>
-        The application provides user interaction:
-        <ul>
-            <li><b>Mouse Rotation:</b> Users can click and drag the left mouse button to rotate the loaded model around the X and Y axes (`modelPitch`, `modelYaw`).</li>
-            <li><b>Mouse Zoom:</b> Scrolling the mouse wheel adjusts the camera's field of view (`fov`), creating a zoom effect.</li>
-            <li><b>Automatic Orbit:</b> The camera automatically orbits around the scene based on trigonometric functions (`sin`, `cos`) updated each frame , providing a continuous view of the model.</li>
-        </ul>
-        Camera parameters like position (`cameraPos`), target direction (`cameraFront`), and up vector (`cameraUp`) are used to construct the view matrix via `glm::lookAt` . Projection is handled by `glm::perspective`.
-    </p>
-
-    <h3>Implementation Details and Variations</h3>
-    <p>
-        Our final implementation deviated from the initial proposal in a few key ways. We originally planned to explore multiple NPR styles (sketch, watercolor, pixel shading) and potentially integrate them with path tracing , alongside efficiency comparisons with PBR . Based on the progress during the milestone, we recognized the complexity involved and decided to focus primarily on establishing a solid OpenGL/GLSL rasterization framework and fully implementing one core NPR style: toon/cel shading . Consequently, the path tracing integration, implementation of other NPR styles, and direct PBR/efficiency comparisons were deferred . The vertex deduplication logic was a necessary implementation detail to handle standard OBJ file structures efficiently for OpenGL rendering.
-    </p>
 
     <h3>Problems Encountered</h3>
     <ul>
