@@ -1,16 +1,282 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My(Zixun's) Portfolio</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zixun Wang • Portfolio</title>
+  <style>
+    :root{
+      --bg: #0b0f14;
+      --panel: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.10);
+      --text: #e6eaf2;
+      --muted: #a6adbb;
+      --accent: #4ee1c1;    
+      --accent-2: #a78bfa;  
+      --shadow: 0 10px 30px rgba(0,0,0,.35), 0 2px 10px rgba(0,0,0,.25);
+      --radius: 18px;
+      --card-blur: 14px;
+    }
+
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: radial-gradient(1200px 800px at 10% -10%, rgba(79,216,193,.18), transparent 55%),
+                  radial-gradient(1000px 600px at 110% 0%, rgba(167,139,250,.15), transparent 50%),
+                  linear-gradient(180deg, #0b0f14, #0b0f14);
+
+      background-image:
+        radial-gradient(circle at 25px 25px, rgba(255,255,255,.06) 1px, transparent 0),
+        radial-gradient(circle at 5px 5px, rgba(255,255,255,.035) 1px, transparent 0),
+        radial-gradient(1200px 800px at 10% -10%, rgba(79,216,193,.18), transparent 55%),
+        radial-gradient(1000px 600px at 110% 0%, rgba(167,139,250,.15), transparent 50%),
+        linear-gradient(180deg, #0b0f14, #0b0f14);
+      background-size: 30px 30px, 30px 30px, auto, auto, auto;
+      background-attachment: fixed;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; color: inherit; }
+
+
+    .container{ width: min(1080px, 92vw); margin: 0 auto; }
+    header{ padding: 84px 0 36px; }
+    header .eyebrow{ color: var(--muted); letter-spacing: .14em; text-transform: uppercase; font-size: 12px; }
+    header h1{ font-size: clamp(32px, 6vw, 52px); margin: 10px 0 12px; line-height: 1.08; }
+    header .tagline{ color: var(--muted); font-size: clamp(14px, 2.6vw, 18px); max-width: 840px; }
+
+    .accent-bar {
+      height: 4px; width: 140px; border-radius: 999px; margin: 18px 0 0;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 24px rgba(78,225,193,.45);
+    }
+
+    main{ padding: 24px 0 80px; }
+
+    .grid{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 22px; }
+
+
+    .card {
+      position: relative;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: clip;
+      transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease;
+      backdrop-filter: blur(var(--card-blur));
+      -webkit-backdrop-filter: blur(var(--card-blur));
+      isolation: isolate;
+    }
+    .card::before { 
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(120deg, rgba(78,225,193,.16), transparent 35%, rgba(167,139,250,.14) 70%, transparent 100%);
+      mix-blend-mode: screen; opacity: .9;
+    }
+    .card:hover{ transform: translateY(-3px); border-color: rgba(255,255,255,.20); box-shadow: 0 16px 40px rgba(0,0,0,.5), 0 3px 12px rgba(0,0,0,.35); }
+
+    .card-body{ padding: 22px 22px 20px; display: grid; gap: 10px; }
+    .card-title{ font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .card-meta{ color: var(--muted); font-size: 14px; }
+
+    .pill {
+      font-size: 12px; padding: 6px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px;
+      background: linear-gradient(90deg, rgba(78,225,193,.18), rgba(167,139,250,.18));
+      border: 1px solid rgba(255,255,255,.12);
+    }
+
+    /* --- CS180 Dropdown --- */
+    .dropdown .trigger { width: 100%; background: transparent; border: 0; text-align: left; padding: 0; cursor: pointer; }
+    .trigger-row { display: flex; align-items: center; justify-content: space-between; }
+
+    .chev { width: 18px; height: 18px; flex: none; transition: transform .2s ease; opacity: .9; }
+    .dropdown[aria-expanded="true"] .chev { transform: rotate(180deg); }
+    .dropdown.open .chev { transform: rotate(180deg); }
+
+    .menu {
+      list-style: none; margin: 0; padding: 10px; border-top: 1px dashed rgba(255,255,255,.14);
+      display: grid; gap: 6px;
+      max-height: 0; opacity: 0; overflow: clip;
+      transition: max-height .28s ease, opacity .28s ease;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    }
+    .menu.open { max-height: 480px; opacity: 1; }
+
+    .menu a {
+      display: flex; gap: 10px; align-items: center;
+      padding: 10px 12px; border-radius: 12px;
+      background: transparent; border: 1px solid transparent;
+      transition: background .18s ease, border-color .18s ease, transform .18s ease;
+    }
+    .menu a .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px rgba(78,225,193,.8); }
+    .menu a:hover, .menu a:focus-visible { background: rgba(78,225,193,.10); border-color: rgba(255,255,255,.18); outline: none; transform: translateX(2px); }
+
+
+    footer{ padding: 36px 0 60px; color: var(--muted); font-size: 13px; }
+    .footer-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+
+    .sr-only{ position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 1px, 1px); white-space: nowrap; border: 0; }
+
+
+    @media (max-width: 520px){
+      header { padding-top: 64px; }
+      .menu { padding: 8px; }
+    }
+  </style>
 </head>
 <body>
-    <h1>Welcome to My Portfolio!</h1>
-    <a href="./CS 184/index.html">CS 184</a>
+  <header class="container">
+    <div class="eyebrow">Portfolio</div>
+    <h1>Welcome — I’m Zixun Wang</h1>
+    <p class="tagline">Select a course to dive into projects and write‑ups.</p>
+    <div class="accent-bar" aria-hidden="true"></div>
+  </header>
+
+  <main class="container">
+    <section class="grid" aria-label="Course Links">
+      <!-- CS 184 card (simple link) -->
+      <article class="card">
+        <a class="card-body" href="./CS 184/index.html">
+          <div class="card-title">
+            <span>CS 184</span>
+            <span class="pill">Computer Graphics</span>
+          </div>
+          <div class="card-meta">OpenGL • GLSL • NPR • Shaders</div>
+        </a>
+      </article>
+
+      <!-- CS 180 card (dropdown for Project 0–4) -->
+      <article class="card dropdown" id="cs180Card" aria-expanded="false">
+        <div class="card-body" id="cs180Header">
+          <button type="button" class="trigger" id="cs180Trigger" aria-haspopup="true" aria-expanded="false" aria-controls="cs180Menu">
+            <span class="sr-only">Toggle CS 180 projects</span>
+            <div class="trigger-row">
+              <div class="card-title">
+                <span>CS 180</span>
+                <span class="pill">Computer Vision</span>
+              </div>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </button>
+
+          <div class="card-meta">Click to choose a project (P0–P4)</div>
+        </div>
+        <ul id="cs180Menu" class="menu" role="menu" aria-label="CS 180 Projects">
+          <li role="none"><a role="menuitem" href="./CS 180/project0/index.html"><span class="dot"></span> Project 0 — Warm‑Up</a></li>
+          <li role="none"><a role="menuitem" href="./CS 180/project1/index.html"><span class="dot"></span> Project 1 — Colorizing Prokudin‑Gorskii</a></li>
+          <li role="none"><a role="menuitem" href="./CS 180/project2/index.html"><span class="dot"></span> Project 2 — Fun with Filters and Frequencies</a></li>
+          <li role="none"><a role="menuitem" href="./CS 180/project3/index.html"><span class="dot"></span> Project 3 — Face Morphing</a></li>
+          <li role="none"><a role="menuitem" href="./CS 180/project4/index.html"><span class="dot"></span> Project 4 — Light Field</a></li>
+        </ul>
+      </article>
+    </section>
+  </main>
+
+  <footer class="container">
+    <div class="footer-row">
+      <span>© <span id="year"></span> Zixun Wang</span>
+      <span aria-hidden="true">•</span>    </div>
+  </footer>
+
+  <script>
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Dropdown behavior
+    const card = document.getElementById('cs180Card');
+    const trigger = document.getElementById('cs180Trigger');
+    const menu = document.getElementById('cs180Menu');
+    const header = document.getElementById('cs180Header');
+
+    function setOpen(open){
+      card.classList.toggle('open', open);
+      if(open){
+        menu.classList.add('open');
+      } else {
+        menu.classList.remove('open');
+      }
+      card.setAttribute('aria-expanded', String(open));
+      trigger.setAttribute('aria-expanded', String(open));
+    }
+    function toggleMenu(){ setOpen(!menu.classList.contains('open')); }
+
+    trigger.addEventListener('click', (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      toggleMenu();
+    });
+
+    header.addEventListener('click', (e)=>{
+      if (e.target.closest('#cs180Menu')) return; // ignore clicks from menu
+      toggleMenu();
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e)=>{
+      if (!card.contains(e.target)) setOpen(false);
+    });
+
+    // Keyboard accessibility
+    trigger.addEventListener('keydown', (e)=>{
+      const items = Array.from(menu.querySelectorAll('a'));
+      const first = items[0];
+      const last = items[items.length-1];
+
+      switch(e.key){
+        case 'Enter':
+        case ' ':
+        case 'ArrowDown':
+          if(!menu.classList.contains('open')) { setOpen(true); }
+          e.preventDefault();
+          (first || trigger).focus();
+          break;
+        case 'ArrowUp':
+          if(!menu.classList.contains('open')) { setOpen(true); }
+          e.preventDefault();
+          (last || trigger).focus();
+          break;
+        case 'Escape':
+          setOpen(false);
+          trigger.focus();
+          break;
+      }
+    });
+
+    menu.addEventListener('keydown', (e)=>{
+      const items = Array.from(menu.querySelectorAll('a'));
+      const idx = items.indexOf(document.activeElement);
+      if(idx === -1) return;
+
+      switch(e.key){
+        case 'ArrowDown':
+          e.preventDefault();
+          (items[idx+1] || items[0]).focus();
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          (items[idx-1] || items[items.length-1]).focus();
+          break;
+        case 'Home':
+          e.preventDefault();
+          items[0].focus();
+          break;
+        case 'End':
+          e.preventDefault();
+          items[items.length-1].focus();
+          break;
+        case 'Escape':
+          setOpen(false);
+          trigger.focus();
+          break;
+      }
+    });
+  </script>
 </body>
 </html>
