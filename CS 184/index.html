@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CS 184 Final Report - Exploring Non-Photorealistic Rendering</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 20px auto;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .media-container {
+            display: flex;
+            flex-direction: column;   /* ← row instead of column */
+            gap: 2rem;             /* space between each group */
+        }
+
+        .media-container img, .media-container video, .media-container iframe {
+             max-width: 90%;
+             height: auto;
+             margin: 10px auto;
+             display: block;
+             border: 1px solid #ddd;
+             box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .group-images {
+            display: flex;   /* line the two APNGs side-by-side */
+            gap: 1rem;       /* space between the two images */
+        }
+
+        .group-images img {
+        max-width: 50%;  /* each takes up half the row */
+        height: auto;
+        border: 1px dashed #ccc;
+        padding: 4px;
+        }
+
+        .caption {
+            font-style: italic;
+            color: #555;
+            margin-top: 5px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .contributions ul {
+            list-style: none;
+            padding: 0;
+        }
+        .contributions li {
+            margin-bottom: 15px;
+            padding-left: 10px;
+            border-left: 3px solid #ccc;
+        }
+        .contributions strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .references ul {
+            list-style: disc;
+            padding-left: 20px;
+        }
+        .references li {
+            margin-bottom: 8px;
+        }
+
+    </style>
+    </head>
+<body>
+
+    <h1>Exploring Non-Photorealistic Rendering</h1>
+
+    <p style="text-align: center;"><strong>Team Members:</strong> Minjae Kwak, Zixun Wang, Shashwat Bansal, Jaymes Ryan Garbe</p>
+
+    <h2>Abstract</h2>
+    <p>
+      This project explores the domain of Non-Photorealistic Rendering (NPR) by developing an interactive 3D rendering application using OpenGL. We implemented several shaders using OpenGL and GLSL, allowing users to view any <code>.obj</code> model with distinct stylized appearances including basic toon shading, colored variations, chroma, and polka dot effects, and interactively rotate and zoom the models using mouse controls.
+    </p>
+
+    <h2>Technical Approach</h2>
+    <p>
+        Our technical approach centered on creating a flexible testbed for NPR shaders using standard C++ and OpenGL. We utilized several libraries to handle windowing, OpenGL extensions, mathematics, and model loading. The core components of our system include the application framework, model loading pipeline, shader implementation, and interaction controls.
+    </p>
+
+    <h3>Framework and Libraries</h3>
+    <p>
+        We developed a standalone C++ application. The core framework relies on:
+        <ul>
+            <li><b>GLFW:</b> For creating and managing the OpenGL context and window, and handling user input (keyboard, mouse).</li>
+            <li><b>GLEW:</b> To manage OpenGL extensions, ensuring access to necessary modern OpenGL functions across different platforms.</li>
+            <li><b>GLM:</b> For handling vector and matrix operations essential for 3D graphics transformations (model, view, projection matrices).</li>
+        </ul>
+        This setup provides a standard, cross-platform base for rendering 3D scenes with custom shaders. The build process was managed using CMake (`CMakeLists.txt`) which handled finding dependencies and compiling the application.
+    </p>
+
+    <h3>Model Loading</h3>
+    <p>
+        To render 3D models, we integrated the `tinyobjloader` library (`tiny_obj_loader.h`). Our `loadObjModel` function parses `.obj` files specified via command-line arguments. This function extracts vertex positions and normals from the OBJ file. It handles triangulation implicitly by iterating through faces and processing only triangles. To optimize rendering and handle vertices shared by multiple faces (with potentially different normals or texture coordinates), we implemented a vertex de-duplication mechanism. It uses an `std::unordered_map` to store unique combinations of vertex/normal indices, ensuring that identical vertices are stored only once in the final vertex buffer, while generating the correct element indices for drawing.
+    </p>
+
+    <h3>Shader Implementation</h3>
+    <p>
+      We implemented a custom shader system encapsulated in a `Shader` class (`shader.h`, `shader.cpp`), handling GLSL compilation, linking, and uniform setting. Our core exploration focused on variations of toon shading, all supporting multiple light sources whose contributions are typically summed before quantization. The key variations include:
+  </p>
+  <ul>
+    <li>
+      <b>Basic Toon Shading (greyscale):</b><br/>
+      <p>Defined in <code>shaders/toon.vert</code> and <code>shaders/toon_gray.frag</code>. We implemented this grayscale toon shader by quantizing the diffuse lighting into discrete bands based on the dot product between the surface normal and light direction, combining it with a constant ambient term to produce stylized shading with sharp grayscale transitions.</p>
+    </li>
+  
+    <li>
+      <b>Thermal, 5-Tone Palette, Yellow-Blue:</b><br/>
+      <p><strong>Yellow-Blue Stylized Glow:</strong> In <code>shaders/toon_best.frag</code>, the diffuse term is split into four hard bands via an <code>if/else</code> ladder. After combining with ambient and object color, a reverse “glow” (driven by <code>1.0 – diff</code>) tints shadowed regions in soft purple.</p>
+      <p><strong>Thermal:</strong> In <code>shaders/toon_thermal.frag</code>, we quantize the usual diffuse term (<code>diff = max(dot(norm, lightDir), 0.0)</code>) into a handful of ranges. Each range is then mapped—via a small <code>vec3</code> array or 1D texture lookup—to a classic heat-map gradient.</p>
+      <p><strong>5-Tone Palette:</strong> See <code>shaders/toon_5_tones.frag</code>. After computing <code>diff</code>, the shader indexes into an array of exactly five chosen colors. The bands repeat over successive lighting ranges.</p>
+      </li>
+  
+    <li>
+      <b>Polka Dots, Stipple:</b><br/>
+      <p><strong>Polka Dots:</strong> Implemented in <code>shaders/polka_dot.frag</code>, this shader tiles the surface into cells using <code>fract()</code> on UV or world-space coordinates. Within each cell it draws a perfect circle (via a simple distance function) at the center, coloring it by hashing the cell index into a small palette randomly.</p>
+      <p><strong>Stipple:</strong> See <code>shaders/stipple.frag</code>. The cells are the same, but each dot’s center is jittered by a <code>rand()</code> function for a more organic look. Dot radius is interpolated between two sizes based on lighting (<code>mix()</code>), and <code>smoothstep()</code> gives the dot edge a soft falloff—mimicking hand-drawn stippling in dark and light regions.</p>
+    </li>
+  
+    <li>
+      <b>Notebook, Sine-Wave:</b><br/>
+      <p><strong>Notebook:</strong> In <code>shaders/notebook.frag</code>, the surface is treated as lined paper. We compute <code>yPos = fs_in.FragPos.y + time*smallSpeed</code>, then apply <code>sin(yPos * lineFreq)</code> and a <code>smoothstep()</code> threshold to draw crisp horizontal lines. A vertical margin line (at X = constant) is added with another <code>smoothstep()</code>, all over a white base. Lastly, the same is done once vertically for the red margin line.</p>
+      <p><strong>Sine-Wave Bands:</strong> See <code>shaders/sine_waves.frag</code>. Here, each fragment’s Y is offset by <code>sin(fs_in.FragPos.x * waveFreq + time)</code>. We then compute <code>bandPos = fract((yOffset) * bandCount)</code>, carve out a sharp line with <code>smoothstep()</code>, and fade above it for a flowing wave pattern. A uniform wave color is blended over white for a continuous diminishing band effect.</p>
+    </li>
+  
+    <li>
+      <b>Chroma:</b><br/>
+      <p>Implemented in <code>shaders/chroma.frag</code>. First, we take the basic <code>diff</code> and perturb it per channel: <code>diffR = diff + sin(depth*freqR)</code>, <code>diffG = diff + sin(depth*freqG + phase)</code>, and <code>diffB = diff + sin(depth*freqB + phase*2)</code>. Each is then clamped and quantized, creating slight hue shifts per channel that emphasize depth. Lastly, we moved to a vector of light sources in <code>main.cpp</code> to allow for more well-distributed lighting.</p>
+    </li>
+  
+    <li>
+      <b>Guap:</b><br/>
+      <p>See <code>shaders/guap.frag</code>. This overlay uses a repeating equilateral-triangle grid: we compute local UV within each cell, apply a triangle-distance function to mask out the triangles, and stagger every other row by offsetting X. On top of that, the shader mixes two color ramps based on <code>diff</code> (or time): for shadows it leans toward a deep green, for mid-tones a soft teal, and for highlights a pale white. Due to the large number of triangles, guap suffers from heavy aliasing.</p>
+    </li>
+    <li>
+      <b>Textured NPR:</b><br/>
+      <p>We load a 2D texture (crosshatch pattern) and pass it into the fragment shader as a <code>sampler2D</code>. The model's UV coordinates are interpolated per fragment and used to sample the texture. We then modulate this sampled texture with our quantized lighting or color bands, adding hatching line surface details. This extra layer of texture enriches the NPR effect by giving surfaces an enhanced stylazed look.</p>
+    </li>
+  </ul>
+
+  <h3>Implementation Details and Variations</h3>
+      We originally planned to explore multiple distinct NPR styles and compare them against Path Tracing or PBR. However, we pivoted to focus exclusively on the OpenGL rasterization pipeline and dedicated our efforts to any shaders we found on the Komikaze website. After completing the OpenGL setup, a majority of the shaders were implemented in <code>.frag</code> files since vertices did not need modifications, and we weren't working with textures. We ended up eyeballing key visual details on the sample NPR renderings and did our best to implement something similar.
+  </p>
+
+    <h3>Problems Encountered</h3>
+    <ul>
+        <li><b>OBJ Loading and Normals:</b> A significant initial challenge involved correctly loading and processing OBJ files using <code>tinyobjloader</code>. We were trying to import <code>.fbx, .svg</code> and <code>.dae</code> files, but ultimately went with <code>.obj</code> files because they were the most stable to work with using the packages.</li>
+        <li><b>Shader Debugging:</b> Identifying issues with lighting calculations, texture mapping, and visual artifacts required repetitive testing and careful inspection of the visual output. We found mostly working with <code>.vert</code> files was optimally efficient and allowed us to implement a wide variety of NPR ideas that we saw on the Komikaze website.</li>
+        <li><b>Textures:</b> Importing textures proved to be the most unexpectedly challenging task in the project. Getting the orientation correct, along with making other color changes on top of the texture could not be done within the given timeframe because the textures would produce jarring visual artifacts. We ultimately only implemented a single texture shader which used linear hashing on a tiles texture.</li>
+    </ul>
+
+    <h3>Lessons Learned</h3>
+    <ul>
+        <li><b>OpenGL/GLSL Fundamentals:</b> Gained practical experience setting up an OpenGL rendering pipeline, writing vertex and fragment shaders in GLSL, managing shader compilation/linking, and passing data (vertex attributes, uniforms) from the CPU to the GPU.</li>
+        <li><b>3D Math and Transformations:</b> Reinforced understanding of essential 3D graphics concepts like model, view, and projection matrices, normal transformations, and vector operations (dot products, normalization) used in lighting calculations. Also, implementing multiple light sources using a vector of light directions proved simple and effective.</li>
+        <li><b>NPR Techniques:</b> Learned the core principles behind toon/cel shading, specifically how quantizing lighting calculations can achieve a stylized, non-photorealistic look.</li>
+        <li><b>OBJ File Format and Loading:</b> Gained familiarity with the structure of OBJ files and the complexities of parsing them, including handling vertex indexing, normals, and the need for vertex de-duplication for efficient rendering.</li>
+        <li<b>Working with textures:</b> Importing textures and adding shaders on top was more challenging than we had initially thought. We learned a lot about which aspects of textures are preserved when mapping them to 3D models, and which are not.</li>
+    </ul>
+    <h2>Project Links</h2>
+    <ul>
+        <li><strong>Full Results:</strong> <a href=https://drive.google.com/drive/folders/1w7E7JuO_nEW7F01tdn2gu8siVbKvwKQW?usp=sharing>https://drive.google.com/drive/folders/1w7E7JuO_nEW7F01tdn2gu8siVbKvwKQW?usp=sharing</a></li>
+        <li><strong>Code Repo:</strong> <a href=https://github.com/superjay0208/cs184_sp25_final_project>https://github.com/superjay0208/cs184_sp25_final_project</a></li>
+        <li><strong>Website:</strong> <a href="https://superjay0208.github.io/" target="_blank">https://superjay0208.github.io/</a></li>
+        <li><strong>Presentation:</strong> <a href="https://docs.google.com/presentation/d/1RfQtmLIhLqFPoOdPa2pzxL3zuBOIFqItZJ2SWw2I9kE/edit?usp=sharing" target="_blank">Google Slides Presentation</a></li>
+        <li><strong>Video Demo:</strong> <a href="https://drive.google.com/file/d/1MA8pasBDFyrZDKzD0pBjy2Qdmx0CHSao/view?usp=sharing" target="_blank">Google Drive Video Demo</a></li>
+    </ul>
+    <div class="media-container">
+    
+      <!-- Thermal Group -->
+      <div class="showcase-group">
+        <h3>Thermal</h3>
+        <div class="group-images">
+          <img src="images/tung_thermal.apng" alt="tung_thermal">
+          <img src="images/tralala_thermal.apng" alt="tralala_thermal">
+        </div>
+        <p class="caption">Tung Tung Tung Sahur and Tralalero Tralala with termal coloring shader.</p>
+      </div>
+      <!-- Polka Dot Group -->
+      <div class="showcase-group">
+        <h3>Polka Dot</h3>
+        <div class="group-images">
+          <img src="images/tung_polka.apng" alt="tung_polka">
+          <img src="images/tralala_polka.apng" alt="tralala_polka">
+        </div>
+        <p class="caption">Tung Tung Tung Sahur and Tralalero Tralala with polka dot shader.</p>
+      </div>
+    
+      <!-- Notebook Group -->
+      <div class="showcase-group">
+        <h3>Notebook</h3>
+        <div class="group-images">
+          <img src="images/tung_notebook.apng" alt="tung_notebook">
+          <img src="images/tralala_notebook.apng" alt="tralala_notebook">
+        </div>
+        <p class="caption">Tung Tung Tung Sahur and Tralalero Tralala with notebook shader.</p>
+      </div>
+    
+    </div>
+
+
+    <h2 class="references">References</h2>
+    <ul>
+        <li>Gooch, Bruce, and Amy Gooch. *Non-Photorealistic Rendering*. A K Peters/CRC Press, 2001.</li>
+        <li>Rosales, M., et al. "A Survey on Non-photorealistic Rendering Approaches for Point Cloud Visualization." *Visual Informatics*, vol. 5, no. 1, 2021, pp. 49-64.</li>
+        <li>Komikaze NPR. Toon Shader Pack. (Reference for desired outcome style) URL: `https://superhivemarket.com/products/komikaze`.</li>
+        <li>OpenGL Documentation: [https://www.opengl.org/]</li>
+        <li>GLEW (The OpenGL Extension Wrangler Library): [http://glew.sourceforge.net/]</li>
+        <li>GLFW (An Open Source, multi-platform library for OpenGL): [https://www.glfw.org/]</li>
+        <li>GLM (OpenGL Mathematics): [https://glm.g-truc.net/]</li>
+        <li>TinyObjLoader: [https://github.com/tinyobjloader/tinyobjloader]</li>
+        <li>LearnOpenGL: [https://learnopengl.com/] (General tutorials and reference)</li>
+        <li>Alex CGW. Tralalero Tralala 3D Game ready model FREE. Sketchfab, 15 Apr. 2025. URL: <a href="https://sketchfab.com/3d-models/tralalero-tralala-3d-game-ready-model-free-e043ac3561f9417b800b6cd04a0de163">https://sketchfab.com/3d-models/tralalero-tralala-3d-game-ready-model-free-e043ac3561f9417b800b6cd04a0de163</a></li>
+        <li>ESO. Tung Tung Sahur [NOT AI]. Sketchfab, 25 Apr. 2025. URL: <a href="https://sketchfab.com/3d-models/tung-tung-sahur-not-ai-3577ea207ce647f2a3158f4c3235089d">https://sketchfab.com/3d-models/tung-tung-sahur-not-ai-3577ea207ce647f2a3158f4c3235089d</a></li>
+        </ul>
+
+
+    <h2 class="contributions">Contributions</h2>
+    <ul>
+        <li><strong>Minjae Kwak:</strong> I worked on exploring textured NPR methods with crosshatch pattern and recording the results for the final presentation and the website. </li>
+        <li><strong>Zixun Wang:</strong> I worked mainly on basic toon shading framework, and camera interactions. I helped with drafting the write-up website.</li>
+        <li><strong>Shashwat Bansal:</strong> I mainly worked on the upgrades of the toon shader, along with some other shaders such as Notebook and Polka Dot. I also implemented the chroma shader and the guap shader, for the former of which I added multiple lighting sources to <code>main.cpp</code>.</li>
+        <li><strong>Jaymes Ryan Garbe:</strong> I helped build the camera rotation mechanism to automatically keep rotating the models while keeping light sources fixed. I also helped setup the OpenGL framework.</fli>
+    </ul>
+
+</body>
+</html>
