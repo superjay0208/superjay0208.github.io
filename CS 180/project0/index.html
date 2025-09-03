@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CS180 • Project 0 — Becoming Friends with Your Camera</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --ink:#333; --sub:#555; --rule:#ccc; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 20px auto;
+      color: var(--ink);
+      background: #fff;
+    }
+    h1, h2, h3 { margin-bottom: 10px; color: var(--ink); }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 10px;
+    }
+    h2 {
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 5px;
+      margin-top: 30px;
+    }
+    .meta {
+      text-align: center;
+      color: var(--sub);
+      margin-top: -10px;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+
+    /* Media blocks */
+    .media-container { display: flex; flex-direction: column; gap: 2rem; }
+    .group { width: 100%; }
+    .group h3 { margin: 0 0 10px 0; }
+
+    /* Base media styling */
+    .media-container img, .media-container video, .media-container iframe {
+      height: auto;
+      margin: 10px auto;
+      display: block;
+      border: 1px solid #ddd;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+
+    /* SIDE-BY-SIDE + SMALLER */
+    .group-images {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: nowrap;              /* keep side-by-side */
+    }
+    .group-images img {
+      width: 320px;                   /* smaller fixed width */
+      max-width: 320px;               /* prevent stretching */
+      border: 1px dashed #ccc;
+      padding: 4px;
+    }
+
+    /* Center the GIF container + size */
+    .group.solo {
+      display: flex;
+      justify-content: center;        /* ← centers the GIF */
+    }
+    .group.solo img {
+      width: 480px;
+      max-width: 80%;
+      margin: 10px auto;              /* keep centered on narrow viewports */
+    }
+
+    .caption {
+      font-style: italic;
+      color: var(--sub);
+      margin-top: 6px;
+      text-align: center;
+      font-size: 0.95em;
+    }
+
+    /* Print */
+    @media print {
+      a[href]:after { content: " (" attr(href) ")"; font-size: 0.9em; color: #777; }
+      body { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>CS180 — Project 0: Becoming Friends with Your Camera</h1>
+
+
+  <h2>Part 1 — Selfie: The Wrong Way vs. The Right Way</h2>
+  <div class="group">
+    <div class="group-images">
+      <img src="images/face1.jpg" alt="Close-up selfie from very near (wrong way)." />
+      <img src="images/face2.jpg" alt="Stepped back and zoomed portrait with same face size (right way)." />
+    </div>
+    <p class="caption">Close portrait comparison — left: close-up; right: stepped-back + zoomed to match face size.</p>
+  </div>
+
+  <h2>Part 2 — Architectural Perspective Compression</h2>
+  <div class="group">
+    <div class="group-images">
+      <img src="images/hallway2.jpg" alt="Zoomed-in long street/path view (flattened/compressed perspective)." />
+      <img src="images/hallway1.jpg" alt="Walked forward, no zoom, matching scene size (deeper perspective)." />
+    </div>
+    <p class="caption">Hallway scene comparison — left: zoomed from afar (flatter look); right: moved closer, no zoom.</p>
+  </div>
+
+  <h2>Part 3 — The Dolly Zoom (Animated GIF)</h2>
+  <div class="group solo">
+    <img src="images/shark.gif" alt="Dolly zoom GIF created from stills: camera moves back while zooming in." />
+  </div>
+  <p class="caption">Dolly Zoom — camera dolly back + zoom in, keeping subject size roughly constant.</p>
+
+</body>
+</html>
