@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CS180 • Project 1 — Colorizing Prokudin-Gorskii</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --ink:#333; --sub:#555; --rule:#ccc; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 20px auto;
+      color: var(--ink);
+      background: #fff;
+    }
+    h1, h2, h3 { margin-bottom: 10px; color: var(--ink); }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 10px;
+    }
+    h2 {
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 5px;
+      margin-top: 40px;
+    }
+    h3 {
+      margin-top: 25px;
+      color: var(--sub);
+      font-weight: 600;
+    }
+    .meta {
+      text-align: center;
+      color: var(--sub);
+      margin-top: -10px;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+    p {
+      margin-bottom: 1rem;
+    }
+    strong {
+      color: #000;
+    }
+
+    /* Media blocks */
+    .results-container { display: flex; flex-direction: column; gap: 2.5rem; }
+    .group { width: 100%; }
+
+    .group-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .image-block {
+      flex: 1 1 48%;   /* two per row */
+      max-width: 48%;
+      text-align: center;
+    }
+
+    .image-block img {
+      width: 100%;
+      height: auto;
+      border: 1px solid #ddd;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+      display: block;
+      margin: 0 auto;
+    }
+
+    .caption {
+      font-style: italic;
+      color: var(--sub);
+      margin-top: 6px;
+      font-size: 0.95em;
+    }
+
+    /* Print */
+    @media print {
+      a[href]:after { content: " (" attr(href) ")"; font-size: 0.9em; color: #777; }
+      body { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Programming Project #1: Colorizing the Prokudin-Gorskii Collection</h1>
+
+  <h2>Overview</h2>
+  <p>
+    This project focuses on automatically creating color photographs from the digitized glass plate negatives of Sergei Mikhailovich Prokudin-Gorskii, who was ahead of his time in visualizing color photography. Each negative captures the same scene through three different color filters (Blue, Green, and Red, contrary to the usual RGB order), stacked vertically. The core task is to extract these three channels, align them precisely, and stack them to reconstruct a single, full-color RGB image. The main challenge lies in finding the optimal displacement vectors for the Green and Red channels relative to the Blue channel to correct for misalignments from the photographic process.
+  </p>
+
+  <h2>My Approach</h2>
+  <p>
+    My approach tackles the alignment problem at two different scales. First, I implemented a basic single-scale alignment algorithm that performs an exhaustive search over a small window of displacements with the starter code provided. Then, to handle the large, high-resolution TIFF images efficiently (the naive approach would have taken more than 1 minute per image), I implemented a multi-scale image pyramid algorithm. This coarse-to-fine strategy significantly speeds up the search for the optimal alignment. The primary metric used for scoring the alignment was the Normalized Cross-Correlation (NCC).
+  </p>
+
+  <h3>Single-Scale Alignment</h3>
+  <p>
+    The single-scale implementation works by taking the Blue channel as the fixed reference. It then iterates through a predefined search window (e.g., [-15, 15] pixels) for both the x and y axes. For each possible displacement of the Green and Red channels, it calculates the NCC against the Blue channel. The displacement vector that results in the maximum NCC is chosen as the best alignment. To avoid noisy borders from interfering with the calculation, 5% of the image was cropped before computing the NCC. This method is effective for low-resolution images where the true displacement is small.
+  </p>
+
+  <h3>Multi-Scale Pyramid Alignment</h3>
+  <p>
+    For large images, an exhaustive search is computationally infeasible. My solution, implemented in the align_pyramid function, resolves this by using a coarse-to-fine recursive strategy. My process_image function automatically selects this pyramid method for any image with a dimension larger than 500 pixels, ensuring efficient handling of high-resolution .tif files.
+  </p>
+  <p>
+    The align_pyramid function operates recursively. At each step, it downscales the channel and reference images by a factor of two using cv.resize. It then calls itself on these smaller images until it reaches a base case: either the maximum recursion depth is met, or the image becomes smaller than 50 pixels on its shortest side. At this coarsest level, it performs a single-scale search using align_channel over a [-15, 15] pixel window to get an initial estimate of the displacement.
+  </p>
+  <p>
+    As the recursion goes on, the displacement vector found at the coarser (smaller) level is doubled to match the scale of the current, finer level. This provides an excellent starting point for alignment. Instead of searching a large area, my code then performs a small, local refinement search in a 5x5 window (search_window = 2) around this scaled estimate. This process repeats up the pyramid, with each level refining the alignment from the previous one. This hierarchical approach dramatically reduces the search space, bringing the runtime for high-resolution images down to under a minute. Throughout all comparisons, NCC metric is used, and a 5% border continues to be effective in avoiding edge artifacts.
+  </p>
+
+  <h2>Results on Provided Images</h2>
+  <div class="results-container">
+
+    <div class="group">
+      <h3>cathedral.jpg</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/cathedral_aligned.jpg" alt="Colorized result for cathedral.jpg" />
+          <div class="caption">Processing Time: <strong>0.10s</strong> | Green: <strong>(5, 2)</strong> | Red: <strong>(12, 3)</strong></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="group">
+      <h3>church.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/church_aligned.jpg" alt="Colorized result for church.tif" />
+          <div class="caption">Processing Time: <strong>9.95s</strong> | Green: <strong>(25, 3)</strong> | Red: <strong>(58, -5)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>harvesters.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/harvesters_aligned.jpg" alt="Colorized result for harvesters.tif" />
+          <div class="caption">Processing Time: <strong>9.24s</strong> | Green: <strong>(60, 16)</strong> | Red: <strong>(124, 14)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>icon.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/icon_aligned.jpg" alt="Colorized result for icon.tif" />
+          <div class="caption">Processing Time: <strong>9.45s</strong> | Green: <strong>(40, 17)</strong> | Red: <strong>(89, 23)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>melons.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/melons_aligned.jpg" alt="Colorized result for melons.tif" />
+          <div class="caption">Processing Time: <strong>9.37s</strong> | Green: <strong>(82, 9)</strong> | Red: <strong>(177, 11)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>monastery.jpg</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/monastery_aligned.jpg" alt="Colorized result for monastery.jpg" />
+          <div class="caption">Processing Time: <strong>0.09s</strong> | Green: <strong>(-3, 2)</strong> | Red: <strong>(3, 2)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>self_portrait.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/self_portrait_aligned.jpg" alt="Colorized result for self_portrait.tif" />
+          <div class="caption">Processing Time: <strong>9.34s</strong> | Green: <strong>(79, 29)</strong> | Red: <strong>(175, 34)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>three_generations.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/three_generations_aligned.jpg" alt="Colorized result for three_generations.tif" />
+          <div class="caption">Processing Time: <strong>9.12s</strong> | Green: <strong>(55, 13)</strong> | Red: <strong>(112, 10)</strong></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="group">
+      <h3>tobolsk.jpg</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/tobolsk_aligned.jpg" alt="Colorized result for tobolsk.jpg" />
+          <div class="caption">Processing Time: <strong>0.13s</strong> | Green: <strong>(3, 2)</strong> | Red: <strong>(6, 3)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>italil.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/italil_aligned.jpg" alt="Colorized result for italil.tif" />
+          <div class="caption">Processing Time: <strong>9.32s</strong> | Green: <strong>(38, 21)</strong> | Red: <strong>(77, 35)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>lastochikino.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/lastochikino_aligned.jpg" alt="Colorized result for lastochikino.tif" />
+          <div class="caption">Processing Time: <strong>10.76s</strong> | Green: <strong>(-3, -2)</strong> | Red: <strong>(76, -9)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>lugano.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/lugano_aligned.jpg" alt="Colorized result for lugano.tif" />
+          <div class="caption">Processing Time: <strong>11.19s</strong> | Green: <strong>(41, -17)</strong> | Red: <strong>(92, -28)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>siren.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/siren_aligned.jpg" alt="Colorized result for siren.tif" />
+          <div class="caption">Processing Time: <strong>11.33s</strong> | Green: <strong>(49, -7)</strong> | Red: <strong>(96, -25)</strong></div>
+        </div>
+      </div>
+    </div>
+  
+    <div class="group">
+      <h3>emir.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/emir_aligned.jpg" alt="Colorized result for emir.tif" />
+          <div class="caption">Processing Time: <strong>9.48s</strong> | Green: <strong>(49, 24)</strong> | Red: <strong>(102, 43)</strong></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>Extra Images</h2>
+  <div class="results-container">
+    <p>Here are a few results on additional images chosen from the online Prokudin-Gorskii collection.</p>
+    <div class="group">
+      <h3>hut.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/hut_aligned.jpg" alt="Colorized result for hut.tif" />
+          <div class="caption">Processing Time: <strong>9.31s</strong> | Green: <strong>(48, 38)</strong> | Red: <strong>(107, 55)</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <div class="group">
+      <h3>napoleon.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/napoleon_aligned.jpg" alt="Colorized result for napoleon.tif" />
+          <div class="caption">Processing Time: <strong>9.93s</strong> | Green: <strong>(63, 5)</strong> | Red: <strong>(132, -1)</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group">
+      <h3>sea.tif</h3>
+      <div class="group-images">
+        <div class="image-block">
+          <img src="images/sea_aligned.jpg" alt="Colorized result for sea.tif" />
+          <div class="caption">Processing Time: <strong>11.22s</strong> | Green: <strong>(43, -34)</strong> | Red: <strong>(258, -70)</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Challenges</h2>
+  <p>
+    I spent most of the time tuning the image-pyramid hyperparameters. I played with the number of levels, the downscale factor, and the fine-level search window. More levels (and slightly larger fine windows) helped stabilize big misalignments without blowing up runtime, but the gains tapered off quickly after 4 levels. I also varied the crop fraction during scoring so the matcher focused on the interior; small crops (~5–10%) were safest—anything larger started dropping useful signal. I tried switching to zero-mean NCC (subtracting the mean before correlation) to reduce sensitivity to brightness shifts, but in practice it didn’t improve the tricky cases much compared to plain NCC with the tuned pyramid. Overall, careful pyramid settings (≈4 levels, 0.5 downscale, ±2–3 px fine search, ~5–10% crop) worked well for me.  </p>
+  <p>
+</body>
+</html>
