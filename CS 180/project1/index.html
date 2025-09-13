@@ -101,6 +101,10 @@
     My approach tackles the alignment problem at two different scales. First, I implemented a basic single-scale alignment algorithm that performs an exhaustive search over a small window of displacements with the starter code provided. Then, to handle the large, high-resolution TIFF images efficiently (the naive approach would have taken more than 1 minute per image), I implemented a multi-scale image pyramid algorithm. This coarse-to-fine strategy significantly speeds up the search for the optimal alignment. The primary metric used for scoring the alignment was the Normalized Cross-Correlation (NCC).
   </p>
 
+  <p>
+  Normalized Cross-Correlation (NCC) is a way of comparing two images by looking at how similar their patterns are, while ignoring differences in overall brightness. In other words, it checks whether the shapes and edges in one image line up with those in another, instead of just comparing raw pixel values. This makes NCC a more reliable metric for alignment, since even if one channel is darker or lighter than another, their structural features can still match well.
+  </p>
+
   <h3>Single-Scale Alignment</h3>
   <p>
     The single-scale implementation works by taking the Blue channel as the fixed reference. It then iterates through a predefined search window (e.g., [-15, 15] pixels) for both the x and y axes. For each possible displacement of the Green and Red channels, it calculates the NCC against the Blue channel. The displacement vector that results in the maximum NCC is chosen as the best alignment. To avoid noisy borders from interfering with the calculation, 5% of the image was cropped before computing the NCC. This method is effective for low-resolution images where the true displacement is small.
@@ -116,6 +120,14 @@
   <p>
     As the recursion goes on, the displacement vector found at the coarser (smaller) level is doubled to match the scale of the current, finer level. This provides an excellent starting point for alignment. Instead of searching a large area, my code then performs a small, local refinement search in a 5x5 window (search_window = 2) around this scaled estimate. This process repeats up the pyramid, with each level refining the alignment from the previous one. This hierarchical approach dramatically reduces the search space, bringing the runtime for high-resolution images down to under a minute. Throughout all comparisons, NCC metric is used, and a 5% border continues to be effective in avoiding edge artifacts.
   </p>
+
+  <figure style="text-align: center;">
+    <img src="images/Image_pyramid.png" alt="Image Pyramid Example" style="max-width: 80%; height: auto; border: 1px solid #ccc; border-radius: 8px;">
+    <figcaption>
+      Figure: Illustration of an image pyramid (source: 
+      <a href="https://en.wikipedia.org/wiki/Pyramid_(image_processing)" target="_blank">Wikipedia</a>)
+    </figcaption>
+  </figure>
 
   <h2>Results on Provided Images</h2>
   <div class="results-container">
