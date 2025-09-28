@@ -353,10 +353,10 @@ I created hybrid images by combining the high frequencies of one image with the 
 
   <h3>Part 2.3: Gaussian and Laplacian Stacks</h3>
   <p>
-    I implemented stacks (no downsampling, just repeated Gaussian blur) and 
-    constructed Laplacian stacks by subtracting adjacent levels. This prepped 
-    me for blending. I tested on the apple and orange pair and visualized the 
-    stacks level by level.
+  To prepare images for blending, I first built a Gaussian stack. This is created by taking an original image and repeatedly applying a Gaussian blur to it, creating a series of progressively smoother images. Unlike a pyramid, a stack keeps all the images the same size, simply capturing the low-frequency, blurry information at different levels. This process was done separately for both the apple and the orange, resulting in two distinct Gaussian stacks.
+</p>
+  <p>
+  Next, I constructed a Laplacian stack from each Gaussian stack. A Laplacian stack captures the high-frequency details—like edges and textures—that are lost between each blur level. Each level is calculated by finding the difference between two adjacent levels in the Gaussian stack. This effectively isolates the image details into different frequency bands. By decomposing the apple and orange into these stacks of details, I set the stage to seamlessly merge them together in the final blending step.
   </p>
 
   
