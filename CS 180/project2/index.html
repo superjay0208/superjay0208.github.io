@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CS180 • Project 2 — Fun with Filters and Frequencies!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --ink:#333; --sub:#555; --rule:#ccc; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 20px auto;
+      color: var(--ink);
+      background: #fff;
+    }
+    h1, h2, h3 { margin-bottom: 10px; color: var(--ink); }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 10px;
+    }
+    h2 {
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 5px;
+      margin-top: 40px;
+    }
+    h3 {
+      margin-top: 25px;
+      color: var(--sub);
+      font-weight: 600;
+    }
+    .meta {
+      text-align: center;
+      color: var(--sub);
+      margin-top: -10px;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+    p { margin-bottom: 1rem; }
+    pre {
+      background: #f8f8f8;
+      padding: 10px;
+      border: 1px solid #ddd;
+      overflow-x: auto;
+      font-size: 0.9em;
+    }
+    .results-container { display: flex; flex-direction: column; gap: 2.5rem; }
+    .group-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .image-block {
+      flex: 1 1 48%;
+      max-width: 48%;
+      text-align: center;
+    }
+    .image-block img {
+      width: 100%;
+      border: 1px solid #ddd;
+      display: block;
+      margin: 0 auto;
+    }
+    .caption {
+      font-style: italic;
+      color: var(--sub);
+      margin-top: 6px;
+      font-size: 0.95em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Programming Project #2: Fun with Filters and Frequencies!</h1>
+
+  <h2>Overview</h2>
+  <p>
+    This project was all about filters, frequencies, and blending images in creative ways. 
+    I worked through convolution from scratch, edge detection, Gaussian smoothing, 
+    unsharp masking, hybrid images, and multi-resolution blending (the famous oraple). 
+    Along the way I included code snippets, qualitative results, and my observations.
+  </p>
+
+  <!-- ================= PART 1 ================= -->
+
+  <h2>Part 1: Fun with Filters</h2>
+
+  <h3>Part 1.1: Convolutions from Scratch</h3>
+  <p>
+    I implemented convolution in two ways: first with four nested loops, and then with two. 
+    I also added zero padding so the output had the same size as the input. 
+    After that, I compared my results with <code>scipy.signal.convolve2d</code> to make sure 
+    things matched up. Finally, I applied a 9×9 box filter to a grayscale photo of myself, 
+    and also tested finite difference operators Dx and Dy.
+  </p>
+  <pre><code>[import numpy as np
+
+def conv2d_four_loops(img: np.ndarray, kernel: np.ndarray) -> np.ndarray:
+    k = np.flipud(np.fliplr(kernel))
+    H, W = img.shape
+    Kh, Kw = k.shape
+    ph, pw = Kh//2, Kw//2
+    padded = pad2d(img, ph, pw, 0.0)
+    out = np.zeros_like(img, dtype=np.float64)
+    for i in range(H):          
+        for j in range(W):      
+            s = 0.0
+            for m in range(Kh): 
+                for n in range(Kw): 
+                    s += k[m, n] * padded[i + m, j + n]
+            out[i, j] = s
+    return out
+
+def conv2d_two_loops(img: np.ndarray, kernel: np.ndarray) -> np.ndarray:
+    k = np.flipud(np.fliplr(kernel))
+    H, W = img.shape
+    Kh, Kw = k.shape
+    ph, pw = Kh//2, Kw//2
+    padded = pad2d(img, ph, pw, 0.0)
+    out = np.zeros_like(img, dtype=np.float64)
+    for i in range(H):       
+        for j in range(W):      
+            window = padded[i:i+Kh, j:j+Kw]
+            out[i, j] = np.sum(window * k)  
+    return out
+
+def pad2d(img: np.ndarray, pad_h: int, pad_w: int, value: float = 0.0) -> np.ndarray:
+    H, W = img.shape
+    out = np.full((H + 2*pad_h, W + 2*pad_w), value, dtype=img.dtype)
+    out[pad_h:pad_h+H, pad_w:pad_w+W] = img
+    return out
+]</code></pre>
+    <p>
+To implement convolution, I first had to flip my kernel both horizontally and vertically. This is because the mathematical definition of convolution, <code>(I * K)(i, j) = &Sigma; &Sigma; I(i-m, j-n) K(m, n)</code>, involves summing over the kernel with flipped indices. My initial four-loop approach was a direct translation of this formula, but it was slow. I optimized this by using NumPy to slice a window from the image and perform a single, fast element-wise multiplication with the kernel, which reduced it to just two loops. I also added zero-padding to keep the output image the same size as the input.
+</p>
+
+  <p>
+    Here are the results of applying the Dx and Dy operators, as well as the box filter, 
+    to my grayscale selfie. The box filter smooths out details by a little bit, while Dx and Dy highlight 
+    horizontal and vertical edges respectively. It seems that the edges are not super prominent in this photo, 
+    I suspect the resolution and lighting play a role.
+  </p>
+
+  <p> 
+    To compare my methods with <code>scipy.signal.convolve2d</code>, I realized that scipy's function has the best runtime
+    because it's implemented in C and optimized. My two-loop version was significantly faster than the four-loop one. <code>scipy.signal.convolve2d</code>
+    also has options for different boundary conditions and modes, which I didn't implement. But for basic convolution with zero padding, my results matched perfectly.
+  </p>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      
+      <div> 
+        
+        <img src="images/selfie.png" style="width: 600px;"/>
+        
+        <div class="caption">selfie</div>
+
+      </div>
+    </div>
+  </div>
+  <h3>Part 1.2: Finite Difference Operator</h3>
+  <p>
+To find edges, I used simple finite difference operators, <code>Dx = [1, 0, -1]</code> and <code>Dy = [[1], [0], [-1]]</code>, which are approximations of the partial derivatives in the horizontal and vertical directions. Convolving my image with these gave me the image gradients, <code>Ix</code> and <code>Iy</code>. I then calculated the gradient magnitude using the formula <code>&radic;(Ix&sup2; + Iy&sup2;)</code>. This value is large where the image intensity changes sharply, highlighting the edges. I binarized this magnitude image with a threshold (0.2) to create a clean edge map.
+</p>
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      
+      <div> 
+        
+        <img src="images/cameraman.png" style="width: 600px;"/>
+        
+        <div class="caption">cameraman</div>
+
+      </div>
+    </div>
+  </div>
+
+  <h3>Part 1.3: Derivative of Gaussian (DoG) Filter</h3>
+  <p>
+    The plain finite difference edges were really noisy. To fix this, I smoothed 
+    the image first with a Gaussian filter, then applied Dx/Dy again. I also 
+    created actual DoG filters by convolving the Gaussian with Dx and Dy, then 
+    used those directly. Both approaches gave me the same result, but with much 
+    less noise. I also visualized the DoG filters themselves.
+  </p>
+
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      
+      <div> 
+        
+        <img src="images/DoG.png" style="width: 800px;"/>
+        
+        <div class="caption">DoG filters</div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      
+      <div> 
+        
+        <img src="images/DoG_B.png" style="width: 800px;"/>
+        
+        <div class="caption">DoG Binarized</div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= PART 2 ================= -->
+
+  <h2>Part 2: Fun with Frequencies</h2>
+
+  <h3>Part 2.1: Image Sharpening</h3>
+<p>
+My approach to sharpening uses the "unsharp mask" technique. The core idea is to exaggerate the high-frequency details. I first created a blurred, low-frequency version of the image by applying a Gaussian filter. I then isolated the high-frequency details by subtracting this blurred version from the original. The final step was to add these details back into the original image, scaled by a factor &alpha;, according to the formula: <code>I_sharpened = I_original + &alpha; * (I_original - I_blurred)</code>.
+</p>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/Taj.png" style="width: 800px;"/>
+        <div class="caption">Taj Mahal</div>
+      </div>
+    </div>
+  </div>
+  <p>
+      The sharpening worked well to bring out details and edges, especially in the 
+      Taj Mahal image. The carved patterns and textures became more pronounced. 
+      However, if I sharpened too much (high alpha) or used a very small Gaussian 
+      sigma, it introduced artifacts like halos around edges. So there was a balance 
+      to strike between enhancing details and keeping the image natural-looking.
+  </p>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/sharpen.png" style="width: 800px;"/>
+        <div class="caption">Testing sharpening on stock images</div>
+      </div>
+    </div>
+  </div>
+
+  
+
+  <h3>Part 2.2: Hybrid Images</h3>
+  <p>
+I created hybrid images by combining the high frequencies of one image with the low frequencies of another. For the first image, I created a high-pass filter by subtracting its blurred version from the original (Image1 - blurred(Image1)), which isolates the fine details. For the second image, I applied a Gaussian filter, which acts as a low-pass filter, keeping only its coarse structure. Simply adding these two filtered images together produced the final hybrid. This works because our brains interpret low frequencies from afar and high frequencies up close.
+  </p>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/nutmeg.png" style="width: 800px;"/>
+        <div class="caption">Nutmeg & Derek</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/original_fft.png" style="width: 800px;"/>
+        <div class="caption">FFT of Nutmeg & Derek</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/pass.png" style="width: 800px;"/>
+        <div class="caption">high and low pass filters</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/pass_fft.png" style="width: 800px;"/>
+        <div class="caption">FFT of high and low pass filters</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/nutmeg_hybrid.png" style="width: 800px;"/>
+        <div class="caption">Hybrid image of Nutmeg & Derek</div>
+      </div>
+    </div>
+  </div>
+
+  <p>
+    The hybrid images worked really well! Up close, I could clearly see Nutmeg's defined facial features, 
+    but as I stepped back, I can see Derek's face. The Fourier visualizations 
+    helped me understand how the frequency content of each image contributed to 
+    the final result. It was fascinating to see how our perception changes with 
+    distance due to the different frequency components.
+  </p>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/labubu.png" style="width: 800px;"/>
+        <div class="caption">Original of Labubu & Sonny</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/labubu_hybrid.png" style="width: 600px;"/>
+        <div class="caption">Hybrid image of Labubu & Sonny</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/johnny.png" style="width: 800px;"/>
+        <div class="caption">Original of Johnny & Keanu</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/johnny_hybrid.png" style="width: 600px;"/>
+        <div class="caption">Hybrid image of Johnny & Keanu</div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <h3>Part 2.3: Gaussian and Laplacian Stacks</h3>
+  <p>
+    I implemented stacks (no downsampling, just repeated Gaussian blur) and 
+    constructed Laplacian stacks by subtracting adjacent levels. This prepped 
+    me for blending. I tested on the apple and orange pair and visualized the 
+    stacks level by level.
+  </p>
+
+  
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/apple.png" style="width: 800px;"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/orange.png" style="width: 800px;"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/oraple_blending.png" style="width: 800px;"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/oraple.png" style="width: 600px;"/>
+      </div>
+    </div>
+  </div>
+
+
+  <h3>Part 2.4: Multiresolution Blending (the Oraple)</h3>
+  <p>
+    Finally, I blended images using Laplacian stacks + Gaussian mask stacks. 
+    With a simple vertical mask, I got the oraple shown above. The key was to blend the two images' Laplacian stacks at each level using a Gaussian mask stack (a blurred mask). The formula for each new blended level was <code>L_blend = GM_i * L_A + (1 - GM_i) * L_B</code>. By collapsing this new stack, I created a perfectly smooth transition, as the seam was blended across multiple resolutions.Then I experimented with 
+    irregular masks (circular) . This worked way better than just stitching images together 
+    directly, since the seams got smoothed out at multiple frequencies. Here are some of the fun results I got:
+  </p>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/ball_lap.png" style="width: 800px;"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/ball_blend.png" style="width: 600px;"/>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="group-images">
+    <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
+      <div> 
+        <img src="images/monster_blend.png" style="width: 600px;"/>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- ================= END ================= -->
+
+  <h2>Most Important Thing I Learned</h2>
+  <p>
+    The biggest thing I learned from this project is how frequency content 
+    completely changes the way we perceive an image. Simple convolution tricks 
+    like smoothing or sharpening boil down to playing with high and low 
+    frequencies. And blending at multiple resolutions showed me how powerful 
+    these concepts are for making images look seamless.
+  </p>
+
+</body>
+</html>
