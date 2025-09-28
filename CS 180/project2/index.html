@@ -151,6 +151,9 @@ To implement convolution, I first had to flip my kernel both horizontally and ve
     because it's implemented in C and optimized. My two-loop version was significantly faster than the four-loop one. <code>scipy.signal.convolve2d</code>
     also has options for different boundary conditions and modes, which I didn't implement. But for basic convolution with zero padding, my results matched perfectly.
   </p>
+  <p> 
+  When handling image boundaries, my custom implementation relied on simple padding (often zeros or reflection), while scipy.signal.convolve2d provides explicit, flexible options that directly affect the output. With boundary="fill", the function pads the edges with a constant value (default zero), mimicking zero-padding; with boundary="symm", it mirrors the image at the border, reducing edge artifacts; and with boundary="wrap", it treats the image as periodic, wrapping pixels from the opposite edge. These differences matter because they control how convolution kernels interact at the edges—zero padding can create artificial dark borders, while reflection or wrapping preserves intensity continuity and avoids spurious edges.
+  </p>
 
   <div class="group-images">
     <div class="image-block" style="display: flex; justify-content: center; text-align: center;">
@@ -257,7 +260,7 @@ My approach to sharpening uses the "unsharp mask" technique. The core idea is to
 
   <h3>Part 2.2: Hybrid Images</h3>
   <p>
-I created hybrid images by combining the high frequencies of one image with the low frequencies of another. For the first image, I created a high-pass filter by subtracting its blurred version from the original (Image1 - blurred(Image1)), which isolates the fine details. For the second image, I applied a Gaussian filter, which acts as a low-pass filter, keeping only its coarse structure. Simply adding these two filtered images together produced the final hybrid. This works because our brains interpret low frequencies from afar and high frequencies up close.
+I created hybrid images by combining the high frequencies of one image with the low frequencies of another. For the first image, I created a high-pass filter by subtracting its blurred version from the original (Image1 - blurred(Image1)), which isolates the fine details. For the second image, I applied a Gaussian filter, which acts as a low-pass filter, keeping only its coarse structure. Simply adding these two filtered images together produced the final hybrid. This works because our brains interpret low frequencies from afar and high frequencies up close. Cut off frequencies choice are 6 for high pass and 8 for low pass.  
   </p>
 
   <div class="group-images">
