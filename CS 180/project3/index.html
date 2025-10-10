@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CS180 • Project 3 — Image Warping & Mosaicing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --ink:#333; --sub:#555; --rule:#ccc; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 20px auto;
+      color: var(--ink);
+      background: #fff;
+    }
+    h1, h2, h3 { margin-bottom: 10px; color: var(--ink); }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 10px;
+    }
+    h2 {
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 5px;
+      margin-top: 40px;
+    }
+    h3 {
+      margin-top: 25px;
+      color: var(--sub);
+      font-weight: 600;
+    }
+    .meta {
+      text-align: center;
+      color: var(--sub);
+      margin-top: -10px;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+    p { margin-bottom: 1rem; }
+    pre {
+      background: #f8f8f8;
+      padding: 10px;
+      border: 1px solid #ddd;
+      overflow-x: auto;
+      font-size: 0.9em;
+      white-space: pre;
+    }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .group-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .group-images.one-up .image-block { 
+  flex: 1 1 150%;
+  max-width: 150%;
+}
+.group-images.one-up .image-block img {
+  width: 150%;
+  max-width: 1000px;
+}
+    .image-block {
+      flex: 1 1 100%;
+      max-width: 100%;
+      text-align: center;
+    }
+    .image-block img {
+      width: 100%;
+      border: 1px solid #ddd;
+      display: block;
+      margin: 0 auto;
+    }
+    .caption {
+      font-style: italic;
+      color: var(--sub);
+      margin-top: 6px;
+      font-size: 0.95em;
+    }
+    .callout {
+      border-left: 4px solid var(--ink);
+      background: #fafafa;
+      padding: 10px 12px;
+      margin: 12px 0;
+      color: var(--sub);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Programming Project #3: Image Warping & Mosaicing</h1>
+
+  <h2>Overview</h2>
+  <p>
+    I shot overlapping photos, mainly indoors, computed homographies from point correspondences,
+    implemented inverse warping with nearest-neighbor and bilinear interpolation,
+    rectified planar regions, and blended registered views into panoramas.
+  </p>
+
+  <!-- ================= A.1 ================= -->
+  <h2>A.1: Shoot the Pictures</h2>
+  <p>
+    I rotated the camera about (approximately) a fixed center of projection to keep parallax small
+    and captured ~50–60% overlap. Below are three sets I use throughout
+    (all images are in <code>images/</code>).
+  </p>
+
+  <h3>Set 1 — Door</h3>
+  <div class="group-images">
+    <div class="image-block">
+      <img src="images/door_1.jpg" alt="door set frame 1">
+      <div class="caption">door_1.jpg</div>
+    </div>
+    <div class="image-block">
+      <img src="images/door_2.jpg" alt="door set frame 2">
+      <div class="caption">door_2.jpg</div>
+    </div>
+  </div>
+
+  <h3>Set 2 — Fridge</h3>
+  <div class="group-images">
+    <div class="image-block">
+      <img src="images/fridge_1.jpg" alt="fridge set frame 1">
+      <div class="caption">fridge_1.jpg</div>
+    </div>
+    <div class="image-block">
+      <img src="images/fridge_2.jpg" alt="fridge set frame 2">
+      <div class="caption">fridge_2.jpg</div>
+    </div>
+  </div>
+
+  <h3>Set 3 — Laptop</h3>
+  <div class="group-images">
+    <div class="image-block">
+      <img src="images/laptop_1.jpg" alt="laptop set frame 1">
+      <div class="caption">laptop_1.jpg</div>
+    </div>
+    <div class="image-block">
+      <img src="images/laptop_2.jpg" alt="laptop set frame 2">
+      <div class="caption">laptop_2.jpg</div>
+    </div>
+  </div>
+
+  <!-- ================= A.2 ================= -->
+<h2>A.2: Recover Homographies</h2>
+
+<p>
+From each correspondence we get two linear constraints that stack into
+<code>A&nbsp;h&nbsp;=&nbsp;b</code>, where <code>h</code> holds the 8 unknown homography parameters
+(<code>H[2,2]=1</code>).
+</p>
+<pre><code>For each (x, y) → (x′, y′):
+[-x, -y, -1,  0,  0,  0,  x·x′,  y·x′] · h = -x′
+[ 0,  0,  0, -x, -y, -1,  x·y′,  y·y′] · h = -y′
+</code></pre>
+<p>
+Stacking all matches yields <code>A ∈ ℝ^{2n×8}</code> and <code>b ∈ ℝ^{2n}</code>. For <code>n &gt; 4</code> the
+system is overdetermined; we estimate <code>h</code> in least squares:
+</p>
+<pre><code>h = argmin ||A h − b||₂   = (AᵀA)⁻¹Aᵀb
+</code></pre>
+<p>
+Finally, reshape <code>h</code> into <code>H</code> and set the scale so <code>H[2,2]=1</code>:
+</p>
+<pre><code>H = [[h11 h12 h13]
+     [h21 h22 h23]
+     [h31 h32   1]]
+</code></pre>
+
+
+<h3>Correspondences Visualized</h3>
+<div class="group-images one-up">
+  <div class="image-block">
+    <img src="images/door_points.png" alt="door points">
+    <div class="caption">door_points.png — clicked matches used to build A and b</div>
+  </div>
+</div>
+<div class="group-images one-up">
+  <div class="image-block">
+    <img src="images/fridge_points.png" alt="fridge points">
+    <div class="caption">fridge_points.png — clicked matches used to build A and b</div>
+  </div>
+</div>
+<div class="group-images one-up">
+  <div class="image-block">
+    <img src="images/laptop_points.png" alt="laptop points">
+    <div class="caption">laptop_points.png — clicked matches used to build A and b</div>
+  </div>
+</div>
+
+<h3>System Sizes &amp; Recovered Homographies</h3>
+<pre><code>door:
+A shape: (12, 8)
+b shape: (12,)
+Recovered H:
+[[ 2.14345224e+00 -1.25890840e-01 -3.60926874e+03]
+ [ 4.59048265e-01  1.63958309e+00 -1.05987587e+03]
+ [ 2.88152784e-04 -5.46288636e-05  1.00000000e+00]]
+
+fridge:
+A shape: (12, 8)
+b shape: (12,)
+Recovered H:
+[[ 2.49938918e+00  2.10353365e-02 -1.84772222e+03]
+ [ 5.83305354e-01  2.04216792e+00 -6.39509053e+02]
+ [ 8.72167306e-04  4.90642950e-06  1.00000000e+00]]
+
+laptop:
+A shape: (12, 8)
+b shape: (12,)
+Recovered H:
+[[ 2.34799055e+00  1.29850866e-01 -4.77387811e+03]
+ [ 3.91098139e-01  1.94882150e+00 -9.58345438e+02]
+ [ 3.19640243e-04 -1.56615216e-05  1.00000000e+00]]</code></pre>
+<p class="caption">
+  (Each case uses N=6 correspondences ⇒ 2N=12 equations; I report the shapes of A and b and the final H normalized so H[2,2]=1.)
+</p>
+
+
+  <!-- ================= A.3 ================= -->
+<h2>A.3: Warp the Images (Inverse Mapping + Interpolation)</h2>
+<p>
+  With the homography <code>H</code>, I warp each image into a target frame via <em>inverse mapping</em>: for each destination pixel <code>q=[x′,y′,1]^T</code> I compute <code>p ∝ H⁻¹q</code> and sample the source using two from-scratch methods—<code>warpImageNearestNeighbor(im, H)</code> (fast, blocky) and <code>warpImageBilinear(im, H)</code> (smoother, subpixel-aware). I size the canvas by warping the four source corners, and I keep an alpha mask of valid samples for later blending. Pixel centers are treated as integer coordinates to avoid half-pixel confusion. For sanity checks and deliverables, I perform <em>rectification</em> by mapping a clicked quadrilateral to a rectangle via <code>rectify_to_rectangle(image, src_quad, W, H, method)</code>, and I show side-by-side bilinear vs nearest results (<code>..._rectification.png</code> files).
+</p>
+
+  <p>
+    We can observe that bilinear interpolation does produce smoother results, however, at lower resolutions
+    the difference is less pronounced. Below are rectified views of the planar surfaces in each set.
+  </p>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/door_rectification.png" alt="door rectification compare">
+      <div class="caption">door_rectification.png — bilinear vs nearest</div>
+    </div>
+  </div>
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/fridge_rectification.png" alt="fridge rectification compare">
+      <div class="caption">fridge_rectification.png — bilinear vs nearest</div>
+    </div>
+  </div>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/laptop_rectification.png" alt="laptop rectification compare">
+      <div class="caption">laptop_rectification.png — bilinear vs nearest</div>
+    </div>
+  </div>
+
+  <!-- ================= A.4 ================= -->
+<h2>A.4: Blend Images into a Mosaic</h2>
+<p>
+  After matching images with a homography, I pick a frame to work in (either keep one image as the reference or choose a new common frame). I estimate how big the final canvas should be with <code>compute_canvas_bounds_from_warps</code>, warp each image into that canvas using inverse mapping (<code>warpImageBilinear</code> or <code>warpImageNearestNeighbor</code>), and blend with weighted averaging instead of overwriting. To make seams softer, I multiply each image’s valid-pixel mask by a simple edge falloff from <code>feather_alpha_from_edges</code>, add it into an accumulator with <code>place_on_canvas_feather</code>, and at the end divide by the total weights using <code>finish_canvas</code>.
+</p>
+<p>
+  If feathering still leaves faint double edges, I turn on a small two-level Laplacian blend (<code>assemble_mosaic(..., use_laplacian=True)</code>), which uses <code>two_level_laplacian_blend</code> to blend a blurred (low-freq) version and the remaining details (high-freq). This keeps large areas smooth while preventing “ghost” edges in overlaps. Using this pipeline, I produce the required three mosaics with reduced seams.
+</p>
+
+
+  <div class="group-images">
+    <div class="image-block">
+      <img src="images/door_mosaic.png" alt="door mosaic">
+      <div class="caption">door_mosaic.png</div>
+    </div>
+    <div class="image-block">
+      <img src="images/fridge_mosaic.png" alt="fridge mosaic">
+      <div class="caption">fridge_mosaic.png</div>
+    </div>
+  </div>
+  <div class="group-images">
+    <div class="image-block">
+      <img src="images/laptop_mosaic.png" alt="laptop mosaic">
+      <div class="caption">laptop_mosaic.png</div>
+    </div>
+  </div>
+
+ 
+  <h2>Challenges!</h2>
+  <p>
+    Pixel picking was tedious, especially on the laptop set where reflections and perspective distortion made corners hard to identify;
+    I had to be careful to avoid off-by-one errors in the warping and blending steps.
+    It is also hard to get a good shot because of lighting changes, motion blur, and parallax.
+  </p>
+
+</body>
+</html>
