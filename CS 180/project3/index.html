@@ -57,13 +57,13 @@
       justify-content: center;
     }
     .group-images.one-up .image-block { 
-  flex: 1 1 150%;
-  max-width: 150%;
-}
-.group-images.one-up .image-block img {
-  width: 150%;
-  max-width: 1000px;
-}
+      flex: 1 1 150%;
+      max-width: 150%;
+    }
+    .group-images.one-up .image-block img {
+      width: 150%;
+      max-width: 1000px;
+    }
     .image-block {
       flex: 1 1 100%;
       max-width: 100%;
@@ -88,6 +88,8 @@
       margin: 12px 0;
       color: var(--sub);
     }
+    .cols-2 .image-block { flex: 1 1 48%; max-width: 48%; }
+    .cols-3 .image-block { flex: 1 1 31%; max-width: 31%; }
   </style>
 </head>
 <body>
@@ -146,53 +148,52 @@
   </div>
 
   <!-- ================= A.2 ================= -->
-<h2>A.2: Recover Homographies</h2>
+  <h2>A.2: Recover Homographies</h2>
 
-<p>
-From each correspondence we get two linear constraints that stack into
-<code>A&nbsp;h&nbsp;=&nbsp;b</code>, where <code>h</code> holds the 8 unknown homography parameters
-(<code>H[2,2]=1</code>).
-</p>
+  <p>
+    From each correspondence we get two linear constraints that stack into
+    <code>A&nbsp;h&nbsp;=&nbsp;b</code>, where <code>h</code> holds the 8 unknown homography parameters
+    (<code>H[2,2]=1</code>).
+  </p>
 <pre><code>For each (x, y) → (x′, y′):
 [-x, -y, -1,  0,  0,  0,  x·x′,  y·x′] · h = -x′
 [ 0,  0,  0, -x, -y, -1,  x·y′,  y·y′] · h = -y′
 </code></pre>
-<p>
-Stacking all matches yields <code>A ∈ ℝ^{2n×8}</code> and <code>b ∈ ℝ^{2n}</code>. For <code>n &gt; 4</code> the
-system is overdetermined; we estimate <code>h</code> in least squares:
-</p>
+  <p>
+    Stacking all matches yields <code>A ∈ ℝ^{2n×8}</code> and <code>b ∈ ℝ^{2n}</code>. For <code>n &gt; 4</code> the
+    system is overdetermined; we estimate <code>h</code> in least squares:
+  </p>
 <pre><code>h = argmin ||A h − b||₂   = (AᵀA)⁻¹Aᵀb
 </code></pre>
-<p>
-Finally, reshape <code>h</code> into <code>H</code> and set the scale so <code>H[2,2]=1</code>:
-</p>
+  <p>
+    Finally, reshape <code>h</code> into <code>H</code> and set the scale so <code>H[2,2]=1</code>:
+  </p>
 <pre><code>H = [[h11 h12 h13]
      [h21 h22 h23]
      [h31 h32   1]]
 </code></pre>
 
+  <h3>Correspondences Visualized</h3>
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/door_points.png" alt="door points">
+      <div class="caption">door_points.png — clicked matches used to build A and b</div>
+    </div>
+  </div>
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/fridge_points.png" alt="fridge points">
+      <div class="caption">fridge_points.png — clicked matches used to build A and b</div>
+    </div>
+  </div>
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/laptop_points.png" alt="laptop points">
+      <div class="caption">laptop_points.png — clicked matches used to build A and b</div>
+    </div>
+  </div>
 
-<h3>Correspondences Visualized</h3>
-<div class="group-images one-up">
-  <div class="image-block">
-    <img src="images/door_points.png" alt="door points">
-    <div class="caption">door_points.png — clicked matches used to build A and b</div>
-  </div>
-</div>
-<div class="group-images one-up">
-  <div class="image-block">
-    <img src="images/fridge_points.png" alt="fridge points">
-    <div class="caption">fridge_points.png — clicked matches used to build A and b</div>
-  </div>
-</div>
-<div class="group-images one-up">
-  <div class="image-block">
-    <img src="images/laptop_points.png" alt="laptop points">
-    <div class="caption">laptop_points.png — clicked matches used to build A and b</div>
-  </div>
-</div>
-
-<h3>System Sizes &amp; Recovered Homographies</h3>
+  <h3>System Sizes &amp; Recovered Homographies</h3>
 <pre><code>door:
 A shape: (12, 8)
 b shape: (12,)
@@ -216,20 +217,14 @@ Recovered H:
 [[ 2.34799055e+00  1.29850866e-01 -4.77387811e+03]
  [ 3.91098139e-01  1.94882150e+00 -9.58345438e+02]
  [ 3.19640243e-04 -1.56615216e-05  1.00000000e+00]]</code></pre>
-<p class="caption">
-  (Each case uses N=6 correspondences ⇒ 2N=12 equations; I report the shapes of A and b and the final H normalized so H[2,2]=1.)
-</p>
-
+  <p class="caption">
+    (Each case uses N=6 correspondences ⇒ 2N=12 equations; H normalized so H[2,2]=1.)
+  </p>
 
   <!-- ================= A.3 ================= -->
-<h2>A.3: Warp the Images (Inverse Mapping + Interpolation)</h2>
-<p>
-  With the homography <code>H</code>, I warp each image into a target frame via <em>inverse mapping</em>: for each destination pixel <code>q=[x′,y′,1]^T</code> I compute <code>p ∝ H⁻¹q</code> and sample the source using two from-scratch methods—<code>warpImageNearestNeighbor(im, H)</code> (fast, blocky) and <code>warpImageBilinear(im, H)</code> (smoother, subpixel-aware). I size the canvas by warping the four source corners, and I keep an alpha mask of valid samples for later blending. Pixel centers are treated as integer coordinates to avoid half-pixel confusion. For sanity checks and deliverables, I perform <em>rectification</em> by mapping a clicked quadrilateral to a rectangle via <code>rectify_to_rectangle(image, src_quad, W, H, method)</code>, and I show side-by-side bilinear vs nearest results (<code>..._rectification.png</code> files).
-</p>
-
+  <h2>A.3: Warp the Images (Inverse Mapping + Interpolation)</h2>
   <p>
-    We can observe that bilinear interpolation does produce smoother results, however, at lower resolutions
-    the difference is less pronounced. Below are rectified views of the planar surfaces in each set.
+    With the homography <code>H</code>, I warp each image into a target frame via <em>inverse mapping</em>: for each destination pixel <code>q=[x′,y′,1]^T</code> I compute <code>p ∝ H⁻¹q</code> and sample the source using two from-scratch methods—<code>warpImageNearestNeighbor(im, H)</code> (fast, blocky) and <code>warpImageBilinear(im, H)</code> (smoother, subpixel-aware).
   </p>
 
   <div class="group-images one-up">
@@ -244,7 +239,6 @@ Recovered H:
       <div class="caption">fridge_rectification.png — bilinear vs nearest</div>
     </div>
   </div>
-
   <div class="group-images one-up">
     <div class="image-block">
       <img src="images/laptop_rectification.png" alt="laptop rectification compare">
@@ -253,14 +247,10 @@ Recovered H:
   </div>
 
   <!-- ================= A.4 ================= -->
-<h2>A.4: Blend Images into a Mosaic</h2>
-<p>
-  After matching images with a homography, I pick a frame to work in (either keep one image as the reference or choose a new common frame). I estimate how big the final canvas should be with <code>compute_canvas_bounds_from_warps</code>, warp each image into that canvas using inverse mapping (<code>warpImageBilinear</code> or <code>warpImageNearestNeighbor</code>), and blend with weighted averaging instead of overwriting. To make seams softer, I multiply each image’s valid-pixel mask by a simple edge falloff from <code>feather_alpha_from_edges</code>, add it into an accumulator with <code>place_on_canvas_feather</code>, and at the end divide by the total weights using <code>finish_canvas</code>.
-</p>
-<p>
-  If feathering still leaves faint double edges, I turn on a small two-level Laplacian blend (<code>assemble_mosaic(..., use_laplacian=True)</code>), which uses <code>two_level_laplacian_blend</code> to blend a blurred (low-freq) version and the remaining details (high-freq). This keeps large areas smooth while preventing “ghost” edges in overlaps. Using this pipeline, I produce the required three mosaics with reduced seams.
-</p>
-
+  <h2>A.4: Blend Images into a Mosaic</h2>
+  <p>
+    After warping into a common canvas, I blend overlaps by feathering each alpha mask (edge falloff) and computing a normalized weighted average. For tougher seams, I optionally apply a small two-level Laplacian blend.
+  </p>
 
   <div class="group-images">
     <div class="image-block">
@@ -279,13 +269,106 @@ Recovered H:
     </div>
   </div>
 
- 
   <h2>Challenges!</h2>
   <p>
-    Pixel picking was tedious, especially on the laptop set where reflections and perspective distortion made corners hard to identify;
-    I had to be careful to avoid off-by-one errors in the warping and blending steps.
-    It is also hard to get a good shot because of lighting changes, motion blur, and parallax.
+    Pixel picking was tedious (reflections/perspective on the laptop set). Off-by-one bugs in inverse warping and seam handling were easy to introduce. Lighting and small parallax also made blending harder.
   </p>
+
+
+  <!-- ================= B.1 ================= -->
+  <h2>B.1: Harris Corner Detection (+ ANMS)</h2>
+  <p>
+    For the first step of my automatic stitching pipeline, I focused on finding good, strong feature points in my images. I started by using the Harris Corner Detector to identify initial interest points. The Harris detector is great at finding corners by looking at changes in intensity in different directions, but I quickly noticed that it gave me dense clusters of points in highly textured areas.
+    To get a better distribution of feature points across the entire image, I implemented Adaptive Non-Maximal Suppression (ANMS). With ANMS, for each corner that the Harris detector found, I calculated a "suppression radius." This is the smallest distance to another corner that has a significantly higher strength (I used a robustness factor of c=0.9). By selecting the points with the largest suppression radii, I was able to get a set of features that were nicely spread out across the image. I found that this step was crucial for getting reliable results later on.
+  </p>
+
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/door_corners.png" alt="door corners">
+      <div class="caption">Harris & ANMS corners — Door </div>
+    </div>
+  </div>
+
+
+  <!-- ================= B.2 ================= -->
+  <h2>B.2: Feature Descriptor Extraction (Axis-Aligned 8×8)</h2>
+  <p>
+    Once I had my keypoints from ANMS, I needed a way to represent the image patch around each point so that I could find corresponding points in other images. For each keypoint, I extracted a 40x40 pixel window from the image. I chose a larger window to be more robust to small variations and blurring. I then downsampled this 40x40 patch to a more manageable 8x8 descriptor.
+    To make my descriptors invariant to lighting changes, I normalized each one by subtracting the mean and dividing by the standard deviation. This process, known as bias/gain normalization, ensures that the descriptors are based on the structure of the patch rather than the brightness. As you can see from the example images, these descriptors capture the distinctive features of each point.
+  </p>
+
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/door_descriptor.png" alt="door 8x8 descriptors">
+      <div class="caption">Door — four 8×8 descriptors (from 40×40 patches)</div>
+    </div>
+  </div>
+    <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/door_descriptor_location.png" alt="door 8x8 descriptors locations">
+      <div class="caption">Door — four 8×8 descriptor locations (from 40×40 patches)</div>
+    </div>
+  </div>
+
+
+  <!-- ================= B.3 ================= -->
+  <h2>B.3: Feature Matching (Lowe Ratio Test)</h2>
+  <p>
+With descriptors extracted from both images, the next step was to find matching pairs. I implemented a feature matching algorithm based on the ratio test proposed by David Lowe. For every descriptor in the first image, I found its two nearest neighbors in the second image by calculating the Euclidean distance.
+A match was only accepted if the distance to the nearest neighbor was significantly smaller than the distance to the second-nearest neighbor. I used a threshold of 0.7 for this ratio after some trial and error. This technique is effective because it discards ambiguous matches where a point in one image is almost equidistant to two or more points in the other image. The putative matches I got from this process were a good starting point for finding the geometric relationship between the images.
+  </p>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/door_correspondance.png" alt="door matches">
+      <div class="caption">Door — putative matches after Lowe ratio</div>
+    </div>
+  </div>
+
+  <!-- ================= B.4 ================= -->
+  <h2>B.4: RANSAC for Robust Homography</h2>
+  <p>
+   My feature matching step produced many good correspondences, but also some incorrect matches, or "outliers," that could ruin the final alignment. To solve this, I used RANSAC to find a reliable homography. This algorithm works by repeatedly taking a small, random sample of four matches, calculating a potential homography from them, and then counting how many of the other matches (the "inliers") fit this transformation. After thousands of iterations, I took the homography that had the largest set of inliers and re-calculated a final, highly accurate transformation using only this "best" set of points. This process ensured that the final stitched image was not distorted by the initial bad matches.
+  </p>
+
+<pre><code>RANSAC params used:
+  inlier thresh: 4 px
+  iterations:        10,000
+  min inliers:       70 
+</code></pre>
+
+
+  <h3>Manual vs. Automatic Stitching</h3>
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/door_mosaic.png" alt="door manual mosaic">
+      <div class="caption">Door — manual correspondences</div>
+    </div>
+    <div class="image-block">
+      <img src="images/door_auto.png" alt="door auto mosaic">
+      <div class="caption">Door — automatic (Harris+ANMS+Desc+Match+RANSAC)</div>
+    </div>
+  </div>
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/fridge_mosaic.png" alt="fridge manual mosaic">
+      <div class="caption">Fridge — manual</div>
+    </div>
+    <div class="image-block">
+      <img src="images/fridge_auto.png" alt="fridge auto mosaic">
+      <div class="caption">Fridge — automatic</div>
+    </div>
+  </div>
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/laptop_mosaic.png" alt="laptop manual mosaic">
+      <div class="caption">Laptop — manual</div>
+    </div>
+    <div class="image-block">
+      <img src="images/laptop_auto.png" alt="laptop auto mosaic">
+      <div class="caption">Laptop — automatic</div>
+    </div>
+  </div>
 
 </body>
 </html>
