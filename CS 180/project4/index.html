@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CS180 • Project 4 — Neural Radiance Fields</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --ink:#333; --sub:#555; --rule:#ccc; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 20px auto;
+      color: var(--ink);
+      background: #fff;
+    }
+    h1, h2, h3 { margin-bottom: 10px; color: var(--ink); }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 10px;
+    }
+    h2 {
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 5px;
+      margin-top: 40px;
+    }
+    h3 {
+      margin-top: 25px;
+      color: var(--sub);
+      font-weight: 600;
+    }
+    .meta {
+      text-align: center;
+      color: var(--sub);
+      margin-top: -10px;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+    p { margin-bottom: 1rem; }
+    .group-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+    .group-images.one-up .image-block { 
+      flex: 1 1 150%;
+      max-width: 150%;
+    }
+    .group-images.one-up .image-block img {
+      width: 150%;
+      max-width: 1000px;
+    }
+    .image-block {
+      flex: 1 1 100%;
+      max-width: 100%;
+      text-align: center;
+    }
+    .image-block img {
+      width: 100%;
+      border: 1px solid #ddd;
+      display: block;
+      margin: 0 auto;
+    }
+    .caption {
+      font-style: italic;
+      color: var(--sub);
+      margin-top: 6px;
+      font-size: 0.95em;
+    }
+    .cols-2 .image-block { flex: 1 1 48%; max-width: 48%; }
+    .cols-3 .image-block { flex: 1 1 31%; max-width: 31%; }
+  </style>
+</head>
+<body>
+
+  <h1>Programming Project #4: Neural Radiance Field</h1>
+
+  <h2>Overview</h2>
+  <p>
+    I calibrated my own camera with ArUco tags, created a multi-view dataset,
+    fit a 2D neural field to single images, and implemented a full NeRF for both
+    the Lego scene and my own captured object.
+  </p>
+
+  <!-- ================= Part 0 ================= -->
+  <h2>Part 0: Camera Calibration and 3D Scanning</h2>
+
+  <h3>0.1–0.3: Calibration and Poses </h3>
+  <ul>
+    <li>Captured ~40 ArUco calibration images with fixed zoom on my phone.</li>
+    <li>Estimated intrinsics and distortion with OpenCV’s calibration routine.</li>
+    <li>Captured ~45 images of a small object next to a single ArUco tag.</li>
+    <li>Estimated per-image poses using <strong>solvePnP</strong> and converted to camera-to-world matrices.</li>
+  </ul>
+
+
+  <h3>0.1-0.2: tags and object</h3>
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/tag.jpg" alt="aruco tag example">
+      <div class="caption">tag example</div>
+    </div>
+    <div class="image-block">
+      <img src="images/object.jpg" alt="object example">
+      <div class="caption">object example</div>
+    </div>
+  </div>
+
+  <h3>0.3: Camera Frustums in Viser </h3>
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/fiston1.png" alt="camera frustums front view">
+      <div class="caption">Viser camera frustums 1.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/fiston2.png" alt="camera frustums top view">
+      <div class="caption">Viser camera frustums 2.</div>
+    </div>
+  </div>
+
+  <h3>0.4: Undistortion and Dataset Packaging </h3>
+  <ul>
+    <li>Undistorted images with the calibrated intrinsics and distortion coefficients.</li>
+    <li>Resized to a common resolution and split into train / val / test sets.</li>
+    <li>Saved <code>images_*</code>, <code>c2ws_*</code>, and <code>focal</code> in a single <code>.npz</code> file.</li>
+  </ul>
+
+  <!-- ================= Part 1 ================= -->
+  <h2>Part 1: Fit a Neural Field to a 2D Image</h2>
+
+  <h3>1.1: Model Architecture Report</h3>
+  <ul>
+    <li>Input: 2D pixel coordinates normalized to [0, 1].</li>
+    <li>Positional encoding: up to frequency level <strong>L</strong> (varied in experiments).</li>
+    <li>Baseline MLP: 4 hidden layers, width 128, ReLU activations.</li>
+    <li>Output: 3 channels (RGB) with Sigmoid; supervised on image normalized to [0, 1].</li>
+    <li>Loss: MSE; optimizer: Adam; learning rate: 1e-2; batch size: 10k random pixels.</li>
+  </ul>
+
+  <h3>1.2: Training Progression — Provided Test Image</h3>
+  <div class="group-images cols-3">
+    <div class="image-block">
+      <img src="images/fox_100.png" alt="test image iteration 100">
+      <div class="caption">Iteration 100.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/fox_500.png" alt="test image iteration 500">
+      <div class="caption">Iteration 500.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/fox_2000.png" alt="test image iteration 2000">
+      <div class="caption">Iteration 2000 (final).</div>
+    </div>
+  </div>
+
+  <h3>1.3: Training Progression — My Own Image</h3>
+  <div class="group-images cols-3">
+    <div class="image-block">
+      <img src="images/piggy_100.png" alt="own image iteration 100">
+      <div class="caption">Iteration 100.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/piggy_500.png" alt="own image iteration 500">
+      <div class="caption">Iteration 500.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/piggy_2000.png" alt="own image iteration 2000">
+      <div class="caption">Iteration 2500 (final).</div>
+    </div>
+  </div>
+
+  <h3>1.4: Final Results — 2×2 Hyperparameter</h3>
+  <p>The two positional-encoding frequencies I swept over were L = 6 and L = 10, and the two network widths were 128 and 256 hidden units. In the 2×2 grid of results, the low-frequency PE (L=6) with width 128 produced the smoothest but blurriest reconstructions, while increasing either PE frequency or width improved sharpness and detail. The high-frequency PE (L=10) with width 256 gave the best visual quality and highest PSNR, capturing the most high-frequency structure in the scene.</p>
+
+
+  <h3>1.5: PSNR Curve</h3>
+  <div class="group-images">
+    <div class="image-block">
+      <img src="images/piggy_psnr.png" alt="PSNR curve">
+      <div class="caption">PSNR vs iterations for piggy.</div>
+    </div>
+  </div>
+
+  <!-- ================= Part 2 (Lego) ================= -->
+  <h2>Part 2: Fit a Neural Radiance Field from Multi-view Images</h2>
+
+  <h3>2.1–2.3: Implementation Summary</h3>
+  <ul>
+    <li>Loaded Lego images and camera-to-world matrices from <code>lego_200x200.npz</code>.</li>
+    <li>Implemented camera-to-world transforms and pixel-to-ray conversion using intrinsics and extrinsics.</li>
+    <li>Sampled rays either globally across all images or per-image, with near = 2.0 and far = 6.0.</li>
+    <li>Sampled 32–64 points along each ray with stratified perturbation during training.</li>
+    <li>Dataloader returns ray origins, ray directions, and target RGB values.</li>
+  </ul>
+
+  <h3>2.3: Visualization of Rays and Samples with Cameras</h3>
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/lego_single.png" alt="lego iteration 100">
+      <div class="caption">Lego single camera.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/lego_multi.png" alt="lego iteration 500">
+      <div class="caption">Lego multi-camera.</div>
+    </div>
+  </div>
+
+  <h3>2.4: NeRF Network </h3>
+  <ul>
+    <li>Inputs: positional-encoded 3D points (L<sub>xyz</sub> = 10) and view directions (L<sub>dir</sub> = 4).</li>
+    <li>MLP: multiple 256-wide layers with a skip connection.</li>
+    <li>Outputs: density (ReLU) and RGB color (Sigmoid) for each sample point.</li>
+    <li>Optimizer: Adam, learning rate 5e-4, batch size 10k rays.</li>
+  </ul>
+
+  <h3>2.5: Volume Rendering </h3>
+  <ul>
+    <li>Computed per-sample alpha from densities and step size.</li>
+    <li>Used cumulative transmittance and alpha to get per-sample weights.</li>
+    <li>Final pixel color = weighted sum of sample colors.</li>
+    <li>Implementation passes the provided correctness test.</li>
+  </ul>
+
+  <h3>2.5: Lego Training Progression</h3>
+  <div class="group-images cols-3">
+    <div class="image-block">
+      <img src="images/lego_100.png" alt="lego iteration 100">
+      <div class="caption">Lego — iteration 100.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/lego_500.png" alt="lego iteration 500">
+      <div class="caption">Lego — iteration 500.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/lego_1000.png" alt="lego iteration 1000">
+      <div class="caption">Lego — iteration 1000.</div>
+    </div>
+  </div>
+
+  <h3>2.5: PSNR Curve on Validation Set</h3>
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/lego_psnr.png" alt="lego psnr curve">
+      <div class="caption">Lego validation PSNR over training iterations.</div>
+    </div>
+  </div>
+
+  <h3>2.5: Spherical Rendering Video (Lego)</h3>
+    <div class="image-block">
+      <img src="images/lego.gif" alt="lego nerf gif">
+      <div class="caption">GIF — camera circling lego showing novel views.</div>
+    </div>
+  </div>
+
+  <!-- ================= Part 2.6 (Own Data) ================= -->
+  <h2>Part 2.6: Training with My Own Data</h2>
+
+  <h3>2.6.1: GIF of Camera Circling My Object</h3>
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/trader.gif" alt="trader nerf gif">
+      <div class="caption">GIF — camera circling my object showing novel views.</div>
+    </div>
+  </div>
+
+  <h3>2.6.2: Code / Hyperparameter Changes </h3>
+  <ul>
+    <li>Adjusted <strong>near / far to 0.02 and 0.5</strong> to match my scene’s scale.</li>
+    <li>Used <strong>64 samples per ray</strong>.</li>
+    <li>Set <strong>resize_factor=6</strong> (from 4032x3024 to <strong>672x504</strong>) for manageable training time.</li>
+    <li>Used a learning rate of <strong>lr=5e-4</strong> and <strong>batch_size=4096</strong> for 2000 iterations.</li>
+  </ul>
+
+  <h3>2.6.3: Training Loss Plot</h3>
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/trader_psnr.png" alt="trader loss curve">
+      <div class="caption">Training loss vs iterations for my object NeRF.</div>
+    </div>
+  </div>
+
+  <h3>2.6.4: Intermediate Renders</h3>
+  <div class="group-images cols-3">
+    <div class="image-block">
+      <img src="images/trader_100.png" alt="trader iteration 100">
+      <div class="caption">Iteration 100.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/trader_500.png" alt="trader iteration 500">
+      <div class="caption">Iteration 500.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/trader_2000.png" alt="trader iteration 2000">
+      <div class="caption">Iteration 2000.</div>
+    </div>
+  </div>
+
+
+</body>
+</html>
