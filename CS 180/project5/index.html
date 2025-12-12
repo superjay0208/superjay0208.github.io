@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CS180 • Project 5 — Diffusion + Flow Matching</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --ink:#333; --sub:#555; --rule:#ccc; --bg:#fff; }
+    * { box-sizing: border-box; }
+    body{
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+      max-width: 980px;
+      margin: 20px auto;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    h1,h2,h3{ margin-bottom:10px; color:var(--ink); }
+    h1{
+      display:flex; align-items:center; justify-content:center; gap:12px;
+      text-align:center;
+      margin-bottom: 14px;
+      border-bottom: 2px solid var(--ink);
+      padding-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .logo{
+      height: 34px;
+      width: auto;
+      display:block;
+    }
+    .meta{
+      text-align:center;
+      color:var(--sub);
+      margin-top: 0px;
+      margin-bottom: 26px;
+      font-size: 0.95rem;
+    }
+    h2{
+      border-bottom:1px solid var(--rule);
+      padding-bottom:5px;
+      margin-top: 42px;
+    }
+    h3{
+      margin-top: 22px;
+      color: var(--sub);
+      font-weight: 650;
+    }
+    p{ margin-bottom: 1rem; }
+    ul{ margin-top: 0.4rem; }
+    code{ background:#f5f5f5; padding: 0.1rem 0.3rem; border-radius: 6px; }
+    .callout{
+      border: 1px solid #e5e5e5;
+      background: #fafafa;
+      padding: 12px 14px;
+      border-radius: 12px;
+      color: var(--sub);
+      margin: 12px 0 16px;
+    }
+    .group-images{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 1rem;
+      justify-content:center;
+      align-items:flex-start;
+      margin: 10px 0 14px;
+    }
+    .image-block{
+      flex: 1 1 100%;
+      max-width: 100%;
+      text-align:center;
+    }
+    .image-block img{
+      width:100%;
+      border: 1px solid #ddd;
+      display:block;
+      margin: 0 auto;
+      border-radius: 10px;
+    }
+    .caption{
+      font-style: italic;
+      color: var(--sub);
+      margin-top: 7px;
+      font-size: 0.95em;
+    }
+    .cols-2 .image-block{ flex: 1 1 48%; max-width: 48%; }
+    .cols-3 .image-block{ flex: 1 1 31%; max-width: 31%; }
+    .cols-4 .image-block{ flex: 1 1 23%; max-width: 23%; }
+    .one-up .image-block{ flex: 1 1 100%; max-width: 860px; }
+    .tight .caption{ margin-top: 6px; }
+  </style>
+</head>
+
+<body>
+
+  <h1>
+    Programming Project #5: Fun with Diffusion Models
+  </h1>
+
+  <h2>Overview</h2>
+  <p>
+    This webpage summarizes my results for Project 5. Part A explores pretrained diffusion models (DeepFloyd IF),
+    including sampling loops, CFG, SDEdit-style editing, inpainting, visual anagrams, and hybrid images.
+    Part B trains UNets on MNIST for denoising and flow matching, including time-conditioning and class-conditioning.
+  </p>
+
+  <!-- ========================= Part A ========================= -->
+  <h2>Part A: The Power of Diffusion Models!</h2>
+
+  <h3>0: Setup + Prompt Embeddings</h3>
+  <div class="callout">
+    <strong>From my code:</strong> I used a fixed random seed <code>SEED = 12345</code> for prompt experiments,
+    tried <code>steps_list = [30, 60]</code> inference steps, and used CFG guidance strength <code>guidance = 7.0</code>.
+  </div>
+
+
+  <div class="callout">
+    Three prompts were used: an oil painting of a snowy mountain village, a picture of a cute shark playing with a baby seal, a picture of a cute hippo carrying a girl playing electric guitar. 
+  </div>
+
+  <div class="group-images cols-1">
+    <div class="image-block">
+      <img src="images/0.0.png" alt="step 30 and 60 for three prompts">
+      <div class="caption">step 30 and 60 for the three prompts</div>
+    </div>
+  </div>
+
+  <h3>1.1: Implementing the Forward Process</h3>
+  <p>
+    I implemented <code>forward(im, t)</code> using <code>alphas_cumprod[t]</code> and Gaussian noise.
+    Below are the Campanile images at noise levels <code>t = 250, 500, 750</code>.
+  </p>
+
+  <div class="group-images cols-1">
+    <div class="image-block">
+      <img src="images/1.1.png" alt="campanile">
+      <div class="caption">Original, noisy at t=250, 500, 750.</div>
+    </div>
+  </div>
+
+  <h3>1.2: Classical Denoising (Gaussian Blur)</h3>
+  <p>
+    I applied Gaussian blur denoising to the same noisy images (t = 250, 500, 750). The results struggle to recover details.
+  </p>
+
+  <div class="group-images cols-1">
+    <div class="image-block">
+      <img src="images/1.2.png" alt="campanile">
+      <div class="caption">Noise at t=250, 500, 750 and Gaussian blur denoised.</div>
+    </div>
+  </div>
+
+  <h3>1.3: One-Step Denoising with a Pretrained UNet</h3>
+  <p>
+    Using the pretrained DeepFloyd denoiser, I predicted noise and computed an estimate of the clean image in a single step.
+  </p>
+
+  <div class="group-images cols-1">
+    <div class="image-block">
+      <img src="images/1.3.png" alt="campanile">
+      <div class="caption">One-step denoised at t=250, 500, 750.</div>
+    </div>
+  </div>
+
+  <h3>1.4: Iterative Denoising (Strided Timesteps)</h3>
+  <div class="callout">
+    <strong>From my code:</strong> I used <code>strided_timesteps = list(range(990, -1, -30))</code> (and appended <code>0</code> if needed),
+    then ran iterative denoising starting from <code>i_start = 10</code>, displaying every 5th step.
+  </div>
+
+  <div class="group-images cols-1">
+    <div class="image-block">
+      <img src="images/1.4.png" alt="campanile">
+      <div class="caption">Iterative denoising at strided timesteps.</div>
+    </div>
+  </div>
+
+
+  <h3>1.5: Diffusion Sampling (Denoising Pure Noise)</h3>
+  <p>
+    I sampled from pure Gaussian noise using the iterative loop (<code>i_start = 0</code>) with the prompt <em>"a high quality photo"</em>.
+  </p>
+
+  <div class="group-images cols-1">
+    <div class="image-block">
+      <img src="images/1.5.png" alt="campanile">
+      <div class="caption">Diffusion sampling from pure noise.</div>
+    </div>
+  </div>
+
+  <h3>1.6: Classifier-Free Guidance (CFG)</h3>
+  <div class="callout">
+    <strong>From my code:</strong> CFG used <code>cfg_scale = 7.0</code>, with unconditional prompt = empty string <code>""</code>.
+  </div>
+
+  <div class="group-images cols-1">
+    <div class="image-block">
+      <img src="images/1.6.png" alt="campanile">
+      <div class="caption">CFG sampling from pure noise.</div>
+  </div>
+  </div>
+
+
+  <h3>1.7: Image-to-Image Translation (SDEdit-style)</h3>
+  <div class="callout">
+    <strong>From my code:</strong> I used starting indices <code>starts = [1, 3, 5, 7, 10, 20]</code> for progressively smaller edits.
+  </div>
+
+  <div class="group-images cols-3">
+    <div class="image-block">
+      <img src="images/1.7.1.png" alt="Campanile at various starting indices">
+    <div class="caption">Campanile edits at various starting indices.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/1.7.2.png" alt="Labubu at various starting indices">
+      <div class="caption">Labubu edits at various starting indices.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/1.7.3.png" alt="Chocolate at various starting indices">
+      <div class="caption">Chocolate edits at various starting indices.</div>
+  </div>
+  </div>
+  
+  <h3>1.7.1: Editing Hand-Drawn and Web Images</h3>
+  <div class="callout">
+    <strong>From my code:</strong> Inpainting uses the rule
+    <code>x = mask * x + (1 - mask) * forward(im_orig, t_next)</code>
+    at each step, and I used <code>i_start = 10</code>.
+  </div>
+
+  <div class="group-images cols-3">
+    <div class="image-block">
+      <img src="images/1.8.1.png" alt="Bear at various starting indices">
+    <div class="caption">Bear edits at various starting indices.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/1.8.2.png" alt="drawn piggy at various starting indices">
+      <div class="caption">Drawn piggy edits at various starting indices.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/1.8.3.png" alt="drawn flower at various starting indices">
+      <div class="caption">Drawn flower edits at various starting indices.</div>
+  </div>
+</div>
+  <h3>1.7.2: Inpainting</h3>
+  <div class="callout">
+    <strong>From my code:</strong> Inpainting uses the rule
+    <code>x = mask * x + (1 - mask) * forward(im_orig, t_next)</code>
+    at each step, and I used <code>i_start = 10</code>.
+  </div>
+
+  <div class="group-images cols-3">
+    <div class="image-block">
+      <img src="images/1.9.1.png" alt="Campanile with mask">
+    <div class="caption">Campanile with mask  </div>
+    </div>
+    <div class="image-block">
+      <img src="images/1.9.2.png" alt="bear with mask">
+      <div class="caption">Bear with mask.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/1.9.3.png" alt="labubu with mask">
+      <div class="caption">Labubu with mask.</div>
+  </div>
+</div>
+
+  <h3>1.7.3: Text-Conditional Image-to-Image Translation</h3>
+  <p>
+    I repeated the SDEdit procedure but changed the conditional prompt to guide edits.
+  </p>
+
+  <div class="group-images cols-3">
+    <div class="image-block">
+      <img src="images/1.10.1.png" alt="Campanile with mask">
+    <div class="caption">campanile from shark and seal </div>
+    </div>
+    <div class="image-block">
+      <img src="images/1.10.2.png" alt="bear at various starting indices">
+      <div class="caption">bear from shark and seal </div>
+    </div>
+    <div class="image-block">
+      <img src="images/1.10.3.png" alt="labubu at various starting indices">
+      <div class="caption">labubu from shark and seal </div>
+  </div>
+</div>
+
+  <h3>1.8: Visual Anagrams</h3>
+  <div class="callout">
+    <strong>From my code:</strong> Visual anagram prompts were
+    <code>p1 = "an oil painting of a wineyard"</code> and
+    <code>p2 = "an oil painting of a hot spring"</code>, with <code>cfg_scale=7.0</code>.
+
+
+    <code>p3 = "a watercolor painting of a girl playing electric guitar"</code> 
+    <code>p4 = "a watercolor painting of a baby seal"</code>
+  </div>
+
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/1.11.1.png" alt="anagram upright">
+      <div class="caption">Wineyard and hotspring.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/1.11.2.png" alt="anagram flipped">
+      <div class="caption">girl and baby seal.</div>
+    </div>
+  </div>
+</div>
+  <h3>1.9: Hybrid Images</h3>
+  <div class="callout">
+    <strong>From my code:</strong> Hybrids used Gaussian blur <code>k=33</code>, <code>sigma=2.0</code>, and <code>cfg_scale=7.0</code>.
+    Example pairs: (1) <em>"an oil painting of an old man"</em> + <em>"an oil painting of a snowy mountain village"</em>,
+    and (2) <em>"a rocket ship"</em> + <em>"an oil painting of people around a campfire"</em>.
+  </div>
+
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/1.12.1.png" alt="anagram upright">
+      <div class="caption">Village and old man</div>
+    </div>  
+    <div class="image-block">
+      <img src="images/1.12.2.png" alt="anagram flipped">
+      <div class="caption">rocket ship and campfire.</div>
+    </div>
+  </div>
+</div>
+  <!-- ========================= Part B ========================= -->
+  <h2>Part B: Flow Matching from Scratch!</h2>
+
+
+  <h3>1.1–1.2: UNet + Noising Process</h3>
+  <div class="callout">
+    <strong>From my code:</strong> UNet hidden dimension <code>D=128</code>.
+    Training on noisy MNIST with noise level <code>sigma_train=0.5</code>,
+    batch size <code>256</code>, Adam <code>lr=1e-4</code>, trained for <code>5</code> epochs.
+  </div>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/2.1.png" alt="noising visualization">
+      <div class="caption">Visualization of the noising process for different σ (from the notebook).</div>
+    </div>
+  </div>
+
+  <h3>1.2.1: Training Loss + Test Results</h3>
+  <div class="group-images cols-3">
+    <div class="image-block">
+      <img src="images/2.2.3.png" alt="denoiser loss">
+      <div class="caption">Training loss curve for denoising UNet (5 epochs).</div>
+    </div>
+    <div class="image-block">
+      <img src="images/2.2.1.png" alt="epoch 1 and 5 denoising results">
+      <div class="caption">Denoising results (σ=0.5) after epoch 1.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/2.2.2.png" alt="epoch 1 and 5 denoising results">
+      <div class="caption">Denoising results (σ=0.5) after epoch 5.</div>
+    </div>
+  </div>
+
+  <h3>1.2.2: Out-of-Distribution Testing</h3>
+  <div class="callout">
+    <strong>From my code:</strong> I evaluated the same test digits while varying σ over
+    <code>[0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]</code>.
+  </div>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/2.3.1.png" alt="ood sigma sweep">
+      <div class="caption">OOD denoising results while sweeping σ (same digits, different noise).</div>
+    </div>
+  </div>
+
+  <h3>1.2.3: Denoising Pure Noise</h3>
+  <div class="callout">
+    <strong>From my code:</strong> I retrained the same UNet (<code>D=128</code>) to map pure noise to clean digits,
+    using Adam <code>lr=1e-4</code> for <code>5</code> epochs.
+  </div>
+
+  <div class="group-images cols-2">
+    <div class="image-block">
+      <img src="images/2.4.1.png" alt="pure noise loss">
+      <div class="caption">Training loss curve for denoising pure noise.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/2.4.2.png" alt="pure noise samples">
+      <div class="caption">Generated outputs from pure noise after epoch 1.</div>
+    </div>
+        <div class="image-block">
+      <img src="images/2.4.3.png" alt="pure noise samples">
+      <div class="caption">Generated outputs from pure noise after epoch 5.</div>
+    </div>
+  </div>
+
+  <p>
+    <strong>Observation (pure-noise denoising):</strong> The outputs tend to look like “average” digit-like blobs rather than sharp, diverse digits.
+    With an MSE objective, the model is pushed toward predicting a mean/centroid of the training distribution, which reduces diversity.
+  </p>
+
+  <h2>Part 2: Training a Flow Matching Model</h2>
+
+  <h3>2.1–2.3: Time-Conditioned UNet (Flow Matching)</h3>
+  <div class="callout">
+    <strong>From my code:</strong> I trained a time-conditioned UNet with <code>D=64</code>, batch size <code>64</code>,
+    Adam <code>lr=1e-2</code>, for <code>10</code> epochs. I used an exponential LR schedule with
+    <code>gamma = 0.1 ** (1 / total_epochs)</code>.
+  </div>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/2.5.1.png" alt="time-conditioned loss">
+      <div class="caption">Training loss curve for the time-conditioned UNet.</div>
+    </div>
+  </div>
+
+  <div class="group-images cols-3">
+    <div class="image-block">
+      <img src="images/2.5.2.png" alt="time samples epoch 1">
+      <div class="caption">Sampling after epoch 1.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/2.5.3.png" alt="time samples epoch 5">
+      <div class="caption">Sampling after epoch 5.</div>
+    </div>
+    <div class="image-block">
+      <img src="images/2.5.4.png" alt="time samples epoch 10">
+      <div class="caption">Sampling after epoch 10.</div>
+    </div>
+  </div>
+
+  <h3>2.4–2.6: Class-Conditioned UNet + CFG Sampling</h3>
+  <div class="callout">
+    <strong>From my code:</strong> Class-conditioned UNet uses <code>D=64</code>, <code>num_classes=10</code>,
+    classifier-free dropout with <code>p_uncond=0.1</code>, and sampling uses <code>steps=100</code> and <code>cfg_scale=5.0</code>.
+  </div>
+
+  <h3>With Scheduler</h3>
+  <div class="callout">
+    Training used <code>epochs=10</code>, <code>batch_size=64</code>, <code>lr=1e-2</code>, <code>weight_decay=0.0</code>, <code>use_scheduler=True</code>.
+  </div>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/2.6.1.png" alt="class loss with scheduler">
+      <div class="caption">Class-conditioned training loss (with scheduler).</div>
+    </div>
+  </div>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/2.6.2.png" alt="class samples with scheduler epoch 1">
+      <div class="caption">With scheduler — epoch 1 (4 samples per digit, CFG=5.0).</div>
+    </div>
+  </div>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/2.6.3.png" alt="class samples with scheduler epoch 5">
+      <div class="caption">With scheduler — epoch 5 (4 samples per digit, CFG=5.0).</div>
+    </div>
+  </div>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/2.6.4.png" alt="class samples with scheduler epoch 10">
+      <div class="caption">With scheduler — epoch 10 (4 samples per digit, CFG=5.0).</div>
+    </div>
+  </div>
+  </div>
+<h3>No Scheduler (Simplified Training)</h3>
+  <div class="callout">
+    <strong>From my code:</strong> To compensate for removing the exponential LR scheduler, I changed:
+    
+Used a lower constant learning rate (lr=3e-3 instead of 1e-2) so training stays stable without decay.
+
+Added light weight decay (1e-4) to reduce over-updating and help generalization.
+
+Added gradient clipping (1.0) to prevent occasional big updates from destabilizing later epochs.
+Used a lower constant learning rate (lr=3e-3 instead of 1e-2) so training stays stable without decay.
+
+Added light weight decay (1e-4) to reduce over-updating and help generalization.
+
+Added gradient clipping (1.0) to prevent occasional big updates from destabilizing later epochs.
+  </div>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/2.6.5.png" alt="class loss no scheduler">
+      <div class="caption">Class-conditioned training loss (no scheduler).</div>
+    </div>
+  </div>
+
+  <div class="group-images one-up">
+    <div class="image-block">
+      <img src="images/2.6.6.png" alt="class samples no scheduler epoch 10">
+      <div class="caption">No scheduler — epoch 10 (4 samples per digit, CFG=5.0).</div>
+    </div>
+  </div>
+
+</body>
+</html>
