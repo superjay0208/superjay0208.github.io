@@ -1,18 +1,16 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f4f1e9"><meta name="description" content="One example breaks the rule. Six claims, six counterexamples. Think of something unexpected.">
-  <title>Cross Examination — find the exception</title>
-  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css?v=3"><script type="module" src="./src/app.js?v=3"></script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f4f1e9"><meta name="description" content="One daily debate. Six arguments. Twenty-five seconds to find a counterexample—and maybe counter yourself.">
+<title>Cross Examination — the daily debate</title><link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css?v=4"><script type="module" src="./src/app.js?v=4"></script>
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to game</a>
-  <header class="site-header"><a class="wordmark" href="./" aria-label="Cross Examination home"><span class="brand-mark" aria-hidden="true">×</span><span>CROSS<br>EXAMINATION</span></a><div class="header-actions"><button class="quiet-button" id="sound-button" aria-pressed="false">Sound off</button><button class="help-button" id="help-button" aria-label="How to play">?</button></div></header>
-  <main id="main" tabindex="-1"><p class="loading" role="status">Finding a rule to break…</p></main>
-  <footer class="site-footer"><span>One example breaks the rule.</span><span>A LITTLE GAME OF “WHAT ABOUT…?”</span></footer>
-  <dialog id="help-dialog" aria-labelledby="help-title"><button class="dialog-close" aria-label="Close instructions" data-close-dialog>×</button><p class="eyebrow">THAT’S A BIG CLAIM.</p><h2 id="help-title">Find one<br><em>exception.</em></h2><p class="help-claim">“Only birds lay eggs.”</p><p class="help-answer">What about <strong>crocodiles?</strong></p><p>Name one thing that proves each claim wrong. That’s the whole game.</p><p>Six claims. Familiar examples score points; unexpected ones score more. No timer. Try as many spellings as you like, or skip a claim.</p><p class="fine-print">All examples and points are authored in advance. Scores describe our editorial sense of surprise, not measured answer frequencies. There is no live AI judge.</p><button class="primary-button" data-close-dialog>Got it ↗</button></dialog>
-  <dialog id="share-dialog" aria-labelledby="share-title"><button class="dialog-close" aria-label="Close result" data-close-dialog>×</button><h2 id="share-title">Copy your result.</h2><textarea id="share-output" readonly rows="6" aria-label="Shareable result"></textarea></dialog>
-  <div id="effects" aria-hidden="true"></div><div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
+<a class="skip-link" href="#main">Skip to game</a>
+<header class="site-header"><a class="wordmark" href="./" aria-label="Cross Examination home"><span class="brand-mark" aria-hidden="true">×</span><span>CROSS<br>EXAMINATION</span></a><div class="header-actions"><button class="quiet-button" id="sound-button" aria-pressed="true">Sound on</button><button class="help-button" id="help-button" aria-label="How to play">?</button></div></header>
+<main id="main" tabindex="-1"><p class="loading" role="status">Opening today’s debate…</p></main>
+<footer class="site-footer"><span>Small hill. Strong opinions.</span><span>A NEW DEBATE EVERY DAY · 00:00 UTC</span></footer>
+<dialog id="help-dialog" aria-labelledby="help-title"><button class="dialog-close" aria-label="Close instructions" data-close-dialog>×</button><p class="eyebrow">PICK IT APART.</p><h2 id="help-title">Then argue<br><em>with yourself.</em></h2><ol class="how-list"><li><strong>Read the argument.</strong><p>Each turn makes a case FOR or AGAINST today’s question. Tap an underlined phrase to challenge it.</p></li><li><strong>Name a counterexample.</strong><p>“It’s handheld” → “burrito.” Just a name, not an essay. A valid counter scores 100.</p></li><li><strong>Undo your own example.</strong><p>If a later answer also challenges an earlier one you played, it doubles that example’s chain: ×2, ×4, ×8… We show the connection.</p></li></ol><p class="fine-print">Six arguments. 25 seconds each, including phrase selection. The clock pauses while you read a reveal. Examples and chain connections are curated; challenging a feature doesn’t settle the whole debate.</p><button class="primary-button" data-close-dialog>Let’s argue ↗</button></dialog>
+<dialog id="share-dialog" aria-labelledby="share-title"><button class="dialog-close" aria-label="Close result" data-close-dialog>×</button><h2 id="share-title">Copy your result.</h2><textarea id="share-output" readonly rows="7" aria-label="Shareable result"></textarea></dialog>
+<div id="effects" aria-hidden="true"></div><div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
 </body>
 </html>

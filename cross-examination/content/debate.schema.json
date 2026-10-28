@@ -1,0 +1,445 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:cross-examination:debate:v4",
+  "title": "Daily concrete-counterexample debate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "id",
+    "version",
+    "question",
+    "shortTitle",
+    "scope",
+    "rules",
+    "turns",
+    "examples",
+    "matchTests",
+    "sources",
+    "editorial"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "../debate.schema.json"
+    },
+    "schemaVersion": {
+      "const": 4
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "question": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 100
+    },
+    "shortTitle": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 80
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 400
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "turns",
+        "secondsPerTurn",
+        "basePoints",
+        "maxWords",
+        "maxCharacters"
+      ],
+      "properties": {
+        "turns": {
+          "const": 6
+        },
+        "secondsPerTurn": {
+          "const": 25
+        },
+        "basePoints": {
+          "const": 100
+        },
+        "maxWords": {
+          "const": 6
+        },
+        "maxCharacters": {
+          "const": 60
+        }
+      }
+    },
+    "turns": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/turn"
+      }
+    },
+    "examples": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/example"
+      }
+    },
+    "matchTests": {
+      "type": "array",
+      "minItems": 30,
+      "maxItems": 30000,
+      "items": {
+        "$ref": "#/$defs/test"
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "editorial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "risks",
+        "humanReviewRecommended"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 1200
+        },
+        "risks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 600
+          }
+        },
+        "humanReviewRecommended": {
+          "const": true
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "maxLength": 80
+    },
+    "handle": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60,
+      "pattern": "^\\S+(?: \\S+){0,5}$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "url",
+        "accessedAt",
+        "supports"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "accessedAt": {
+          "type": "string",
+          "format": "date"
+        },
+        "supports": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 500
+        }
+      }
+    },
+    "rejected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "answer",
+        "aliases",
+        "reason"
+      ],
+      "properties": {
+        "answer": {
+          "$ref": "#/$defs/handle"
+        },
+        "aliases": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/handle"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 240
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claimId",
+        "input",
+        "usedEntryIds",
+        "expected"
+      ],
+      "properties": {
+        "input": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "usedEntryIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "match",
+                "suggestion",
+                "ambiguous",
+                "rejected",
+                "invalid",
+                "already-used",
+                "no-match"
+              ]
+            },
+            "entryId": {
+              "$ref": "#/$defs/id"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "match",
+                      "suggestion",
+                      "already-used"
+                    ]
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "entryId"
+                ]
+              },
+              "else": {
+                "not": {
+                  "required": [
+                    "entryId"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "claimId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "hint"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 130
+        },
+        "hint": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 100
+        },
+        "rejected": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rejected"
+          }
+        }
+      }
+    },
+    "turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "side",
+        "text",
+        "claims"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "side": {
+          "enum": [
+            "for",
+            "against"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 240
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/claim"
+          }
+        }
+      }
+    },
+    "example": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "answer",
+        "aliases",
+        "counters",
+        "selfCounters",
+        "sourceIds"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "answer": {
+          "$ref": "#/$defs/handle"
+        },
+        "aliases": {
+          "type": "array",
+          "maxItems": 40,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/handle"
+          }
+        },
+        "counters": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/counter"
+          }
+        },
+        "selfCounters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/selfCounter"
+          }
+        },
+        "sourceIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "counter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claimId",
+        "explanation"
+      ],
+      "properties": {
+        "claimId": {
+          "$ref": "#/$defs/id"
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 15,
+          "maxLength": 280
+        }
+      }
+    },
+    "selfCounter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "targetId",
+        "targetClaimId",
+        "claimId",
+        "explanation"
+      ],
+      "properties": {
+        "targetId": {
+          "$ref": "#/$defs/id"
+        },
+        "targetClaimId": {
+          "$ref": "#/$defs/id"
+        },
+        "claimId": {
+          "$ref": "#/$defs/id"
+        },
+        "explanation": {
+          "type": "string",
+          "minLength": 30,
+          "maxLength": 420
+        }
+      }
+    }
+  }
+}
