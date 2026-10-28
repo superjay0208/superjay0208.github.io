@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2f0e7">
+  <meta name="description" content="Six turns. Both sides. A tiny game about finding a fresh angle and arguing with yourself.">
+  <title>Cross Examination — pick a small hill</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./src/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to game</a>
+  <header class="site-header">
+    <a class="wordmark" href="./" aria-label="Cross Examination home"><span class="cross-mark" aria-hidden="true">×</span><span>CROSS<br>EXAMINATION</span></a>
+    <div class="header-actions"><span class="prototype-tag">THE PLAYABLE PROTOTYPE</span><button class="text-button" id="cases-button" disabled>Cases <span aria-hidden="true">↗</span></button><button class="text-button" id="help-button">How to play <span aria-hidden="true">↗</span></button></div>
+  </header>
+  <main id="main" tabindex="-1"><div class="loading" role="status">Opening the case file…</div></main>
+  <footer class="site-footer"><span>Small arguments. Big opinions.</span><span>MADE FOR BOTH SIDES OF YOUR BRAIN <span aria-hidden="true">↔</span></span></footer>
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <button class="dialog-close" aria-label="Close instructions" data-close-dialog>×</button>
+    <p class="eyebrow">A VERY IMPORTANT BRIEFING</p><h2 id="help-title">Pick a small hill.<br>Then switch hills.</h2>
+    <ol class="how-list"><li><strong>Name your angle.</strong><span>Type 1–4 words: a feature, an idea, or a familiar example. The game fills in the argument.</span></li><li><strong>Switch sides.</strong><span>Six turns alternate FOR and AGAINST. Less obvious accepted angles get more points.</span></li><li><strong>Challenge yourself.</strong><span>A later answer that counters an earlier one earns +20. Two counterpunches per case.</span></li></ol>
+    <div class="help-example"><span class="side-tag for">FOR</span><strong>handheld</strong><span aria-hidden="true">→</span><span class="side-tag against">AGAINST</span><strong>burrito</strong><p>Burritos are handheld too. That is a counterpunch.</p></div>
+    <p class="fine-print" id="help-bank-note">Spelling is not on trial. Clear typos get a visible correction; uncertain ones need your confirmation. Scores are authored in advance.</p>
+    <button class="button primary" data-close-dialog>Got it. Let’s argue. <span aria-hidden="true">↗</span></button>
+  </dialog>
+  <dialog id="restart-dialog" aria-labelledby="restart-title"><p class="eyebrow">A FRESH START</p><h2 id="restart-title">Reopen the case?</h2><p>Your current run will be replaced. Your best completed score stays on this browser.</p><div class="dialog-actions"><button class="button secondary" data-close-dialog>Keep playing</button><button class="button primary" id="confirm-restart">Start fresh ↗</button></div></dialog>
+  <dialog id="cases-dialog" aria-labelledby="cases-title"><button class="dialog-close" aria-label="Close case picker" data-close-dialog>×</button><p class="eyebrow">SO MANY SMALL HILLS</p><h2 id="cases-title">Pick your next case.</h2><p>Your current case stays saved in this browser. Timed turns keep ticking while you are away.</p><div id="case-links" class="case-links"></div></dialog>
+  <dialog id="share-dialog" aria-labelledby="share-title"><button class="dialog-close" aria-label="Close share result" data-close-dialog>×</button><h2 id="share-title">Your case, in a nutshell.</h2><p>Select and copy your result:</p><textarea id="share-output" readonly rows="8" aria-label="Shareable result"></textarea></dialog>
+  <div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
+</body>
+</html>
