@@ -1,3 +1,4 @@
+import { matchInput } from './matcher.js?v=5';
 const DAY = 86_400_000;
 export const utcDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
 export function dailyTopic(manifest, day = utcDay()) {
@@ -8,7 +9,7 @@ export function dailyTopic(manifest, day = utcDay()) {
 }
 export function assertDebate(debate) {
   if (!debate || debate.schemaVersion !== 4 || typeof debate.id !== 'string' || typeof debate.question !== 'string' || !Number.isInteger(debate.version) ||
-      debate.rules?.turns !== 6 || debate.rules.secondsPerTurn !== 25 || debate.rules.basePoints !== 100 || debate.rules.maxWords !== 6 || debate.rules.maxCharacters !== 60 ||
+      debate.rules?.turns !== 6 || debate.rules.secondsPerTurn !== 45 || debate.rules.basePoints !== 100 || debate.rules.maxWords !== 6 || debate.rules.maxCharacters !== 60 ||
       !Array.isArray(debate.turns) || debate.turns.length !== 6 || !Array.isArray(debate.examples) || !debate.examples.length) throw new Error('Unsupported debate bank.');
   const claims = new Map(), turnIds = new Set(), examples = new Map();
   for (const [index, turn] of debate.turns.entries()) {
@@ -47,7 +48,7 @@ export function playableDebate(debate) {
 }
 export function createRun(debate, day = utcDay(), now = Date.now()) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error('Invalid day.');
-  return {storageVersion:4,debate:playableDebate(debate),day,phase:'turn',history:[],selectedClaimId:null,draft:'',startedAt:now,deadline:now+25_000,completedAt:null};
+  return {storageVersion:4,debate:playableDebate(debate),day,phase:'turn',history:[],selectedClaimId:null,draft:'',startedAt:now,deadline:now+debate.rules.secondsPerTurn*1000,completedAt:null};
 }
 export const totalScore = run => run.history.reduce((sum,record)=>sum+record.total,0);
 export const currentArgument = run => run.debate.turns[run.phase === 'reveal' ? run.history.length-1 : Math.min(run.history.length,5)];
@@ -57,6 +58,15 @@ export function selectClaim(run,claimId) {
   return {...run,selectedClaimId:claimId};
 }
 const pools = new WeakMap();
+const identityPools = new WeakMap();
+// Recognize a repeated name before checking its new target. A repeat must not
+// look like an unexplained content rejection when it was accepted earlier.
+export function matchCounterInput(run, raw, claimId = run.selectedClaimId) {
+  if (!identityPools.has(run.debate)) identityPools.set(run.debate, {entries:run.debate.examples,rejected:[]});
+  const identity = matchInput(identityPools.get(run.debate), raw, usedIds(run));
+  if (identity.kind === 'already-used' && identity.matchType !== 'typo') return identity;
+  return matchInput(matchingPool(run.debate, claimId), raw, usedIds(run));
+}
 export function matchingPool(debate,claimId) {
   if (!pools.has(debate)) pools.set(debate,new Map());
   const cache=pools.get(debate); if(cache.has(claimId))return cache.get(claimId);
@@ -92,7 +102,7 @@ export function commitTurn(run,move,now=Date.now()) {
 export function advanceRun(run,now=Date.now()) {
   if(run.phase!=='reveal')return run;
   if(run.history.length===6)return {...run,phase:'complete',completedAt:now,deadline:null};
-  return {...run,phase:'turn',selectedClaimId:null,draft:'',deadline:now+25_000};
+  return {...run,phase:'turn',selectedClaimId:null,draft:'',deadline:now+run.debate.rules.secondsPerTurn*1000};
 }
 export function restoreRun(raw,now=Date.now()) {
   try {
@@ -116,5 +126,5 @@ export function restoreRun(raw,now=Date.now()) {
 }
 export function shareText(run) {
   const chain=Math.max(1,...run.history.map(record=>record.multiplier));
-  return `Cross Examination · ${run.day}\n${run.debate.question}\n${run.history.map(record=>record.multiplier>1?'✳':record.kind==='answer'?'●':'○').join(' ')}\n${totalScore(run)} points · ×${chain} best chain\n6 arguments · 25 seconds each · Counter yourself.`;
+  return `Cross Examination · ${run.day}\n${run.debate.question}\n${run.history.map(record=>record.multiplier>1?'✳':record.kind==='answer'?'●':'○').join(' ')}\n${totalScore(run)} points · ×${chain} best chain\n6 arguments · 45 seconds each · Counter yourself.`;
 }

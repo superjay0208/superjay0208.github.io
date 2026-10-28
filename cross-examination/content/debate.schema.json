@@ -63,7 +63,7 @@
           "const": 6
         },
         "secondsPerTurn": {
-          "const": 25
+          "const": 45
         },
         "basePoints": {
           "const": 100
