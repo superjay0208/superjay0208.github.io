@@ -1,37 +1,21 @@
 {
-  "version": 3,
-  "roundSize": 6,
-  "defaultPrompt": "eggs-without-birds",
-  "prompts": [
+  "version": 4,
+  "epoch": "2026-10-28",
+  "topics": [
     {
-      "id": "eggs-without-birds",
-      "file": "prompts/eggs-without-birds.json",
-      "title": "Only birds lay eggs."
+      "id": "burger-sandwich",
+      "file": "debates/burger-sandwich.json",
+      "title": "Burger / sandwich"
     },
     {
-      "id": "unplugged-music",
-      "file": "prompts/unplugged-music.json",
-      "title": "Every musical instrument needs electricity."
+      "id": "cereal-soup",
+      "file": "debates/cereal-soup.json",
+      "title": "Cereal / soup"
     },
     {
-      "id": "screen-free-games",
-      "file": "prompts/screen-free-games.json",
-      "title": "Every game needs a screen."
-    },
-    {
-      "id": "flight-without-birds",
-      "file": "prompts/flight-without-birds.json",
-      "title": "Only birds can fly."
-    },
-    {
-      "id": "ball-free-sports",
-      "file": "prompts/ball-free-sports.json",
-      "title": "Every sport needs a ball."
-    },
-    {
-      "id": "handheld-food",
-      "file": "prompts/handheld-food.json",
-      "title": "Every handheld food is a sandwich."
+      "id": "audiobook-reading",
+      "file": "debates/audiobook-reading.json",
+      "title": "Audiobooks / reading"
     }
   ]
 }

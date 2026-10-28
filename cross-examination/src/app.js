@@ -1,105 +1,140 @@
-import { matchInput, normalizeInput } from './matcher.js?v=3';
-import { playablePrompt, createRun, currentPrompt, commitAnswer, advanceRun, skipPrompt, totalScore, maximumScore, restoreRun, shareText } from './game.js?v=3';
-const main = document.querySelector('#main');
-const h = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
-const fmt = value => value.toLocaleString('en-US');
-const rarity = points => points === 100 ? 'Wild card' : points === 75 ? 'Deep cut' : points === 50 ? 'Unexpected' : points === 25 ? 'Good find' : 'Classic counterexample';
-const RUN_KEY = 'cross-examination:examples:run:v3';
-let prompts, run, attempted = false, composing = false, sound = false, audio, storageAvailable = true, hiddenSuggestions = false;
-function read(key) { try { return localStorage.getItem(key); } catch { storageAvailable = false; return null; } }
-function write(key, value) { try { localStorage.setItem(key, value); } catch { storageAvailable = false; } }
-function persist() { write(RUN_KEY, JSON.stringify(run)); }
-function announce(text) { document.querySelector('#announcer').textContent = text; }
-const bestKey = () => `cross-examination:examples:best:${prompts.map(prompt => `${prompt.id}:${prompt.version}`).join('|')}`;
-const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-function focusInput() { document.querySelector('#answer-input')?.focus({ preventScroll: true }); }
-function header() {
-  const answered = run.history.length, index = run.phase === 'reveal' ? answered : Math.min(answered + 1, 6);
-  return `<div class="round-header"><div class="round-progress"><div class="pips" aria-hidden="true">${run.prompts.map((_, i) => `<i class="${i < answered ? run.history[i].kind === 'skip' ? 'skipped' : 'filled' : i === answered ? 'current' : ''}"></i>`).join('')}</div><span>${run.phase === 'complete' ? 'ROUND COMPLETE' : `CLAIM ${index} OF 6`}</span></div><div class="score-total"><span>POINTS</span><strong id="score-number">${fmt(totalScore(run))}</strong></div></div>`;
+import { matchInput, normalizeInput } from './matcher.js?v=4';
+import { dailyTopic, utcDay, playableDebate, createRun, currentArgument, selectClaim, matchingPool, scoreExample, possibleChain, usedIds, commitTurn, advanceRun, totalScore, restoreRun, shareText } from './game.js?v=4';
+const main=document.querySelector('#main'),effects=document.querySelector('#effects');
+const h=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const fmt=value=>value.toLocaleString('en-US');
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+let manifest,debate,day,run=null,sound=true,audio,attempted=false,composing=false,storageAvailable=true,transitioning=false,hiddenSuggestions=false,lastTickSecond=null,animationGeneration=0;
+const runKey=()=>`cross-examination:daily:v4:${day}`;
+const bestKey=()=>`cross-examination:daily:best:v4:${day}:${debate.id}:${debate.version}`;
+function read(key){try{return localStorage.getItem(key);}catch{storageAvailable=false;return null;}}
+function write(key,value){try{localStorage.setItem(key,value);}catch{storageAvailable=false;}}
+function persist(){write(runKey(),JSON.stringify(run));}
+function announce(text){document.querySelector('#announcer').textContent=text;}
+const dateLabel=()=>new Intl.DateTimeFormat('en-US',{month:'short',day:'numeric',timeZone:'UTC'}).format(new Date(day+'T00:00:00Z'));
+const bestChain=()=>Math.max(1,...(run?.history??[]).map(record=>record.multiplier));
+function renderHome(){
+  main.className='home';
+  main.innerHTML=`<div class="game-shell home-shell"><p class="eyebrow daily-label"><span class="live-dot"></span> THE DAILY DEBATE · ${h(dateLabel())}</p><h1 class="home-question">${h(debate.question)}</h1><p class="home-description">Argue both sides.<br>Catch yourself out.</p><div class="home-rules"><span><strong>6</strong> arguments</span><span><strong>25s</strong> each</span><span><strong>×2</strong> self-counters</span></div><button class="primary-button play-button" id="play-button">Start today’s debate <span>↗</span></button><p class="home-instruction">Read an argument. Tap a phrase. Name a counterexample.</p><div class="home-demo" aria-label="Example"><span>“A sandwich is <u>handheld</u>.”</span><span aria-hidden="true">↘</span><strong>What about a burrito?</strong><b>+100</b></div><span class="home-cross" aria-hidden="true">×</span>${storageNote()}</div>`;
+  document.querySelector('#play-button').addEventListener('click',()=>{armAudio();run=createRun(debate,day);persist();render();announce('Argument one. 25 seconds. Choose an underlined phrase.');});
 }
-function guessView(prompt) {
-  return `<section class="claim-view" aria-labelledby="claim-title"><p class="eyebrow">FIND ONE EXCEPTION.</p><h1 id="claim-title">“${h(prompt.claim)}”</h1><p class="instruction" id="instruction">${h(prompt.instruction)}</p>
-  <form id="answer-form" novalidate><label class="sr-only" for="answer-input">Your counterexample</label><div class="input-row"><span class="what-about" aria-hidden="true">What about</span><input id="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="60" placeholder="e.g. ${h(prompt.starter.toLowerCase())}…" value="${h(run.draft)}" aria-describedby="match-preview instruction" aria-autocomplete="list" aria-controls="suggestions"><button class="send-button" type="submit" aria-label="Submit counterexample">↗</button></div><div class="input-under"><p id="match-preview" role="status"></p><span>just a name</span></div><div id="suggestions" role="listbox" aria-label="Spelling suggestions" hidden></div></form>
-  <div class="guess-footer"><span>Less obvious = more points.</span><button class="skip-button" id="skip-button">Skip this claim ↗</button></div><p class="no-pressure">No timer. No points lost for trying.</p></section>`;
+function storageNote(){return storageAvailable?'':'<p class="storage-note">Progress cannot be saved in this browser. Keep this tab open to finish.</p>';}
+function header(){
+  const index=run.phase==='reveal'?run.history.length:Math.min(run.history.length+1,6);
+  return `<div class="daily-topic"><span>${h(dateLabel())} · TODAY’S DEBATE</span><h1>${h(debate.question)}</h1></div><div class="game-hud"><div class="round-progress"><div class="pips" aria-hidden="true">${debate.turns.map((_,i)=>`<i class="${i<run.history.length?run.history[i].kind==='answer'?'filled':'missed':i===run.history.length?'current':''}"></i>`).join('')}</div><span>${run.phase==='complete'?'ROUND COMPLETE':`ARGUMENT ${index} / 6`}</span></div>${run.phase==='turn'?'<div class="clock" role="timer" aria-label="25 seconds remaining"><svg viewBox="0 0 60 60" aria-hidden="true"><circle class="clock-track" cx="30" cy="30" r="25"/><circle id="clock-ring" cx="30" cy="30" r="25"/></svg><strong id="clock-value">25</strong><span>SEC</span></div>':'<span class="clock-paused">'+(run.phase==='complete'?'STILL DEBATABLE.':'CLOCK PAUSED')+'</span>'}<div class="score-total"><span>POINTS</span><strong id="score-number">${fmt(totalScore(run))}</strong>${bestChain()>1?`<b class="hud-chain">×${bestChain()} CHAIN</b>`:''}</div></div>`;
 }
-function revealView(prompt) {
-  const record = run.history.at(-1), entry = prompt.entries.find(entry => entry.id === record.entryId);
-  const corrected = normalizeInput(record.input) !== normalizeInput(entry.answer) && record.input.toLowerCase() !== entry.answer.toLowerCase();
-  return `<section class="reveal-view" aria-labelledby="example-title"><p class="disproved-claim"><s>${h(prompt.claim)}</s></p><div class="answer-stage"><span class="not-always">NOT ALWAYS.</span><p class="what-about-label">WHAT ABOUT…</p><h1 id="example-title">${h(entry.answer)}<span class="answer-period">.</span></h1><p class="explanation">${h(entry.explanation)}</p><div class="answer-score"><span class="point-burst">+${entry.points}</span><div><strong>${rarity(entry.points)}</strong><span>${entry.points} / ${Math.max(...prompt.entries.map(entry => entry.points))} points</span></div></div></div>${corrected ? `<p class="correction-receipt">Matched “${h(record.input)}” to ${h(entry.answer)}.</p>` : ''}<button class="primary-button next-button" id="next-button">${run.history.length === 6 ? 'See your score' : 'Next claim'} <span aria-hidden="true">↗</span></button><p class="keyboard-note">or press Enter</p></section>`;
-}
-function completeView() {
-  const score = totalScore(run), best = Number(read(bestKey()) ?? 0); if (score > best) write(bestKey(), String(score));
-  return `<section class="results"><p class="eyebrow">SO MUCH FOR THE RULES.</p><h1>Point<br><em>taken.</em></h1><div class="final-score">${score}<span>/ ${maximumScore(run)} POINTS</span></div><p>${run.history.filter(record => record.kind === 'answer').length} counterexamples${score >= best && score > 0 ? ' · Personal best' : ''}</p><div class="result-actions"><button class="primary-button" id="again-button">Play again ↗</button><button class="quiet-link" id="share-button">Copy result</button></div></section><ol class="round-recap">${run.history.map((record, index) => { const prompt = run.prompts[index], entry = prompt.entries.find(entry => entry.id === record.entryId); return `<li><span class="recap-number">0${index + 1}</span><div><p>${h(prompt.claim)}</p><strong>${entry ? h(entry.answer) : 'Skipped'}</strong><span>${entry ? h(entry.explanation) : `One example: ${h(prompt.starter)}.`}</span></div><b>+${record.points}</b></li>`; }).join('')}</ol><details class="bank-explorer"><summary>See more counterexamples <span>↗</span></summary><p>These are fixed editorial scores. Different names for the same example receive the same points.</p>${run.prompts.map(prompt => `<section><h2>${h(prompt.claim)}</h2><div class="example-grid">${[...prompt.entries].sort((a,b) => a.points - b.points || a.answer.localeCompare(b.answer)).map(entry => `<span title="${h(entry.explanation)}">${h(entry.answer)} <small>${entry.points}</small></span>`).join('')}</div></section>`).join('')}</details>`;
-}
-function render() {
-  main.innerHTML = `<div class="game-shell">${header()}${run.phase === 'complete' ? completeView() : run.phase === 'reveal' ? revealView(currentPrompt(run)) : guessView(currentPrompt(run))}${storageAvailable ? '' : '<p class="storage-note">Progress cannot be saved in this browser. Keep this tab open to finish.</p>'}</div>`;
-  bind(); if (run.phase === 'guess') preview();
-}
-function next() { run = advanceRun(run); attempted = false; hiddenSuggestions = false; persist(); render(); focusInput(); if (run.phase === 'complete') document.querySelector('#again-button')?.focus({ preventScroll: true }); }
-function bind() {
-  const input = document.querySelector('#answer-input');
-  input?.addEventListener('compositionstart', () => { composing = true; });
-  input?.addEventListener('compositionend', () => { composing = false; run.draft = input.value; persist(); preview(); });
-  input?.addEventListener('input', () => { run.draft = input.value; attempted = false; hiddenSuggestions = false; persist(); if (!composing) preview(); });
-  input?.addEventListener('keydown', event => { if (event.key === 'ArrowDown') { const first = document.querySelector('[data-suggestion]'); if (first) { event.preventDefault(); first.focus(); } } else if (event.key === 'Escape') { hiddenSuggestions = true; preview(); } });
-  document.querySelector('#answer-form')?.addEventListener('submit', event => { event.preventDefault(); if (composing) return; attempted = true; const match = getMatch(); if (match.kind === 'match') finish(match); else { preview(); announce(document.querySelector('#match-preview').textContent); } });
-  document.querySelector('#skip-button')?.addEventListener('click', () => { run = skipPrompt(run); attempted = false; hiddenSuggestions = false; persist(); render(); focusInput(); if (run.phase === 'complete') document.querySelector('#again-button')?.focus({ preventScroll: true }); announce(run.phase === 'complete' ? 'Round complete.' : `Next claim. ${currentPrompt(run).claim}`); });
-  document.querySelector('#next-button')?.addEventListener('click', next);
-  document.querySelector('#again-button')?.addEventListener('click', () => { run = createRun(prompts); attempted = false; hiddenSuggestions = false; persist(); render(); main.scrollIntoView({ block: 'start' }); focusInput(); });
-  document.querySelector('#share-button')?.addEventListener('click', async event => { const text = shareText(run); try { await navigator.clipboard.writeText(text); event.target.textContent = 'Copied ✓'; } catch { document.querySelector('#share-output').value = text; document.querySelector('#share-dialog').showModal(); document.querySelector('#share-output').select(); } });
-}
-function getMatch() { return matchInput(currentPrompt(run), run.draft); }
-function preview() {
-  const output = document.querySelector('#match-preview'), box = document.querySelector('#suggestions');
-  if (!output || composing) return; box.hidden = true; box.innerHTML = ''; output.className = '';
-  if (!run.draft.trim()) { output.textContent = attempted ? 'Name one thing first.' : 'Spelling doesn’t have to be perfect.'; return; }
-  const match = getMatch();
-  if (match.kind === 'match') { output.className = 'recognized'; output.innerHTML = `${match.matchType === 'typo' ? '<span class="spelling-note">Corrected to </span>' : ''}<strong>${h(match.entry.answer)}</strong> <span class="preview-points">${match.entry.points} points</span> <span aria-hidden="true">✓</span>`; }
-  else if ((match.kind === 'suggestion' || match.kind === 'ambiguous') && match.suggestions?.length && !hiddenSuggestions) {
-    output.textContent = 'Did you mean one of these?'; box.hidden = false;
-    box.innerHTML = match.suggestions.map((suggestion, index) => `<button type="button" role="option" aria-selected="false" data-suggestion="${index}">${h(suggestion.entry.answer)}${normalizeInput(suggestion.matchedHandle) !== normalizeInput(suggestion.entry.answer) ? ` <small class="alias-note">also called ${h(suggestion.matchedHandle)}</small>` : ''} <span>↖</span></button>`).join('');
-    box.querySelectorAll('[data-suggestion]').forEach(button => {
-      button.addEventListener('click', () => { run.draft = match.suggestions[Number(button.dataset.suggestion)].entry.answer; attempted = false; hiddenSuggestions = true; document.querySelector('#answer-input').value = run.draft; persist(); preview(); focusInput(); });
-      button.addEventListener('keydown', event => { const buttons = [...box.querySelectorAll('[data-suggestion]')], index = buttons.indexOf(button); if (event.key === 'ArrowDown') { event.preventDefault(); (buttons[index + 1] ?? buttons[0]).focus(); } else if (event.key === 'ArrowUp') { event.preventDefault(); if (index === 0) focusInput(); else buttons[index - 1].focus(); } else if (event.key === 'Escape') { event.preventDefault(); hiddenSuggestions = true; preview(); focusInput(); } });
-    });
-  } else if (match.kind === 'rejected') { output.className = 'needs-work'; output.textContent = match.reason; }
-  else if (match.kind === 'invalid') { output.className = attempted ? 'needs-work' : ''; output.textContent = match.reason; }
-  else { output.className = attempted ? 'needs-work' : ''; output.textContent = attempted ? 'Not found yet. Try another name, or skip. No points lost.' : 'Keep typing, or try another name for it.'; }
-}
-function finish(match) {
-  if (run.phase !== 'guess') return;
-  const before = totalScore(run); run = commitAnswer(run, match.entryId, run.draft); persist(); render();
-  document.querySelector('#next-button').focus({ preventScroll: true });
-  announce(`${match.entry.answer}. ${match.entry.explanation} ${match.entry.points} points.`);
-  document.querySelector('.game-shell').scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'instant' : 'smooth' });
-  celebrate(match.entry, before);
-}
-function celebrate(entry, before) {
-  if (!reducedMotion()) {
-    document.querySelector('.answer-stage').animate([{ opacity: .1, transform: 'translateY(24px) scale(.96)' }, { opacity: 1, transform: 'translateY(-4px) scale(1.006)' }, { transform: 'none' }], { duration: 500, easing: 'cubic-bezier(.16,1,.3,1)' });
-    document.querySelector('.not-always').animate([{ transform: 'scale(2.4) rotate(16deg)', opacity: 0 }, { transform: 'scale(.9) rotate(-9deg)', opacity: 1 }, { transform: 'rotate(-6deg)' }], { duration: 600, delay: 80, fill: 'backwards', easing: 'cubic-bezier(.16,1,.3,1)' });
-    document.querySelector('.point-burst').animate([{ transform: 'scale(.3)', opacity: .1 }, { transform: 'scale(1.18)', opacity: 1 }, { transform: 'scale(1)' }], { duration: 600, delay: 100, fill: 'backwards' });
-    const start = performance.now(), target = document.querySelector('#score-number');
-    const count = time => { if (!target.isConnected) return; const t = Math.min(1, (time - start) / 650); target.textContent = fmt(Math.round(before + entry.points * (1 - (1 - t) ** 3))); if (t < 1) requestAnimationFrame(count); }; requestAnimationFrame(count);
-    const rect = document.querySelector('.answer-score').getBoundingClientRect(), effects = document.querySelector('#effects');
-    for (let i = 0; i < 18; i++) { const particle = document.createElement('i'); particle.className = 'particle'; particle.style.cssText = `left:${rect.left + 40}px;top:${rect.top + 35}px;background:${['#e77b44','#aec574','#233e32','#e7bd49'][i % 4]}`; effects.append(particle); const angle = i / 18 * Math.PI * 2, d = 55 + Math.random() * 110; particle.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${Math.cos(angle) * d}px,${Math.sin(angle) * d}px) rotate(${i * 41}deg)`, opacity: 0 }], { duration: 800, easing: 'cubic-bezier(.1,.7,.3,1)' }).onfinish = () => particle.remove(); }
+function quoteHTML(argument,selected=null,struck=false){
+  const claims=argument.claims.map(claim=>({...claim,start:argument.text.indexOf(claim.text)})).sort((a,b)=>a.start-b.start);
+  let output='',cursor=0;
+  for(const claim of claims){output+=h(argument.text.slice(cursor,claim.start));const active=claim.id===selected;
+    output+=run.phase==='turn'?`<span class="claim ${active?'selected':''}" role="button" tabindex="0" data-claim="${h(claim.id)}" aria-pressed="${active}" aria-label="Challenge: ${h(claim.text)}">${h(claim.text)}<span class="claim-arrow" aria-hidden="true">↗</span></span>`:active&&struck?`<span class="struck-phrase">${h(claim.text)}</span>`:h(claim.text);
+    cursor=claim.start+claim.text.length;
   }
-  if (sound) playSound(entry.points);
+  return output+h(argument.text.slice(cursor));
 }
-function playSound(points) {
-  try { audio ??= new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); const start = audio.currentTime; [1,1.25,1.5,2].forEach((ratio, i) => { const oscillator = audio.createOscillator(), gain = audio.createGain(); oscillator.frequency.value = (220 + points * 2) * ratio; gain.gain.setValueAtTime(.001,start + i*.05); gain.gain.linearRampToValueAtTime(.065,start + i*.05+.008); gain.gain.exponentialRampToValueAtTime(.001,start + i*.05+.24); oscillator.connect(gain); gain.connect(audio.destination); oscillator.start(start + i*.05); oscillator.stop(start + i*.05+.25); }); } catch { /* Optional audio. */ }
+function argumentCard(){
+  const argument=currentArgument(run);
+  return `<section class="argument-stage ${argument.side}" aria-label="Prepared argument"><div class="argument-top"><span class="side-tag">THE CASE ${argument.side==='for'?'FOR':'AGAINST'}</span><span class="argument-number">0${run.history.length+1}</span></div><blockquote id="argument-text">${quoteHTML(argument,run.selectedClaimId)}</blockquote><div class="argument-instruction"><span class="tap-icon" aria-hidden="true">↳</span><span>${run.selectedClaimId?'Now name a counterexample.':'Tap an underlined phrase to challenge it.'}</span></div><div class="time-track" aria-hidden="true"><span id="time-fill"></span></div></section>`;
 }
-document.querySelector('#help-button').addEventListener('click', () => document.querySelector('#help-dialog').showModal());
-document.querySelectorAll('[data-close-dialog]').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
-document.querySelector('#sound-button').addEventListener('click', event => { sound = !sound; write('cross-examination:sound',String(sound)); event.currentTarget.textContent = `Sound ${sound ? 'on' : 'off'}`; event.currentTarget.setAttribute('aria-pressed',String(sound)); if (sound) playSound(10); });
-async function load() {
-  try {
-    const response = await fetch(new URL('../content/manifest.json?v=3',import.meta.url)); if (!response.ok) throw new Error('The claim list could not load.'); const manifest = await response.json();
-    if (manifest.version !== 3 || manifest.roundSize !== 6) throw new Error('Please reload to update the game.');
-    prompts = await Promise.all(manifest.prompts.map(async item => { const response = await fetch(new URL(`../content/${item.file}?v=3`,import.meta.url)); if (!response.ok) throw new Error('A counterexample bank could not load.'); const prompt = playablePrompt(await response.json()); if (prompt.id !== item.id) throw new Error('A claim has the wrong bank.'); return prompt; }));
-    const saved = restoreRun(read(RUN_KEY));
-    run = saved && saved.prompts.every((prompt,index) => prompt.id === prompts[index]?.id && prompt.version === prompts[index].version) ? saved : createRun(prompts);
-    sound = read('cross-examination:sound') === 'true'; document.querySelector('#sound-button').textContent = `Sound ${sound ? 'on' : 'off'}`; document.querySelector('#sound-button').setAttribute('aria-pressed',String(sound)); render();
-  } catch(error) { main.innerHTML = `<div class="load-error"><h1>That didn’t load.</h1><p>${h(error.message)}</p><a href="./">Try again ↗</a></div>`; }
+function composer(){
+  const argument=currentArgument(run),claim=argument.claims.find(claim=>claim.id===run.selectedClaimId),opportunity=claim&&possibleChain(run,claim.id);
+  return `<section class="composer ${claim?'active':'waiting'}" aria-label="Your counterexample"><div class="composer-heading"><label for="answer-input">${claim?`Counter “${h(claim.text)}”`:'Pick your weak spot above.'}</label>${opportunity?`<span class="chain-chance">×${opportunity.multiplier} CHANCE</span>`:''}</div><form id="answer-form" novalidate><div class="input-row"><span class="what-about" aria-hidden="true">What about</span><input id="answer-input" aria-label="Your counterexample" aria-describedby="match-preview claim-hint" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="60" placeholder="${claim?'name an example…':'choose a phrase first…'}" value="${h(run.draft)}" ${claim?'':'disabled'} aria-autocomplete="list" aria-controls="suggestions"><button class="send-button" type="submit" aria-label="Submit counterexample" ${claim?'':'disabled'}>↗</button></div><div class="input-under"><p id="match-preview" role="status"></p><span>just a name</span></div><div id="suggestions" role="listbox" aria-label="Spelling suggestions" hidden></div></form><p class="claim-hint" id="claim-hint">${claim?h(claim.hint):'The clock is running. Choose the part you want to attack.'}</p>${opportunity?`<p class="chain-hint"><span>↶</span> You played <strong>${h(debate.examples.find(example=>example.id===run.history[opportunity.chainTargetIndex].entryId).answer)}</strong> earlier. Can you challenge that too?</p>`:''}<div class="composer-footer"><span>Spelling is not on trial.</span><button class="skip-button" id="skip-button">Pass ↗</button></div></section>`;
+}
+function trail(){
+  if(!run.history.length||run.phase==='complete')return '';
+  return `<div class="prior-trail"><span>YOU PLAYED</span>${run.history.filter(record=>record.kind==='answer').map(record=>{const example=debate.examples.find(example=>example.id===record.entryId);return `<span class="trail-chip" title="${h(record.explanation)}">${h(example.answer)}${record.multiplier>1?` <b>×${record.multiplier}</b>`:''}</span>`;}).join('')||'<span class="trail-empty">Your next example starts the trail.</span>'}</div>`;
+}
+function reveal(){
+  const record=run.history.at(-1),argument=currentArgument(run),example=debate.examples.find(example=>example.id===record.entryId),target=record.chainTargetIndex===null?null:run.history[record.chainTargetIndex],earlier=target&&debate.examples.find(example=>example.id===target.entryId);
+  if(!example)return `<section class="miss-view"><p class="eyebrow">${record.kind==='timeout'?'THE CLOCK WON THIS ONE.':'LIVE TO ARGUE ANOTHER DAY.'}</p><h2>${record.kind==='timeout'?'Time’s up.':'Let’s move on.'}</h2><p>${record.kind==='timeout'?'A fresh argument. A fresh 25 seconds.':'The next argument might be your opening.'}</p><button class="primary-button next-button" id="next-button">${run.history.length===6?'See your score':'Next argument'} ↗</button></section>`;
+  return `<section class="reveal-view"><div class="challenged-argument"><span class="side-tag small">${argument.side.toUpperCase()}</span><p>${quoteHTML(argument,record.claimId,true)}</p></div><div class="answer-stage ${record.multiplier>1?'is-chain':''}"><div class="answer-kicker"><span>COUNTEREXAMPLE</span><b class="hit-stamp">${record.multiplier>1?'SELF-COUNTER!':'OBJECTION!'}</b></div><h2 id="answer-title">${h(example.answer)}<span>.</span></h2><p class="explanation">${h(record.explanation)}</p>${earlier?`<div class="chain-proof"><div class="chain-proof-top"><span>YOU COUNTERED YOURSELF</span><strong class="chain-multiplier">×${record.multiplier}</strong></div><div class="chain-link"><s>${h(earlier.answer)}</s><span aria-hidden="true">↯</span><b>${h(example.answer)}</b></div><p>${h(record.chainExplanation)}</p></div>`:''}<div class="answer-score"><strong class="points-earned">+${fmt(record.total)}</strong><span>${record.multiplier>1?`100 × ${record.multiplier} CHAIN`:'COUNTER LANDED'}</span></div></div>${normalizeInput(record.input)!==normalizeInput(example.answer)?`<p class="correction-receipt">Matched “${h(record.input)}” to ${h(example.answer)}.</p>`:''}<button class="primary-button next-button" id="next-button">${run.history.length===6?'See your score':'Next argument'} <span>↗</span></button><span class="keyboard-note">or press Enter · next clock starts then</span></section>`;
+}
+function results(){
+  const score=totalScore(run),best=Number(read(bestKey())??0);if(score>best)write(bestKey(),String(score));
+  return `<section class="results"><p class="eyebrow">THE VERDICT?</p><h2>Still<br><em>debatable.</em></h2><div class="final-score">${fmt(score)}<span>POINTS</span></div><p>${run.history.filter(record=>record.kind==='answer').length} / 6 counters landed <span>·</span> ×${bestChain()} best chain${score>0&&score>=best?' <span>·</span> Personal best':''}</p><div class="result-actions"><button class="primary-button" id="again-button">Replay today ↗</button><button class="quiet-link" id="share-button">Copy result</button></div></section><ol class="round-recap">${run.history.map((record,index)=>{const example=debate.examples.find(example=>example.id===record.entryId);return `<li><span class="recap-number">0${index+1}<small>${record.side.toUpperCase()}</small></span><div><p>${h(debate.turns[index].text)}</p><strong>${example?h(example.answer):record.kind==='timeout'?'Time’s up':'Passed'}${record.multiplier>1?` <b>×${record.multiplier}</b>`:''}</strong>${record.chainExplanation?`<span class="recap-chain">↶ ${h(record.chainExplanation)}</span>`:example?`<span>${h(record.explanation)}</span>`:''}</div><b>+${fmt(record.total)}</b></li>`;}).join('')}</ol><p class="tomorrow-note">A new topic tomorrow. Same small hill energy.</p>`;
+}
+function render(){
+  animationGeneration++;main.className=run.phase;
+  main.innerHTML=`<div class="game-shell">${header()}${run.phase==='turn'?argumentCard()+composer()+trail():run.phase==='reveal'?reveal()+trail():results()}${storageNote()}</div>`;
+  bind();if(run.phase==='turn'){lastTickSecond=null;preview();updateClock(false);}
+}
+function choose(claimId){if(transitioning||run.phase!=='turn')return;run=selectClaim(run,claimId);attempted=false;hiddenSuggestions=false;persist();render();document.querySelector('#answer-input')?.focus({preventScroll:true});document.querySelector('.input-row')?.scrollIntoView({block:'nearest',behavior:reduced()?'instant':'smooth'});}
+function bind(){
+  document.querySelectorAll('[data-claim]').forEach(button=>{button.addEventListener('click',()=>choose(button.dataset.claim));button.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();choose(button.dataset.claim);}});});
+  const input=document.querySelector('#answer-input');
+  input?.addEventListener('compositionstart',()=>{composing=true;});input?.addEventListener('compositionend',()=>{composing=false;run.draft=input.value;persist();preview();});
+  input?.addEventListener('input',()=>{if(run.phase!=='turn')return;run.draft=input.value;attempted=false;hiddenSuggestions=false;persist();if(!composing)preview();});
+  input?.addEventListener('keydown',event=>{if(event.key==='ArrowDown'){const first=document.querySelector('[data-suggestion]');if(first){event.preventDefault();first.focus();}}else if(event.key==='Escape'){hiddenSuggestions=true;preview();}});
+  document.querySelector('#answer-form')?.addEventListener('submit',event=>{event.preventDefault();if(composing||transitioning||!run.selectedClaimId)return;attempted=true;const match=getMatch();if(match.kind==='match')finish({kind:'answer',entryId:match.entryId,input:run.draft});else{preview();announce(document.querySelector('#match-preview').textContent);}});
+  document.querySelector('#skip-button')?.addEventListener('click',()=>finish({kind:'skip'}));
+  document.querySelector('#next-button')?.addEventListener('click',()=>{if(transitioning)return;run=advanceRun(run);attempted=false;hiddenSuggestions=false;persist();render();document.querySelector('.daily-topic').scrollIntoView({block:'start',behavior:reduced()?'instant':'smooth'});if(run.phase==='turn'){document.querySelector('.claim')?.focus({preventScroll:true});announce(`Argument ${run.history.length+1}. 25 seconds. ${currentArgument(run).side}.`);}else document.querySelector('#again-button')?.focus({preventScroll:true});});
+  document.querySelector('#again-button')?.addEventListener('click',()=>{armAudio();run=createRun(debate,day);attempted=false;hiddenSuggestions=false;persist();render();document.querySelector('.daily-topic').scrollIntoView({block:'start'});});
+  document.querySelector('#share-button')?.addEventListener('click',async event=>{const text=shareText(run);try{await navigator.clipboard.writeText(text);event.target.textContent='Copied ✓';}catch{document.querySelector('#share-output').value=text;document.querySelector('#share-dialog').showModal();document.querySelector('#share-output').select();}});
+}
+function getMatch(){return matchInput(matchingPool(debate,run.selectedClaimId),run.draft,usedIds(run));}
+function alternateTarget(){
+  for(const claim of currentArgument(run).claims.filter(claim=>claim.id!==run.selectedClaimId)){
+    const match=matchInput(matchingPool(debate,claim.id),run.draft,usedIds(run));if(match.kind==='match'&&match.matchType!=='typo')return {claim,match};
+  }return null;
+}
+function preview(){
+  const output=document.querySelector('#match-preview'),box=document.querySelector('#suggestions');if(!output||composing)return;box.hidden=true;box.innerHTML='';output.className='';
+  if(!run.selectedClaimId){output.textContent='Tap an underlined phrase to begin.';return;}
+  if(!run.draft.trim()){output.textContent=attempted?'Name one counterexample first.':'Clear typos are corrected. Just type a name.';return;}
+  const match=getMatch();
+  if(match.kind==='match'){
+    const score=scoreExample(run,match.entry,run.selectedClaimId);output.className='recognized';output.innerHTML=`${match.matchType==='typo'?'<span>Corrected to </span>':''}<strong>${h(match.entry.answer)}</strong> <span class="preview-points">+${fmt(score.total)}${score.multiplier>1?` · ×${score.multiplier} SELF-COUNTER`:''}</span> ✓`;
+  }else{
+    const alternate=alternateTarget();
+    if(alternate){output.innerHTML=`${h(alternate.match.entry.answer)} targets another phrase. <button type="button" id="switch-target">Use “${h(alternate.claim.text)}” ↗</button>`;document.querySelector('#switch-target').addEventListener('click',()=>choose(alternate.claim.id));return;}
+    if((match.kind==='suggestion'||match.kind==='ambiguous')&&match.suggestions?.length&&!hiddenSuggestions){
+      output.textContent='Did you mean one of these?';box.hidden=false;box.innerHTML=match.suggestions.map((suggestion,index)=>`<button type="button" role="option" aria-selected="false" data-suggestion="${index}">${h(suggestion.entry.answer)}${normalizeInput(suggestion.matchedHandle)!==normalizeInput(suggestion.entry.answer)?`<small>also called ${h(suggestion.matchedHandle)}</small>`:''}<span>↖</span></button>`).join('');
+      box.querySelectorAll('[data-suggestion]').forEach(button=>{button.addEventListener('click',()=>{run.draft=match.suggestions[Number(button.dataset.suggestion)].entry.answer;attempted=false;hiddenSuggestions=true;document.querySelector('#answer-input').value=run.draft;persist();preview();document.querySelector('#answer-input').focus();});button.addEventListener('keydown',event=>{const buttons=[...box.querySelectorAll('[data-suggestion]')],index=buttons.indexOf(button);if(event.key==='ArrowDown'){event.preventDefault();(buttons[index+1]??buttons[0]).focus();}else if(event.key==='ArrowUp'){event.preventDefault();if(index)buttons[index-1].focus();else inputFocus();}else if(event.key==='Escape'){event.preventDefault();hiddenSuggestions=true;preview();inputFocus();}});});
+    }else{const messages={'already-used':'You played that example already. Find another.','invalid':match.reason,'rejected':match.reason,'no-match':'No match for this phrase yet. Try another name.','ambiguous':'Try a more specific name.','suggestion':'Try a more specific name.'};output.className=attempted?'needs-work':'';output.textContent=attempted||['already-used','rejected','invalid'].includes(match.kind)?messages[match.kind]:'Keep typing. We’ll help with the spelling.';}
+  }
+}
+function inputFocus(){document.querySelector('#answer-input')?.focus();}
+function updateClock(audible=true){
+  if(!run||run.phase!=='turn'||transitioning)return;
+  const left=Math.max(0,run.deadline-Date.now()),second=Math.ceil(left/1000),ratio=Math.min(1,left/25_000);
+  if(left===0){finish({kind:'timeout'});return;}
+  document.querySelector('#clock-value').textContent=second;document.querySelector('#clock-ring').style.strokeDashoffset=String(157.08*(1-ratio));document.querySelector('#time-fill').style.transform=`scaleX(${ratio})`;
+  document.querySelector('.clock').setAttribute('aria-label',`${second} seconds remaining`);main.classList.toggle('urgent',second<=5);
+  if(second<=5&&second!==lastTickSecond){if(audible&&!document.hidden)playSound('tick',1);if(second===5)announce('Five seconds left.');}lastTickSecond=second;
+}
+function finish(move){
+  if(!run||run.phase!=='turn'||transitioning)return;transitioning=true;
+  const before=totalScore(run);run=commitTurn(run,move);persist();document.querySelector('.claim.selected')?.classList.add('landed');document.querySelector('#answer-input')?.setAttribute('readonly','');document.querySelector('.send-button')?.setAttribute('disabled','');
+  window.setTimeout(()=>{render();transitioning=false;main.classList.remove('urgent');document.querySelector('#next-button')?.focus({preventScroll:true});document.querySelector('.game-shell')?.scrollIntoView({block:'start',behavior:reduced()?'instant':'smooth'});impact(run.history.at(-1),before);const record=run.history.at(-1);announce(record.kind==='answer'?`${debate.examples.find(example=>example.id===record.entryId).answer}. ${record.total} points.${record.multiplier>1?` Self-counter. Chain times ${record.multiplier}.`:''} Clock paused.`:record.kind==='timeout'?'Time’s up. Clock paused.':'Passed. Clock paused.');},reduced()?0:130);
+}
+function armAudio(){if(!sound||(navigator.userActivation&&!navigator.userActivation.hasBeenActive))return;try{audio??=new(window.AudioContext||window.webkitAudioContext)();audio.resume().catch(()=>{});}catch{}}
+function tone(frequency,time,duration,volume=.08,type='sine'){
+  if(!audio)return;const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.type=type;oscillator.frequency.setValueAtTime(frequency,time);gain.gain.setValueAtTime(.001,time);gain.gain.linearRampToValueAtTime(volume,time+.009);gain.gain.exponentialRampToValueAtTime(.001,time+duration);oscillator.connect(gain);gain.connect(audio.destination);oscillator.start(time);oscillator.stop(time+duration+.01);
+}
+function playSound(kind,multiplier){
+  if(!sound)return;armAudio();if(!audio)return;try{const t=audio.currentTime;if(kind==='tick'){tone(900,t,.045,.025,'triangle');return;}if(kind==='timeout'){tone(190,t,.18,.09,'triangle');tone(130,t+.12,.3,.07,'triangle');return;}const pitch=240+Math.log2(multiplier)*55;tone(70,t,.2,.12);[1,1.25,1.5,2].forEach((ratio,i)=>tone(pitch*ratio,t+i*.055,.28,.085,'triangle'));if(multiplier>1){tone(pitch*3,t+.22,.45,.07);tone(pitch*4,t+.28,.38,.045);}}catch{}
+}
+function impact(record,before){
+  playSound(record.kind==='answer'?'hit':'timeout',record.multiplier);
+  if(reduced())return;
+  const generation=animationGeneration,answer=document.querySelector('.answer-stage'),clockMiss=document.querySelector('.miss-view');
+  (answer??clockMiss)?.animate([{opacity:.1,transform:'translateY(36px) scale(.94) rotate(-1deg)'},{opacity:1,transform:'translateY(-5px) scale(1.015) rotate(.3deg)'},{opacity:1,transform:'none'}],{duration:620,easing:'cubic-bezier(.16,1,.3,1)'});
+  if(record.kind!=='answer')return;
+  document.querySelector('.hit-stamp')?.animate([{transform:'scale(3) rotate(16deg)',opacity:0},{transform:'scale(.85) rotate(-12deg)',opacity:1},{transform:'rotate(-7deg)',opacity:1}],{duration:650,delay:80,fill:'backwards',easing:'cubic-bezier(.16,1,.3,1)'});
+  document.querySelector('.chain-multiplier')?.animate([{transform:'scale(.1) rotate(-25deg)',opacity:0},{transform:'scale(1.28) rotate(8deg)',opacity:1},{transform:'scale(1) rotate(-6deg)',opacity:1}],{duration:850,delay:150,fill:'backwards',easing:'cubic-bezier(.16,1,.3,1)'});
+  document.querySelector('.points-earned')?.animate([{transform:'translateY(18px) scale(.5)',opacity:0},{transform:'translateY(-5px) scale(1.12)',opacity:1},{transform:'none',opacity:1}],{duration:700,delay:100,fill:'backwards'});
+  const start=performance.now(),score=document.querySelector('#score-number');const count=time=>{if(generation!==animationGeneration||!score.isConnected)return;const p=Math.min(1,(time-start)/850);score.textContent=fmt(Math.round(before+record.total*(1-(1-p)**3)));if(p<1)requestAnimationFrame(count);};requestAnimationFrame(count);
+  const burst=document.createElement('div');burst.className=`impact-word ${record.multiplier>1?'chain-impact':''}`;burst.textContent=record.multiplier>1?`×${record.multiplier} SELF-COUNTER`:'COUNTER!';effects.append(burst);
+  burst.animate([{opacity:0,transform:'translate(-50%,-50%) scale(2.3) rotate(8deg)'},{opacity:1,transform:'translate(-50%,-50%) scale(1) rotate(-5deg)',offset:.18},{opacity:1,transform:'translate(-50%,-50%) scale(1.03) rotate(-5deg)',offset:.5},{opacity:0,transform:'translate(-50%,-75%) scale(.8) rotate(-8deg)'}],{duration:950,fill:'both',easing:'cubic-bezier(.16,1,.3,1)'}).onfinish=()=>burst.remove();
+  const flash=document.createElement('i');flash.className='impact-flash';effects.append(flash);flash.animate([{opacity:.5},{opacity:0}],{duration:450}).onfinish=()=>flash.remove();
+  const rect=answer.getBoundingClientRect(),cx=rect.left+rect.width*.6,cy=rect.top+rect.height*.55;
+  const ring=document.createElement('i');ring.className='shock-ring';ring.style.cssText=`left:${cx}px;top:${cy}px`;effects.append(ring);ring.animate([{transform:'translate(-50%,-50%) scale(.1)',opacity:1},{transform:'translate(-50%,-50%) scale(3)',opacity:0}],{duration:850,easing:'ease-out'}).onfinish=()=>ring.remove();
+  for(let i=0;i<(record.multiplier>1?54:30);i++){const particle=document.createElement('i');particle.className=i%5===0?'spark-star':'particle';particle.textContent=i%5===0?'✳':'';particle.style.cssText=`left:${cx}px;top:${cy}px;--particle:${['#e96f36','#c0e47a','#203d31','#edbb3d'][i%4]}`;effects.append(particle);const angle=Math.PI*2*i/30,d=100+Math.random()*280;particle.animate([{transform:'translate(0,0) rotate(0deg) scale(1)',opacity:1},{transform:`translate(${Math.cos(angle)*d}px,${Math.sin(angle)*d-70}px) rotate(${i*53}deg) scale(.3)`,opacity:0}],{duration:700+Math.random()*550,easing:'cubic-bezier(.1,.7,.3,1)'}).onfinish=()=>particle.remove();}
+  const flying=document.createElement('b');flying.className='flying-points';flying.textContent=`+${fmt(record.total)}`;flying.style.cssText=`left:${rect.left+rect.width*.6}px;top:${rect.bottom-60}px`;effects.append(flying);const target=score.getBoundingClientRect();flying.animate([{transform:'translate(-50%,0) scale(1.4)',opacity:1},{transform:`translate(${target.left-cx}px,${target.top-(rect.bottom-60)}px) scale(.4)`,opacity:0}],{duration:1000,delay:300,easing:'cubic-bezier(.4,0,.2,1)',fill:'both'}).onfinish=()=>flying.remove();
+}
+document.querySelector('#help-button').addEventListener('click',()=>document.querySelector('#help-dialog').showModal());document.querySelectorAll('[data-close-dialog]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
+document.querySelector('#sound-button').addEventListener('click',event=>{sound=!sound;write('cross-examination:sound',String(sound));event.currentTarget.textContent=`Sound ${sound?'on':'off'}`;event.currentTarget.setAttribute('aria-pressed',String(sound));if(sound){armAudio();playSound('hit',1);}});
+async function load(){
+  try{const response=await fetch(new URL('../content/manifest.json?v=4',import.meta.url));if(!response.ok)throw new Error('The daily schedule could not load.');manifest=await response.json();day=utcDay();const item=dailyTopic(manifest,day);const bank=await fetch(new URL(`../content/${item.file}?v=4`,import.meta.url));if(!bank.ok)throw new Error('Today’s debate could not load.');debate=playableDebate(await bank.json());if(debate.id!==item.id)throw new Error('The debate has the wrong bank.');sound=read('cross-examination:sound')!=='false';document.querySelector('#sound-button').textContent=`Sound ${sound?'on':'off'}`;document.querySelector('#sound-button').setAttribute('aria-pressed',String(sound));const saved=restoreRun(read(runKey()));run=saved&&saved.day===day&&saved.debate.id===debate.id&&saved.debate.version===debate.version?saved:null;if(run){debate=run.debate;render();}else renderHome();setInterval(()=>updateClock(),120);document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateClock(false);});}catch(error){main.innerHTML=`<div class="load-error"><h1>We lost the argument.</h1><p>${h(error.message)}</p><a href="./">Try again ↗</a></div>`;}
 }
 load();
