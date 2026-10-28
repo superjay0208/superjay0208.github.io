@@ -1,11 +1,11 @@
 {
-  "version": 1,
+  "version": 2,
   "defaultQuestion": "burger-sandwich",
   "questions": [
     {
       "id": "burger-sandwich",
       "file": "questions/burger-sandwich.json",
-      "title": "Burger / sandwich \u00b7 expanded bank"
+      "title": "Burger / sandwich"
     },
     {
       "id": "cereal-soup",
@@ -16,11 +16,6 @@
       "id": "audiobook-reading",
       "file": "questions/audiobook-reading.json",
       "title": "Audiobooks / reading"
-    },
-    {
-      "id": "burger-sandwich-prototype",
-      "file": "examples/burger-sandwich-prototype.json",
-      "title": "Burger / sandwich \u00b7 tiny demo"
     }
   ]
 }

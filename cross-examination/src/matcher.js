@@ -27,7 +27,7 @@ function negations(value) {
   return value.split(' ').filter(word => words.has(word)).sort().join('|');
 }
 
-export function matchInput(question, raw, side, usedEntryIds = []) {
+export function matchInput(question, raw, side, usedEntryIds = [], context = null) {
   const trimmed = String(raw).trim();
   const words = trimmed ? trimmed.split(/\s+/).length : 0;
   const input = normalizeInput(trimmed);
@@ -37,7 +37,10 @@ export function matchInput(question, raw, side, usedEntryIds = []) {
   const used = new Set(usedEntryIds);
   const handles = question.entries.flatMap(entry => [entry.answer, ...entry.aliases]
     .map(handle => ({ entry, handle: normalizeInput(handle) })));
-  const current = handles.filter(item => item.entry.side === side);
+  // Catalog fixtures omit context. Gameplay always restricts autocorrect to legal moves.
+  const eligible = entry => !context || (context.kind === 'fresh' ? entry.standalone :
+    entry.counters.some(link => link.targetId === context.targetId && link.targetClaimId === context.claimId));
+  const current = handles.filter(item => item.entry.side === side && eligible(item.entry));
   const exact = current.find(item => item.handle === input);
   if (exact) {
     return { kind: used.has(exact.entry.id) ? 'already-used' : 'match', entry: exact.entry,
@@ -46,6 +49,8 @@ export function matchInput(question, raw, side, usedEntryIds = []) {
   // Never redirect an exact opposite-side answer into a loose current-side match.
   const other = handles.find(item => item.entry.side !== side && item.handle === input);
   if (other) return { kind: 'wrong-side', entry: other.entry, entryId: other.entry.id };
+  const outside = handles.find(item => item.entry.side === side && item.handle === input);
+  if (outside) return { kind: 'wrong-context', entry: outside.entry, entryId: outside.entry.id };
   if (input.replace(/\s/g, '').length <= 3) return { kind: 'no-match' };
 
   const candidates = new Map();
