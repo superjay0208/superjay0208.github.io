@@ -1,21 +1,37 @@
 {
-  "version": 2,
-  "defaultQuestion": "burger-sandwich",
-  "questions": [
+  "version": 3,
+  "roundSize": 6,
+  "defaultPrompt": "eggs-without-birds",
+  "prompts": [
     {
-      "id": "burger-sandwich",
-      "file": "questions/burger-sandwich.json",
-      "title": "Burger / sandwich"
+      "id": "eggs-without-birds",
+      "file": "prompts/eggs-without-birds.json",
+      "title": "Only birds lay eggs."
     },
     {
-      "id": "cereal-soup",
-      "file": "questions/cereal-soup.json",
-      "title": "Cereal / soup"
+      "id": "unplugged-music",
+      "file": "prompts/unplugged-music.json",
+      "title": "Every musical instrument needs electricity."
     },
     {
-      "id": "audiobook-reading",
-      "file": "questions/audiobook-reading.json",
-      "title": "Audiobooks / reading"
+      "id": "screen-free-games",
+      "file": "prompts/screen-free-games.json",
+      "title": "Every game needs a screen."
+    },
+    {
+      "id": "flight-without-birds",
+      "file": "prompts/flight-without-birds.json",
+      "title": "Only birds can fly."
+    },
+    {
+      "id": "ball-free-sports",
+      "file": "prompts/ball-free-sports.json",
+      "title": "Every sport needs a ball."
+    },
+    {
+      "id": "handheld-food",
+      "file": "prompts/handheld-food.json",
+      "title": "Every handheld food is a sandwich."
     }
   ]
 }

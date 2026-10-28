@@ -1,32 +1,18 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f4f1e9">
-  <meta name="description" content="Argue. Undo yourself. Repeat. A tiny static game of counterexamples and big multipliers.">
-  <title>Cross Examination — argue with yourself</title>
-  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./styles.css?v=2">
-  <script type="module" src="./src/app.js?v=2"></script>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f1e9"><meta name="description" content="One example breaks the rule. Six claims, six counterexamples. Think of something unexpected.">
+  <title>Cross Examination — find the exception</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css?v=3"><script type="module" src="./src/app.js?v=3"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to game</a>
-  <header class="site-header">
-    <a class="wordmark" href="./" aria-label="Cross Examination home"><span class="brand-mark" aria-hidden="true">×</span><span>CROSS<br>EXAMINATION</span></a>
-    <div class="header-actions"><button class="quiet-button" id="sound-button" aria-pressed="false">Sound off</button><button class="help-button" id="help-button" aria-label="How to play">?</button></div>
-  </header>
-  <main id="main" tabindex="-1"><p class="loading" role="status">Finding a hill to die on…</p></main>
-  <footer class="site-footer"><span>A little game of thinking twice.</span><span>ARGUE. UNDO YOURSELF. REPEAT. <span aria-hidden="true">↔</span></span></footer>
-  <dialog id="help-dialog" aria-labelledby="help-title">
-    <button class="dialog-close" aria-label="Close instructions" data-close-dialog>×</button>
-    <p class="eyebrow">PICK A SMALL HILL</p><h2 id="help-title">Then pull it<br><em>apart.</em></h2>
-    <ol class="how-list"><li><strong>Name an angle.</strong><p>Pick YES or NO. Type a feature, an idea, or an example in 1–4 words. Its argument pops out.</p></li><li><strong>Click the weak spot.</strong><p>Underlined words are claims you can challenge. Select one, then name a counterexample or rebuttal.</p></li><li><strong>Keep undoing yourself.</strong><p>Each counter doubles the multiplier: ×2, ×4, ×8… A fresh angle starts again at ×1. You have 8 moves.</p></li></ol>
-    <p class="fine-print">Clear typos are corrected visibly. Some replies only work against a specific claim. Rarity points are hand-authored; all matching and scoring happen in your browser.</p>
-    <button class="primary-button" data-close-dialog>Let’s argue ↗</button>
-  </dialog>
-  <dialog id="share-dialog" aria-labelledby="share-title"><button class="dialog-close" aria-label="Close result" data-close-dialog>×</button><h2 id="share-title">Copy your result.</h2><textarea id="share-output" readonly rows="7" aria-label="Shareable result"></textarea></dialog>
-  <div id="effects" aria-hidden="true"></div>
-  <div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
+  <header class="site-header"><a class="wordmark" href="./" aria-label="Cross Examination home"><span class="brand-mark" aria-hidden="true">×</span><span>CROSS<br>EXAMINATION</span></a><div class="header-actions"><button class="quiet-button" id="sound-button" aria-pressed="false">Sound off</button><button class="help-button" id="help-button" aria-label="How to play">?</button></div></header>
+  <main id="main" tabindex="-1"><p class="loading" role="status">Finding a rule to break…</p></main>
+  <footer class="site-footer"><span>One example breaks the rule.</span><span>A LITTLE GAME OF “WHAT ABOUT…?”</span></footer>
+  <dialog id="help-dialog" aria-labelledby="help-title"><button class="dialog-close" aria-label="Close instructions" data-close-dialog>×</button><p class="eyebrow">THAT’S A BIG CLAIM.</p><h2 id="help-title">Find one<br><em>exception.</em></h2><p class="help-claim">“Only birds lay eggs.”</p><p class="help-answer">What about <strong>crocodiles?</strong></p><p>Name one thing that proves each claim wrong. That’s the whole game.</p><p>Six claims. Familiar examples score points; unexpected ones score more. No timer. Try as many spellings as you like, or skip a claim.</p><p class="fine-print">All examples and points are authored in advance. Scores describe our editorial sense of surprise, not measured answer frequencies. There is no live AI judge.</p><button class="primary-button" data-close-dialog>Got it ↗</button></dialog>
+  <dialog id="share-dialog" aria-labelledby="share-title"><button class="dialog-close" aria-label="Close result" data-close-dialog>×</button><h2 id="share-title">Copy your result.</h2><textarea id="share-output" readonly rows="6" aria-label="Shareable result"></textarea></dialog>
+  <div id="effects" aria-hidden="true"></div><div class="sr-only" id="announcer" role="status" aria-live="polite"></div>
 </body>
 </html>

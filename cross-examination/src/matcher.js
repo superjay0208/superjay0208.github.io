@@ -1,78 +1,96 @@
 export function normalizeInput(value) {
-  return String(value).normalize('NFKC').toLowerCase()
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[^\p{L}\p{N}_\s']/gu, ' ')
-    .trim().replace(/\s+/g, ' ');
+  return String(value).normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase()
+    .replace(/[’‘']/g, '').replace(/[^\p{L}\p{N}\s]/gu, ' ').trim().replace(/\s+/g, ' ');
 }
+function nameForm(value) { return normalizeInput(value).replace(/^(?:(?:a|an|the)\s+)+/, ''); }
+function singular(word) {
+  const irregular = { mice: 'mouse', geese: 'goose', feet: 'foot', teeth: 'tooth', children: 'child', octopi: 'octopus', dice: 'die' };
+  if (irregular[word]) return irregular[word];
+  if (word.length > 4 && word.endsWith('ies')) return word.slice(0, -3) + 'y';
+  if (word.length > 4 && /(?:ches|shes|xes|zes|sses|uses)$/.test(word)) return word.slice(0, -2);
+  if (word.length > 3 && word.endsWith('s') && !/(?:ss|us|is)$/.test(word)) return word.slice(0, -1);
+  return word;
+}
+const variantForm = value => nameForm(value).split(' ').map(singular).join('');
+const compact = value => nameForm(value).replace(/\s/g, '');
+const rawCompact = value => normalizeInput(value).replace(/\s/g, '');
+const negation = value => nameForm(value).split(' ').filter(word => ['no', 'not', 'never', 'without', 'isnt', 'cant', 'dont'].includes(word)).sort().join('|');
 
-// Optimal string alignment: insertions, deletions, replacements, and adjacent swaps.
+// Adjacent swapped letters count as one typo, as do insertion/deletion/replacement.
 export function editDistance(a, b) {
-  const grid = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-  for (let i = 0; i <= a.length; i++) grid[i][0] = i;
-  for (let j = 0; j <= b.length; j++) grid[0][j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      grid[i][j] = Math.min(grid[i - 1][j] + 1, grid[i][j - 1] + 1,
-        grid[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
-        grid[i][j] = Math.min(grid[i][j], grid[i - 2][j - 2] + 1);
-      }
-    }
+  const rows = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) rows[i][0] = i;
+  for (let j = 0; j <= b.length; j++) rows[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+    rows[i][j] = Math.min(rows[i - 1][j] + 1, rows[i][j - 1] + 1, rows[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) rows[i][j] = Math.min(rows[i][j], rows[i - 2][j - 2] + 1);
   }
-  return grid[a.length][b.length];
+  return rows[a.length][b.length];
 }
-
-function negations(value) {
-  const words = new Set(['no', 'not', 'without', 'never', "isn't", 'isnt', "can't", 'cant', "don't", 'dont']);
-  return value.split(' ').filter(word => words.has(word)).sort().join('|');
+const indexes = new WeakMap();
+function indexFor(prompt) {
+  if (indexes.has(prompt)) return indexes.get(prompt);
+  const handles = prompt.entries.flatMap(entry => [entry.answer, ...entry.aliases].map(handle =>
+    ({ entry, handle, name: nameForm(handle), compact: compact(handle), rawCompact: rawCompact(handle), variant: variantForm(handle), negation: negation(handle) })));
+  const rejected = (prompt.rejected ?? []).flatMap(entry => [entry.answer, ...entry.aliases].map(handle =>
+    ({ entry, name: nameForm(handle), compact: compact(handle), rawCompact: rawCompact(handle), variant: variantForm(handle) })));
+  const index = { handles, rejected }; indexes.set(prompt, index); return index;
 }
-
-export function matchInput(question, raw, side, usedEntryIds = [], context = null) {
+function sameForm(item, input) { return item.name === input.name || item.compact === input.compact || item.rawCompact === input.rawCompact || item.variant === input.variant; }
+function answerResult(item, input, used, matchType) {
+  return { kind: used.has(item.entry.id) ? 'already-used' : 'match', entry: item.entry,
+    entryId: item.entry.id, matchType, matchedHandle: item.handle };
+}
+export function matchInput(prompt, raw, usedEntryIds = []) {
   const trimmed = String(raw).trim();
-  const words = trimmed ? trimmed.split(/\s+/).length : 0;
-  const input = normalizeInput(trimmed);
-  if (!input || words > question.rules.maxWords || raw.length > question.rules.maxCharacters) {
-    return { kind: 'invalid', reason: !input ? 'Name an angle first.' : 'Keep it to 1–4 words and 40 characters.' };
-  }
-  const used = new Set(usedEntryIds);
-  const handles = question.entries.flatMap(entry => [entry.answer, ...entry.aliases]
-    .map(handle => ({ entry, handle: normalizeInput(handle) })));
-  // Catalog fixtures omit context. Gameplay always restricts autocorrect to legal moves.
-  const eligible = entry => !context || (context.kind === 'fresh' ? entry.standalone :
-    entry.counters.some(link => link.targetId === context.targetId && link.targetClaimId === context.claimId));
-  const current = handles.filter(item => item.entry.side === side && eligible(item.entry));
-  const exact = current.find(item => item.handle === input);
-  if (exact) {
-    return { kind: used.has(exact.entry.id) ? 'already-used' : 'match', entry: exact.entry,
-      entryId: exact.entry.id, matchType: input === normalizeInput(exact.entry.answer) ? 'exact' : 'alias' };
-  }
-  // Never redirect an exact opposite-side answer into a loose current-side match.
-  const other = handles.find(item => item.entry.side !== side && item.handle === input);
-  if (other) return { kind: 'wrong-side', entry: other.entry, entryId: other.entry.id };
-  const outside = handles.find(item => item.entry.side === side && item.handle === input);
-  if (outside) return { kind: 'wrong-context', entry: outside.entry, entryId: outside.entry.id };
-  if (input.replace(/\s/g, '').length <= 3) return { kind: 'no-match' };
+  const input = { name: nameForm(trimmed), compact: compact(trimmed), rawCompact: rawCompact(trimmed), variant: variantForm(trimmed) };
+  if (!input.name || trimmed.length > 60 || input.name.split(/\s+/).length > 6) return { kind: 'invalid', reason: !input.name ? 'Name one thing first.' : 'Just a name: up to 6 words and 60 characters.' };
+  const used = new Set(usedEntryIds), index = indexFor(prompt);
+  // Known non-examples are a hard boundary, including plurals and harmless formatting.
+  const invalid = index.rejected.find(item => sameForm(item, input));
+  if (invalid) return { kind: 'rejected', reason: invalid.entry.reason };
+  const exact = index.handles.find(item => item.name === input.name);
+  if (exact) return answerResult(exact, input, used, input.name === nameForm(exact.entry.answer) ? 'exact' : 'alias');
+  const variant = index.handles.find(item => sameForm(item, input));
+  if (variant) return answerResult(variant, input, used, 'variant');
 
-  const candidates = new Map();
-  for (const item of current) {
-    if (item.handle.replace(/\s/g, '').length <= 3 || negations(input) !== negations(item.handle)) continue;
-    const length = Math.max(input.length, item.handle.length);
-    const maxDistance = length <= 7 ? 1 : length <= 14 ? 2 : 3;
-    if (Math.abs(input.length - item.handle.length) > maxDistance) continue;
-    const distance = editDistance(input, item.handle);
-    const similarity = 1 - distance / length;
-    if (distance > maxDistance || similarity < 0.72) continue;
-    const existing = candidates.get(item.entry.id);
-    if (!existing || similarity > existing.similarity) {
-      candidates.set(item.entry.id, { ...item, distance, similarity });
+  const signature = negation(trimmed), ranked = new Map();
+  for (const item of index.handles) {
+    if (signature !== item.negation) continue;
+    const length = Math.max(input.compact.length, item.compact.length);
+    const limit = length <= 5 ? 1 : length <= 11 ? 2 : length <= 20 ? 3 : 4;
+    if (Math.abs(input.compact.length - item.compact.length) > limit) continue;
+    const distance = editDistance(input.compact, item.compact), similarity = 1 - distance / length;
+    if (distance > limit || similarity < .62) continue;
+    const score = similarity;
+    if (!ranked.has(item.entry.id) || score > ranked.get(item.entry.id).score) ranked.set(item.entry.id, { ...item, distance, similarity, score });
+  }
+  const candidates = [...ranked.values()].sort((a, b) => b.score - a.score || a.distance - b.distance || a.entry.answer.localeCompare(b.entry.answer));
+  const best = candidates[0], margin = best ? best.score - (candidates[1]?.score ?? 0) : 0;
+  // Correct a clear typo in a known non-example instead of awarding a different nearby noun.
+  if (input.compact.length >= 4) {
+    const blocked = index.rejected.find(item => Math.abs(item.compact.length - input.compact.length) <= 1 &&
+      editDistance(input.compact, item.compact) <= 1 && (!best || best.distance > 1));
+    if (blocked) return { kind: 'rejected', reason: blocked.entry.reason };
+  }
+  const confident = best && input.compact.length >= 4 && best.handle.length >= 4 && margin >= .065 &&
+    ((best.distance === 1 && best.similarity >= .72) || (best.distance <= 2 && best.similarity >= .8) || best.similarity >= .89);
+  if (confident) return answerResult(best, input, used, 'typo');
+
+  // Incomplete names offer explicit choices. They never silently become a scored answer.
+  if (input.compact.length >= 3 && !signature) {
+    for (const item of index.handles) {
+      const prefix = item.compact.startsWith(input.compact) && input.compact.length / item.compact.length >= .3;
+      const fuzzyPrefix = input.compact.length >= 5 && item.compact.length > input.compact.length &&
+        editDistance(input.compact, item.compact.slice(0, input.compact.length)) <= 1;
+      if (!prefix && !fuzzyPrefix) continue;
+      const score = prefix ? .9 + input.compact.length / item.compact.length * .08 : .73;
+      if (!ranked.has(item.entry.id) || score > ranked.get(item.entry.id).score) ranked.set(item.entry.id, { ...item, distance: null, score, prefix: true });
     }
   }
-  const ranked = [...candidates.values()].sort((a, b) => b.similarity - a.similarity);
-  if (!ranked.length) return { kind: 'no-match' };
-  const best = ranked[0];
-  if (ranked[1] && best.similarity - ranked[1].similarity < 0.12) return { kind: 'ambiguous' };
-  if (used.has(best.entry.id)) return { kind: 'already-used', entry: best.entry, entryId: best.entry.id };
-  const confident = (best.distance === 1 && best.similarity >= 0.8) || best.similarity >= 0.88;
-  return { kind: confident ? 'match' : 'suggestion', entry: best.entry, entryId: best.entry.id,
-    matchType: 'typo', distance: best.distance };
+  const suggestions = [...ranked.values()].sort((a, b) => b.score - a.score || a.entry.answer.length - b.entry.answer.length || a.entry.answer.localeCompare(b.entry.answer)).slice(0, 3)
+    .map(item => ({ entry: item.entry, entryId: item.entry.id, matchedHandle: item.handle }));
+  if (!suggestions.length) return { kind: 'no-match' };
+  const ambiguous = candidates.length > 1 && margin < .065 && ![...ranked.values()].some(item => item.prefix);
+  return { kind: ambiguous ? 'ambiguous' : 'suggestion', ...(ambiguous ? {} : { entry: suggestions[0].entry, entryId: suggestions[0].entryId }), suggestions };
 }
