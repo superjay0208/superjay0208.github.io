@@ -10,3 +10,43 @@
 @keyframes argument-enter{from{opacity:0;transform:translateY(15px) rotate(.7deg)}to{opacity:1;transform:none}}@keyframes claim-hit{0%{transform:scale(1)}50%{transform:scale(1.05) rotate(-2deg);background:var(--orange)}100%{transform:scale(.97);background:var(--lime)}}
 @media(max-width:600px){.counter-progress{margin:-2px 0 24px}.counter-progress-label{font-size:7px;letter-spacing:1px}.counter-track{height:11px}.counter-track>b{font-size:20px;width:25px;height:25px}.chain-hint small{font-size:10px}}
 .claim-bonus{font:700 10px/1 var(--sans);display:inline-block;vertical-align:super;background:var(--orange);color:var(--white);padding:4px 5px;margin-left:4px;text-decoration:none;border-radius:2px;letter-spacing:0;transform:rotate(-6deg)}
+
+/* One exchange, one input. The chosen weak spot is ready before typing. */
+.home-description em{font-style:normal;color:var(--orange)}
+.game-shell{max-width:820px}.home-shell{max-width:900px}
+.reply-line{font:400 18px/1.5 var(--serif);color:var(--muted);margin:0 0 14px;display:flex;gap:10px;align-items:baseline}
+.reply-line>span{font-family:var(--sans);color:var(--orange);font-size:25px}
+.exchange .argument-stage{position:relative;overflow:hidden;border-radius:7px;padding:27px 32px 25px;box-shadow:0 5px 0 #c3cfb3,0 13px 25px -20px #203a3077}
+.exchange blockquote{font-size:34px;line-height:1.38;margin:25px 0 14px;letter-spacing:-.8px}
+button.claim{background:transparent;color:inherit;font:inherit;text-align:inherit;display:inline;padding:0 2px;white-space:normal;text-decoration:underline;text-decoration-color:#8aa35e;text-underline-offset:5px;text-decoration-thickness:1px}
+button.claim.selected{background:#d8f27b;color:var(--ink);text-decoration-color:var(--orange);box-shadow:0 2px 0 var(--orange);border-radius:2px}
+.exchange .claim-hint{margin:0;font-size:13px;line-height:1.5;color:#5a6c4a}
+.argument-stage .composer{margin:22px 0 0;padding:0}
+.argument-stage .input-row{background:var(--white);border-radius:5px}
+.argument-stage .input-under{min-height:31px;padding-top:9px}
+.argument-stage .composer-footer{margin-top:10px}
+.argument-stage .time-track{height:4px}
+.argument-stage .send-button{border-radius:3px}
+.reversal-target{border:1px dashed #879c66;background:#f6f7de;padding:12px 15px 11px;border-radius:4px;margin:19px 0 0;position:relative}
+.reversal-target>div{display:flex;gap:10px;align-items:center}.reversal-target>div>b{background:var(--ink);color:var(--lime);font-size:19px;padding:3px 8px;transform:rotate(-5deg);box-shadow:2px 2px 0 var(--orange)}
+.reversal-target>div>span{font-size:8px;letter-spacing:1.1px;font-weight:700}.reversal-target p{font:400 18px/1.35 var(--serif);margin:10px 0 7px;color:var(--ink)}
+.target-example{font-size:10px;color:#6c7b55}.target-example small{font-size:9px;margin-left:6px}
+.redirect-note{display:block;font-size:10px;font-weight:400;color:var(--muted);margin-top:5px}
+.current-chain{font-size:9px;letter-spacing:.6px;color:#ac5a2e}
+.base-points{font:700 9px var(--sans);color:#617842;background:#f4f5df;padding:3px 5px;margin-right:4px;white-space:nowrap}
+.receipt-head{display:flex;justify-content:space-between;align-items:center;gap:20px}.receipt-head h2{margin-bottom:16px;flex:1}
+.receipt-head .answer-score{display:flex;flex-direction:column;align-items:flex-end;gap:7px;margin:0 0 17px;flex-shrink:0}.receipt-head .points-earned{font-size:45px}
+.answer-stage details{margin-top:12px}.answer-stage summary{cursor:pointer;font-size:10px;color:#b9cba7}.answer-stage details p{margin-top:9px}
+.next-reply{font:400 20px/1.4 var(--serif);margin:24px 0 0;color:var(--ink)}.next-reply>span{display:block;font:700 7px/1.4 var(--sans);letter-spacing:1.4px;color:var(--muted);margin-bottom:9px}
+.next-reply+.next-button{margin-top:15px}.trail-chip.linked{background:var(--lime);border-color:#a6b67e}
+.best-reversal{border:1px solid #a2b481;background:var(--green);padding:19px 24px;max-width:560px;margin:22px auto 0;box-shadow:4px 4px 0 #cad9ac;transform:rotate(-.5deg)}
+.best-reversal>span{font-size:8px;letter-spacing:1.4px;font-weight:700}.best-reversal p{font:400 28px/1.3 var(--serif);margin:12px 0}.best-reversal p>b{font-family:var(--sans);color:var(--orange);margin:0 9px}.best-reversal>strong{font-size:13px;color:#a2522d}
+.recap-details>summary{font:400 18px var(--serif);padding:15px 0;cursor:pointer}.results{border-bottom:0;margin-bottom:4px}.result-actions{flex-wrap:wrap}
+@media(max-width:600px){
+ main{padding-top:14px}.daily-topic{gap:7px;padding-bottom:12px}.daily-topic h1{font-size:23px}.game-hud{min-height:85px;padding:12px 0 16px}.counter-progress{margin-bottom:24px}.current-chain{font-size:7px}
+ .reply-line{font-size:16px;line-height:1.35;margin-bottom:10px;gap:8px}.reply-line>span{font-size:21px}
+ .exchange .argument-stage{padding:19px 18px 18px}.exchange blockquote{font-size:26px;line-height:1.35;margin:19px 0 12px;letter-spacing:-.5px}.exchange .claim-hint{font-size:12px;line-height:1.45}
+ .argument-stage .composer{margin-top:17px}.argument-stage .input-row{padding-left:11px;gap:6px}.argument-stage .input-row input{font-size:18px}.argument-stage .what-about{font-size:12px}.argument-stage .send-button{width:37px;height:43px;flex-shrink:0}.argument-stage .input-under{font-size:9px;min-height:30px;line-height:1.5}
+ .reversal-target{padding:10px 11px;margin-top:15px}.reversal-target>div>b{font-size:16px;padding:3px 6px}.reversal-target>div>span{font-size:6px;letter-spacing:.7px}.reversal-target p{font-size:16px;line-height:1.3;margin:9px 0 6px}.target-example{font-size:9px}.target-example small{font-size:8px}
+ .receipt-head{gap:13px;align-items:flex-start;flex-wrap:wrap}.receipt-head h2{font-size:40px;min-width:160px}.receipt-head .points-earned{font-size:35px}.receipt-head .answer-score{gap:6px;margin:3px 0 17px}.receipt-head .answer-score>span{font-size:6px}.answer-stage .explanation{font-size:13px;line-height:1.55}.next-reply{font-size:18px;margin-top:20px}.next-reply>span{font-size:6px}.best-reversal{padding:17px}.best-reversal p{font-size:24px}.home-rules{gap:14px}.home-rules>span:last-child{font-size:8px}
+}

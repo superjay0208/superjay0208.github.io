@@ -1,4 +1,4 @@
-import { matchInput } from './matcher.js?v=5';
+import { matchInput } from './matcher.js?v=6';
 const DAY = 86_400_000;
 export const utcDay = (now = Date.now()) => new Date(now).toISOString().slice(0, 10);
 export function dailyTopic(manifest, day = utcDay()) {
@@ -38,20 +38,34 @@ export function assertDebate(debate) {
         !target.counters.some(link => link.claimId === edge.targetClaimId) || claims.get(edge.targetClaimId).index >= claims.get(edge.claimId).index || typeof edge.explanation !== 'string') throw new Error('Invalid self-counter link.');
   }
   for (const claim of claims.values()) if (![...examples.values()].some(example => example.counters.some(link => link.claimId === claim.id))) throw new Error('Claim has no examples.');
+  if (debate.flow && debate.flow.mode !== 'reply-and-reverse') throw new Error('Unsupported debate flow.');
+  for (const turn of debate.turns) for (const response of turn.responses ?? []) {
+    if (!response.afterClaimIds?.length || response.afterClaimIds.some(id=>!claims.has(id)) ||
+        response.afterEntryIds?.some(id=>!examples.has(id)) || typeof response.reply !== 'string' ||
+        typeof response.text !== 'string' || turn.claims.some(claim=>response.text.split(claim.text).length!==2)) throw new Error('Invalid prepared reply.');
+  }
   return debate;
 }
 export function playableDebate(debate) {
   assertDebate(debate);
-  return structuredClone({ schemaVersion:4,id:debate.id,version:debate.version,question:debate.question,shortTitle:debate.shortTitle,scope:debate.scope,rules:debate.rules,
-    turns:debate.turns.map(({id,side,text,claims})=>({id,side,text,claims:claims.map(({id,text,hint,rejected})=>({id,text,hint,...(rejected?{rejected}:{})}))})),
+  return structuredClone({ schemaVersion:4,id:debate.id,version:debate.version,question:debate.question,shortTitle:debate.shortTitle,scope:debate.scope,rules:debate.rules,...(debate.flow?{flow:debate.flow}:{}),...(debate.demo?{demo:debate.demo}:{}),
+    turns:debate.turns.map(({id,side,text,claims,responses,reply})=>({id,side,text,...(responses?{responses}:{}),...(reply?{reply}:{}),claims:claims.map(({id,text,hint,rejected})=>({id,text,hint,...(rejected?{rejected}:{})}))})),
     examples:debate.examples.map(({id,answer,aliases,counters,selfCounters})=>({id,answer,aliases,counters,selfCounters})) });
 }
 export function createRun(debate, day = utcDay(), now = Date.now()) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error('Invalid day.');
-  return {storageVersion:4,debate:playableDebate(debate),day,phase:'turn',history:[],selectedClaimId:null,draft:'',startedAt:now,deadline:now+debate.rules.secondsPerTurn*1000,completedAt:null};
+  return {storageVersion:4,debate:playableDebate(debate),day,phase:'turn',history:[],turnId:debate.turns[0].id,selectedClaimId:debate.flow?debate.turns[0].claims[0].id:null,draft:'',startedAt:now,deadline:now+debate.rules.secondsPerTurn*1000,completedAt:null};
 }
 export const totalScore = run => run.history.reduce((sum,record)=>sum+record.total,0);
-export const currentArgument = run => run.debate.turns[run.phase === 'reveal' ? run.history.length-1 : Math.min(run.history.length,5)];
+export function currentArgument(run) {
+  const index=run.phase==='reveal'?run.history.length-1:Math.min(run.history.length,5);
+  const turn=run.debate.flow?run.debate.turns.find(turn=>turn.id===run.turnId):run.debate.turns[index];
+  const previous=run.history[index-1];
+  const response=previous?.entryId&&(turn.responses??[]).find(response=>response.afterClaimIds.includes(previous.claimId)&&(!response.afterEntryIds||response.afterEntryIds.includes(previous.entryId)));
+  const example=previous?.entryId&&run.debate.examples.find(example=>example.id===previous.entryId);
+  const substitute=text=>text?.replaceAll('{answer}',example?.answer??'that example');
+  return {...turn,text:substitute(response?.text??turn.text),reply:previous?.entryId?substitute(response?.reply??turn.reply):null,responseTo:example?.answer??null};
+}
 export const usedIds = run => run.history.filter(record=>record.entryId).map(record=>record.entryId);
 export function selectClaim(run,claimId) {
   if (run.phase !== 'turn' || !currentArgument(run).claims.some(claim=>claim.id === claimId)) throw new Error('Choose a phrase in this argument.');
@@ -65,7 +79,14 @@ export function matchCounterInput(run, raw, claimId = run.selectedClaimId) {
   if (!identityPools.has(run.debate)) identityPools.set(run.debate, {entries:run.debate.examples,rejected:[]});
   const identity = matchInput(identityPools.get(run.debate), raw, usedIds(run));
   if (identity.kind === 'already-used' && identity.matchType !== 'typo') return identity;
-  return matchInput(matchingPool(run.debate, claimId), raw, usedIds(run));
+  const result=matchInput(matchingPool(run.debate, claimId), raw, usedIds(run));
+  if(run.debate.flow&&['rejected','no-match'].includes(result.kind)){
+    for(const claim of currentArgument(run).claims.filter(claim=>claim.id!==claimId)){
+      const alternate=matchInput(matchingPool(run.debate,claim.id),raw,usedIds(run));
+      if(alternate.kind==='match')return {...alternate,claimId:claim.id,redirected:true};
+    }
+  }
+  return {...result,claimId};
 }
 export function matchingPool(debate,claimId) {
   if (!pools.has(debate)) pools.set(debate,new Map());
@@ -81,7 +102,7 @@ export function scoreExample(run,example,claimId) {
   for(let index=run.history.length-1;index>=0;index--){
     const earlier=run.history[index];
     const edge=example.selfCounters.find(edge=>edge.claimId===claimId&&edge.targetId===earlier.entryId&&edge.targetClaimId===earlier.claimId);
-    if(edge)return {basePoints:100,multiplier:earlier.multiplier*2,total:100*earlier.multiplier*2,chainTargetIndex:index,chainExplanation:edge.explanation};
+    if(edge)return {basePoints:100,multiplier:earlier.multiplier*2,total:100*earlier.multiplier*2,chainTargetIndex:index,chainExplanation:edge.explanation,chainChallenge:edge.challenge??null};
   }
   return {basePoints:100,multiplier:1,total:100,chainTargetIndex:null,chainExplanation:null};
 }
@@ -97,12 +118,23 @@ export function commitTurn(run,move,now=Date.now()) {
   const example=move.kind==='answer'?run.debate.examples.find(example=>example.id===move.entryId):null;
   if(move.kind==='answer'&&(!example||!argument.claims.some(claim=>claim.id===claimId)||usedIds(run).includes(example.id)||!example.counters.some(link=>link.claimId===claimId)))throw new Error('That example cannot counter this phrase.');
   const score=example?scoreExample(run,example,claimId):{basePoints:0,multiplier:1,total:0,chainTargetIndex:null,chainExplanation:null};
-  return {...run,phase:'reveal',deadline:null,draft:'',selectedClaimId:null,history:[...run.history,{turnId:argument.id,side:argument.side,kind:move.kind,entryId:example?.id??null,claimId:example?claimId:null,input:example?String(move.input??example.answer).slice(0,60):'',explanation:example?.counters.find(link=>link.claimId===claimId).explanation??null,...score}]};
+  return {...run,phase:'reveal',deadline:null,draft:'',selectedClaimId:null,history:[...run.history,{turnId:argument.id,argumentText:argument.text,reply:argument.reply,side:argument.side,kind:move.kind,entryId:example?.id??null,claimId:example?claimId:null,input:example?String(move.input??example.answer).slice(0,60):'',explanation:example?.counters.find(link=>link.claimId===claimId).explanation??null,...score}]};
+}
+export function nextArgumentId(run) {
+  const visited=new Set(run.history.map(record=>record.turnId));
+  const candidates=run.debate.turns.filter(turn=>!visited.has(turn.id)&&turn.side!==run.history.at(-1).side);
+  if(!candidates.length)return null;
+  const opportunities=candidates.flatMap(turn=>turn.claims.map(claim=>({turn,opportunity:possibleChain(run,claim.id)}))).filter(item=>item.opportunity);
+  opportunities.sort((a,b)=>b.opportunity.chainTargetIndex-a.opportunity.chainTargetIndex||b.opportunity.multiplier-a.opportunity.multiplier);
+  return opportunities[0]?.turn.id??candidates[0].id;
 }
 export function advanceRun(run,now=Date.now()) {
   if(run.phase!=='reveal')return run;
   if(run.history.length===6)return {...run,phase:'complete',completedAt:now,deadline:null};
-  return {...run,phase:'turn',selectedClaimId:null,draft:'',deadline:now+run.debate.rules.secondsPerTurn*1000};
+  const turnId=run.debate.flow?nextArgumentId(run):run.debate.turns[run.history.length].id;
+  let next={...run,phase:'turn',turnId,selectedClaimId:null,draft:'',deadline:now+run.debate.rules.secondsPerTurn*1000};
+  if(run.debate.flow){const claims=currentArgument(next).claims;next.selectedClaimId=claims.map(claim=>({claim,opportunity:possibleChain(next,claim.id)})).sort((a,b)=>(b.opportunity?.multiplier??1)-(a.opportunity?.multiplier??1))[0].claim.id;}
+  return next;
 }
 export function restoreRun(raw,now=Date.now()) {
   try {
@@ -114,7 +146,7 @@ export function restoreRun(raw,now=Date.now()) {
       run=commitTurn({...run,deadline:Number.MAX_SAFE_INTEGER},{kind:record.kind,entryId:record.entryId,claimId:record.claimId,input:record.input},0);
       if(index<saved.history.length-1||saved.phase!=='reveal')run=advanceRun(run,saved.completedAt??saved.startedAt);
     }
-    if(run.phase!==saved.phase)return null;
+    if(run.phase!==saved.phase||(saved.turnId&&run.turnId!==saved.turnId))return null;
     if(run.phase==='turn'){
       if(!Number.isFinite(saved.deadline))return null;
       run={...run,deadline:saved.deadline,draft:typeof saved.draft==='string'?saved.draft.slice(0,60):''};
