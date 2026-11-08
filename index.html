@@ -1,307 +1,54 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Zixun Wang • Portfolio</title>
-  <style>
-    :root{
-      --bg: #0b0f14;
-      --panel: rgba(255,255,255,0.06);
-      --border: rgba(255,255,255,0.10);
-      --text: #e6eaf2;
-      --muted: #a6adbb;
-      --accent: #4ee1c1;    
-      --accent-2: #a78bfa;  
-      --shadow: 0 10px 30px rgba(0,0,0,.35), 0 2px 10px rgba(0,0,0,.25);
-      --radius: 18px;
-      --card-blur: 14px;
-    }
-
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      color: var(--text);
-      background: radial-gradient(1200px 800px at 10% -10%, rgba(79,216,193,.18), transparent 55%),
-                  radial-gradient(1000px 600px at 110% 0%, rgba(167,139,250,.15), transparent 50%),
-                  linear-gradient(180deg, #0b0f14, #0b0f14);
-
-      background-image:
-        radial-gradient(circle at 25px 25px, rgba(255,255,255,.06) 1px, transparent 0),
-        radial-gradient(circle at 5px 5px, rgba(255,255,255,.035) 1px, transparent 0),
-        radial-gradient(1200px 800px at 10% -10%, rgba(79,216,193,.18), transparent 55%),
-        radial-gradient(1000px 600px at 110% 0%, rgba(167,139,250,.15), transparent 50%),
-        linear-gradient(180deg, #0b0f14, #0b0f14);
-      background-size: 30px 30px, 30px 30px, auto, auto, auto;
-      background-attachment: fixed;
-    }
-
-    a { color: inherit; text-decoration: none; }
-    button { font: inherit; color: inherit; }
-
-
-    .container{ width: min(1080px, 92vw); margin: 0 auto; }
-    header{ padding: 84px 0 36px; }
-    header .eyebrow{ color: var(--muted); letter-spacing: .14em; text-transform: uppercase; font-size: 12px; }
-    header h1{ font-size: clamp(32px, 6vw, 52px); margin: 10px 0 12px; line-height: 1.08; }
-    header .tagline{ color: var(--muted); font-size: clamp(14px, 2.6vw, 18px); max-width: 840px; }
-
-    .accent-bar {
-      height: 4px; width: 140px; border-radius: 999px; margin: 18px 0 0;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-      box-shadow: 0 0 24px rgba(78,225,193,.45);
-    }
-
-    main{ padding: 24px 0 80px; }
-
-    .grid{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 22px; }
-
-
-    .card {
-      position: relative;
-      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow: clip;
-      transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease;
-      backdrop-filter: blur(var(--card-blur));
-      -webkit-backdrop-filter: blur(var(--card-blur));
-      isolation: isolate;
-    }
-    .card::before { 
-      content: ""; position: absolute; inset: 0; pointer-events: none;
-      background: linear-gradient(120deg, rgba(78,225,193,.16), transparent 35%, rgba(167,139,250,.14) 70%, transparent 100%);
-      mix-blend-mode: screen; opacity: .9;
-    }
-    .card:hover{ transform: translateY(-3px); border-color: rgba(255,255,255,.20); box-shadow: 0 16px 40px rgba(0,0,0,.5), 0 3px 12px rgba(0,0,0,.35); }
-
-    .card-body{ padding: 22px 22px 20px; display: grid; gap: 10px; }
-    .card-title{ font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-    .card-meta{ color: var(--muted); font-size: 14px; }
-
-    .pill {
-      font-size: 12px; padding: 6px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 8px;
-      background: linear-gradient(90deg, rgba(78,225,193,.18), rgba(167,139,250,.18));
-      border: 1px solid rgba(255,255,255,.12);
-    }
-
-    /* --- CS180 Dropdown --- */
-    .dropdown .trigger { width: 100%; background: transparent; border: 0; text-align: left; padding: 0; cursor: pointer; }
-    .trigger-row { display: flex; align-items: center; justify-content: space-between; }
-
-    .chev { width: 18px; height: 18px; flex: none; transition: transform .2s ease; opacity: .9; }
-    .dropdown[aria-expanded="true"] .chev { transform: rotate(180deg); }
-    .dropdown.open .chev { transform: rotate(180deg); }
-
-    .menu {
-      list-style: none; margin: 0; padding: 10px; border-top: 1px dashed rgba(255,255,255,.14);
-      display: grid; gap: 6px;
-      max-height: 0; opacity: 0; overflow: clip;
-      transition: max-height .28s ease, opacity .28s ease;
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-    }
-    .menu.open { max-height: 480px; opacity: 1; }
-
-    .menu a {
-      display: flex; gap: 10px; align-items: center;
-      padding: 10px 12px; border-radius: 12px;
-      background: transparent; border: 1px solid transparent;
-      transition: background .18s ease, border-color .18s ease, transform .18s ease;
-    }
-    .menu a .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px rgba(78,225,193,.8); }
-    .menu a:hover, .menu a:focus-visible { background: rgba(78,225,193,.10); border-color: rgba(255,255,255,.18); outline: none; transform: translateX(2px); }
-
-
-    footer{ padding: 36px 0 60px; color: var(--muted); font-size: 13px; }
-    .footer-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-
-
-    .sr-only{ position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 1px, 1px); white-space: nowrap; border: 0; }
-
-
-    @media (max-width: 520px){
-      header { padding-top: 64px; }
-      .menu { padding: 8px; }
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#141311">
+  <meta name="description" content="Zixun Wang’s corner of the internet. Explore interactive worlds, browser games, computer graphics, and experiments in seeing differently.">
+  <title>Zixun Wang — Curiosity, in motion.</title>
+  <link rel="icon" href="./assets/monogram.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./portfolio.css">
+  <script src="./portfolio.js" defer></script>
 </head>
 <body>
-  <header class="container">
-    <div class="eyebrow">Portfolio</div>
-    <h1>Welcome — I’m Zixun Wang</h1>
-    <p class="tagline">Explore projects, coursework, and games.</p>
-    <div class="accent-bar" aria-hidden="true"></div>
+  <a class="skip-link" href="#work">Skip to projects</a>
+  <div class="reading-progress" aria-hidden="true"></div>
+  <header class="site-header">
+    <nav class="navigation" aria-label="Main navigation">
+      <a class="identity" href="#home" aria-label="Zixun Wang home"><span class="monogram">zw<span>°</span></span><span class="identity-name">Zixun Wang</span></a>
+      <div class="nav-links"><a href="#work">Work</a><a href="#studies">Studies</a><a href="#research">Research</a><a href="#about">About</a></div>
+      <a class="nav-github" href="https://github.com/superjay0208" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
   </header>
-
-  <main class="container">
-    <section class="grid" aria-label="Projects and courses">
-      <!-- Cross Examination short-answer game -->
-      <article class="card">
-        <a class="card-body" href="./cross-examination/">
-          <div class="card-title"><span>Cross Examination</span><span class="pill">Play in browser</span></div>
-          <div class="card-meta">Six turns. Both sides. Find a fresh angle and land a counterpunch.</div>
-        </a>
-      </article>
-
-      <!-- Slide Projector interactive prototype -->
-      <article class="card">
-        <a class="card-body" href="./slide-projector/">
-          <div class="card-title"><span>Slide Projector</span><span class="pill">Play in browser</span></div>
-          <div class="card-meta">An experiment in light &amp; space &bull; Physics, video, and real-time projection</div>
-        </a>
-      </article>
-
-      <!-- Crux climbing game -->
-      <article class="card">
-        <a class="card-body" href="./crux/">
-          <div class="card-title"><span>Crux</span><span class="pill">Play in browser</span></div>
-          <div class="card-meta">A physics climbing puzzle &bull; Jugs, crimps, foot swaps</div>
-        </a>
-      </article>
-
-      <!-- CS 184 card (simple link) -->
-      <article class="card">
-        <a class="card-body" href="./CS 184/index.html">
-          <div class="card-title">
-            <span>CS 184</span>
-            <span class="pill">Computer Graphics</span>
-          </div>
-          <div class="card-meta">OpenGL • GLSL • NPR • Shaders</div>
-        </a>
-      </article>
-
-      <!-- CS 180 card (dropdown for Project 0–4) -->
-      <article class="card dropdown" id="cs180Card" aria-expanded="false">
-        <div class="card-body" id="cs180Header">
-          <button type="button" class="trigger" id="cs180Trigger" aria-haspopup="true" aria-expanded="false" aria-controls="cs180Menu">
-            <span class="sr-only">Toggle CS 180 projects</span>
-            <div class="trigger-row">
-              <div class="card-title">
-                <span>CS 180</span>
-                <span class="pill">Computer Vision</span>
-              </div>
-              <svg class="chev" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-          </button>
-
-          <div class="card-meta">Click to choose a project (P0–P4)</div>
-        </div>
-        <ul id="cs180Menu" class="menu" role="menu" aria-label="CS 180 Projects">
-          <li role="none"><a role="menuitem" href="./CS 180/project0/index.html"><span class="dot"></span> Project 0 — Warm‑Up</a></li>
-          <li role="none"><a role="menuitem" href="./CS 180/project1/index.html"><span class="dot"></span> Project 1 — Colorizing Prokudin‑Gorskii</a></li>
-          <li role="none"><a role="menuitem" href="./CS 180/project2/index.html"><span class="dot"></span> Project 2 — Fun with Filters and Frequencies</a></li>
-          <li role="none"><a role="menuitem" href="./CS 180/project3/index.html"><span class="dot"></span> Project 3 — [Auto]Stitching Photo Mosaics</a></li>
-          <li role="none"><a role="menuitem" href="./CS 180/project4/index.html"><span class="dot"></span> Project 4 — Light Field</a></li>
-          <li role="none"><a role="menuitem" href="./CS 180/project5/index.html"><span class="dot"></span> Project 5 — Fun With Diffusion Models</a></li>
-        </ul>
-      </article>
+  <main>
+    <section class="hero" id="home" aria-labelledby="hero-title">
+      <div class="spatial-stage" aria-hidden="true"><div class="stage-glow"></div><canvas id="dust-canvas"></canvas><div class="lens-fallback"></div><canvas id="glass-canvas"></canvas><div class="orbital-label"><span class="orbital-dot"></span> AN EXPLORATION, ALWAYS IN ORBIT.</div><span class="orbit-coordinate">FIG. 01 / REFRACTION</span></div>
+      <div class="hero-copy"><p class="eyebrow hero-eyebrow"><span class="status-dot"></span> THE DIGITAL GARDEN OF ZIXUN WANG</p><h1 id="hero-title">Curiosity,<br><em>in motion.</em></h1><p class="hero-intro">A little code. A new perspective.<br>Things you can see, feel, and play.</p><a class="button button-glass" href="#work">Enter the collection <span aria-hidden="true">↗</span></a></div>
+      <div class="hero-bottom"><span>GRAPHICS · GAMES · INTERACTIVE EXPERIMENTS</span><a href="#work">Scroll to explore <span aria-hidden="true">↓</span></a></div>
     </section>
+    <section class="work section-shell" id="work" aria-labelledby="work-title">
+      <div class="section-heading reveal"><div><p class="eyebrow">01 / SELECTED WORK</p><h2 id="work-title">Less looking.<br><em>More exploring.</em></h2></div><p class="section-description">Small experiments.<br>Entire worlds to step into.</p></div>
+      <a class="project-feature reveal" href="./slide-projector/" aria-label="Explore Slide Projector, an interactive experiment in light and space">
+        <div class="feature-art" aria-hidden="true"><div class="room-grid"></div><div class="room-halo"></div><div class="projected-screen"><video id="projector-video" muted loop playsinline preload="none" poster="./assets/light-poster.svg"><source src="./slide-projector/media/light-study.webm" type="video/webm"></video><div class="screen-overlay"></div></div><div class="light-beam"></div><div class="projector-object"><div class="projector-top"></div><div class="projector-front"><i></i><span></span></div><div class="projector-foot foot-one"></div><div class="projector-foot foot-two"></div></div><span class="scene-coordinate">LIGHT STUDY / 001</span><span class="scene-cross">+</span></div>
+        <div class="feature-content"><div><span class="project-type"><span class="status-dot"></span> INTERACTIVE 3D EXPERIENCE</span><h3>Light. Space.<br>A little possibility.</h3><p>Move the projector. Change the angle. See what happens.<br>Physics, video, and real-time projection in your browser.</p><span class="project-link">Explore Slide Projector <span aria-hidden="true">↗</span></span></div><span class="project-index">01 — 03</span></div>
+      </a>
+      <div class="project-grid">
+        <a class="project-card debate-card reveal" href="./cross-examination/"><div class="card-art debate-art" aria-hidden="true"><span class="debate-word word-one">What if.</span><span class="debate-word word-two">But what<br>about<span>…</span></span><span class="debate-asterisk">✳</span><div class="debate-chip"><span>YOUR NEXT COUNTEREXAMPLE</span><span>↵</span></div></div><div class="card-content"><div class="card-label"><span>BROWSER GAME</span><span>02</span></div><h3>Cross Examination <span aria-hidden="true">↗</span></h3><p>Six turns. Both sides. Find the exception<br>that changes the conversation.</p><div class="card-tags"><span>Words</span><span>Logic</span><span>A fresh perspective</span></div></div></a>
+        <a class="project-card crux-card reveal" href="https://superjay0208.github.io/crux/"><div class="card-art crux-art" aria-hidden="true"><svg class="climbing-scene" viewBox="0 0 600 420" fill="none"><path d="M110 420 160 325 146 237 230 155 249 0M430 420 390 302 450 160 404 0" stroke="#c7c5bd" stroke-width="1.5"/><path d="m282 420 21-97-18-81 65-107-13-135" stroke="#d4d0c8"/><path d="M254 302 281 260 319 254 341 206M281 260 264 210 291 163M292 268 310 307 351 325M289 267 258 312 230 318" stroke="#313d3a" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/><circle cx="273" cy="190" r="15" fill="#313d3a"/><path d="m280 231 10 36 16-3-12-41" fill="#d87149"/><path d="m275 155 24-7 9 10-29 13ZM330 197l25-9 10 14-29 9ZM219 315l24-4 3 12-27 8ZM342 322l23-2 6 13-30 5ZM178 231l23-10 11 12-31 9ZM379 111l26-7 7 13-30 10ZM240 74l20-8 9 12-26 10" fill="#cf7958"/><path d="M295 267 Q361 375 324 420" stroke="#d87149" stroke-width="2"/></svg><span class="crux-art-label">Find your<br><em>next move.</em></span><span class="route-tag">ROUTE / 001 <span>↗</span></span></div><div class="card-content"><div class="card-label"><span>PHYSICS PUZZLE</span><span>03</span></div><h3>Crux <span aria-hidden="true">↗</span></h3><p>A little balance. A better hold.<br>A climbing puzzle with a physical point of view.</p><div class="card-tags"><span>Physics</span><span>Climbing</span><span>Problem solving</span></div></div></a>
+      </div>
+    </section>
+    <section class="perspective-section" aria-labelledby="perspective-title"><div class="perspective-sticky"><p class="eyebrow reveal">SAME WORLD. ANOTHER WAY TO SEE IT.</p><h2 id="perspective-title" class="perspective-text"><span>Change the angle.</span><br><span>Find the unexpected.</span><br><span><em>Make something move.</em></span></h2><div class="perspective-line" aria-hidden="true"></div></div></section>
+    <section class="studies section-shell" id="studies" aria-labelledby="studies-title">
+      <div class="section-heading reveal"><div><p class="eyebrow">02 / UNDER THE SURFACE</p><h2 id="studies-title">The science<br><em>behind the pixels.</em></h2></div><p class="section-description">Experiments in how we see,<br>and how computers see us.</p></div>
+      <div class="studies-grid"><a class="graphics-study reveal" href="./CS%20184/index.html"><div class="graphics-art" aria-hidden="true"><div class="wire-sphere sphere-back"></div><div class="wire-sphere sphere-front"></div><span class="shader-label">vec3 color = perspective;</span><span class="graphics-symbol">↗</span></div><div class="study-card-copy"><span class="eyebrow">CS 184 · COMPUTER GRAPHICS</span><h3>A different kind<br>of rendering.</h3><p>OpenGL, GLSL, and non-photorealistic rendering. Exploring what happens when pixels become a medium.</p><span class="text-link">View the exploration <span aria-hidden="true">↗</span></span></div></a>
+      <div class="vision-study reveal"><div class="study-card-copy"><span class="eyebrow">CS 180 · COMPUTER VISION</span><h3>See beyond<br>the image.</h3><p>From the first pixel to diffusion models.<br>Six studies in computational photography.</p></div><ol class="study-list"><li><a href="./CS%20180/project0/index.html"><span class="study-number">00</span><span>Perspective & the camera</span><span aria-hidden="true">↗</span></a></li><li><a href="./CS%20180/project1/index.html"><span class="study-number">01</span><span>A past in full color</span><span aria-hidden="true">↗</span></a></li><li><a href="./CS%20180/project2/index.html"><span class="study-number">02</span><span>Filters & frequencies</span><span aria-hidden="true">↗</span></a></li><li><a href="./CS%20180/project3/index.html"><span class="study-number">03</span><span>Stitching worlds together</span><span aria-hidden="true">↗</span></a></li><li><a href="./CS%20180/project4/index.html"><span class="study-number">04</span><span>Playing with light fields</span><span aria-hidden="true">↗</span></a></li><li><a href="./CS%20180/project5/index.html"><span class="study-number">05</span><span>Dreaming with diffusion</span><span aria-hidden="true">↗</span></a></li></ol></div></div>
+    </section>
+    <section class="research section-shell" id="research" aria-labelledby="research-title">
+      <div class="section-heading reveal"><div><p class="eyebrow">03 / RESEARCH</p><h2 id="research-title">Patterns beneath<br><em>the picture.</em></h2></div><p class="section-description">A statistical perspective<br>on the images around us.</p></div>
+      <article class="paper reveal"><div class="paper-visual" aria-hidden="true"><span class="paper-visual-label">STATISTICS × IMAGING</span><svg viewBox="0 0 440 300" fill="none"><path d="M35 244H405M220 42V263" stroke="currentColor" opacity=".23"/><path d="M40 241C110 238 159 233 185 181S206 62 220 62s9 67 35 119 75 57 145 60" stroke="#a54c32" stroke-width="2.5"/><path d="M40 241C113 240 128 237 151 216S192 100 220 100s46 95 69 116 38 24 111 25" stroke="#536a60" stroke-width="1.5" stroke-dasharray="4 5"/><path d="M40 241C110 238 159 233 185 181S206 62 220 62s9 67 35 119 75 57 145 60V244H40Z" fill="#a54c32" opacity=".06"/></svg><span class="paper-formula">p(x) = ∫ N(x; μ, v) p(v) dv</span><span class="paper-schematic">SCALE MIXTURES / SCHEMATIC</span></div><div class="paper-content"><div class="card-label"><span>STATISTICS · PREPRINT</span><span>2025 / REV. 2026</span></div><h3>Do Generalized-Gamma Scale Mixtures of Normals Fit Large Image Datasets?</h3><p class="paper-authors">Brandon Marks, Yash Dave, <strong>Zixun Wang</strong>, Hannah Chung, Riya Patwa, Simon Cha, Michael Murphy & Alexander Strang</p><p>Testing flexible statistical priors on large image datasets, from remote sensing to medical imaging. We explore how these models describe transformed image coefficients, where they improve on standard priors, and where they fall short.</p><div class="paper-links"><a class="button button-dark" href="https://arxiv.org/abs/2512.17038" target="_blank" rel="noopener noreferrer">Read on arXiv <span aria-hidden="true">↗</span></a><a class="text-link" href="https://arxiv.org/pdf/2512.17038" target="_blank" rel="noopener noreferrer">View PDF <span aria-hidden="true">↗</span></a></div></div></article>
+    </section>
+    <section class="about section-shell" id="about" aria-labelledby="about-title"><div class="about-rule"></div><div class="about-layout"><p class="eyebrow reveal">04 / THE PERSON AT THE KEYBOARD</p><div class="reveal"><h2 id="about-title">Hi, I’m Zixun.<br><em>Always a little curious.</em></h2><p>I like the space where code becomes an experience. A beam of light you can move. An argument you can turn around. A new way of looking at an ordinary image.</p><p>This is my collection of projects, games, research, and things I learned along the way. Take a look around. Try something.</p><a class="button button-dark" href="https://github.com/superjay0208" target="_blank" rel="noopener noreferrer">See what I’m building <span aria-hidden="true">↗</span></a></div></div></section>
   </main>
-
-  <footer class="container">
-    <div class="footer-row">
-      <span>© <span id="year"></span> Zixun Wang</span>
-      <span aria-hidden="true">•</span>    </div>
-  </footer>
-
-  <script>
-    // Year
-    document.getElementById('year').textContent = new Date().getFullYear();
-
-    // Dropdown behavior
-    const card = document.getElementById('cs180Card');
-    const trigger = document.getElementById('cs180Trigger');
-    const menu = document.getElementById('cs180Menu');
-    const header = document.getElementById('cs180Header');
-
-    function setOpen(open){
-      card.classList.toggle('open', open);
-      if(open){
-        menu.classList.add('open');
-      } else {
-        menu.classList.remove('open');
-      }
-      card.setAttribute('aria-expanded', String(open));
-      trigger.setAttribute('aria-expanded', String(open));
-    }
-    function toggleMenu(){ setOpen(!menu.classList.contains('open')); }
-
-    trigger.addEventListener('click', (e)=>{
-      e.preventDefault();
-      e.stopPropagation();
-      toggleMenu();
-    });
-
-    header.addEventListener('click', (e)=>{
-      if (e.target.closest('#cs180Menu')) return; // ignore clicks from menu
-      toggleMenu();
-    });
-
-    // Close on outside click
-    document.addEventListener('click', (e)=>{
-      if (!card.contains(e.target)) setOpen(false);
-    });
-
-    // Keyboard accessibility
-    trigger.addEventListener('keydown', (e)=>{
-      const items = Array.from(menu.querySelectorAll('a'));
-      const first = items[0];
-      const last = items[items.length-1];
-
-      switch(e.key){
-        case 'Enter':
-        case ' ':
-        case 'ArrowDown':
-          if(!menu.classList.contains('open')) { setOpen(true); }
-          e.preventDefault();
-          (first || trigger).focus();
-          break;
-        case 'ArrowUp':
-          if(!menu.classList.contains('open')) { setOpen(true); }
-          e.preventDefault();
-          (last || trigger).focus();
-          break;
-        case 'Escape':
-          setOpen(false);
-          trigger.focus();
-          break;
-      }
-    });
-
-    menu.addEventListener('keydown', (e)=>{
-      const items = Array.from(menu.querySelectorAll('a'));
-      const idx = items.indexOf(document.activeElement);
-      if(idx === -1) return;
-
-      switch(e.key){
-        case 'ArrowDown':
-          e.preventDefault();
-          (items[idx+1] || items[0]).focus();
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          (items[idx-1] || items[items.length-1]).focus();
-          break;
-        case 'Home':
-          e.preventDefault();
-          items[0].focus();
-          break;
-        case 'End':
-          e.preventDefault();
-          items[items.length-1].focus();
-          break;
-        case 'Escape':
-          setOpen(false);
-          trigger.focus();
-          break;
-      }
-    });
-  </script>
+  <footer class="footer section-shell"><a class="monogram" href="#home" aria-label="Back to top">zw<span>°</span></a><span>© <span id="year">2026</span> Zixun Wang</span><button class="motion-toggle" id="motion-toggle" type="button" aria-pressed="false" hidden><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1h3v10H2zm5 0h3v10H7z"/></svg><span>Pause motion</span></button><a href="#home" class="back-top">Back to top ↑</a></footer>
 </body>
 </html>
