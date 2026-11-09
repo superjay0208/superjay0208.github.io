@@ -1,6 +1,7 @@
 import { mixture, normalPdf, normalCdf, createRng, sampleNormal, logGamma, ksGap } from './math.mjs';
 import { initImageLab, initHeroArt } from './image-lab.mjs';
 import { initEvidence } from './evidence-ui.mjs';
+import { initJourney } from './journey.mjs';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -66,6 +67,18 @@ function line(plot, points, {color=palette.forest,width=2.4,dash,opacity=1,fill=
 function sampleCurve(fn,min,max,n=220) { return Array.from({length:n+1},(_,i)=>{const x=min+(max-min)*i/n;return [x,fn(x)];}); }
 function pressed(selector, selected) { $$(selector).forEach(button=>button.setAttribute('aria-pressed', String(button===selected))); }
 function coalesced(fn) { let pending=false;return ()=>{if(!pending){pending=true;requestAnimationFrame(()=>{pending=false;fn();});}}; }
+
+// Reflow labels when an experiment becomes visible or its viewport changes.
+// Hidden experiments do no chart work.
+function watchChart(selector, render) {
+  const target=$(selector);
+  let lastWidth=0;
+  const redraw=coalesced(()=>{
+    const width=target.getBoundingClientRect().width;
+    if(width>0 && Math.abs(width-lastWidth)>.5){lastWidth=width;render();}
+  });
+  new ResizeObserver(redraw).observe(target);
+}
 
 function initializeMotion() {
   const button = $('#motion');
@@ -151,8 +164,8 @@ function mixtureLab() {
     describe($('#mixture-plot'),`${count} zero-centered normal bells. Width variety ${variety.toFixed(2)}. The thick line is their equal-weight density mixture.`);
     $('#draw-summary').textContent=variety===0?'All variances are 1, so every component and the mixture are the same normal.':`${count} normal components, all centered at zero. At full variety the variance choices approximate exponential mixing.`;
   };
-  $('#bells').addEventListener('input',coalesced(update));
-  $('#width-variety').addEventListener('input',coalesced(update));
+  $('#bells').addEventListener('input',update);
+  $('#width-variety').addEventListener('input',update);
   $('#release-samples').addEventListener('click',()=>{
     cancelAnimationFrame(rainFrame);
     draws=Array.from({length:120},()=>sampleNormal(rng)*Math.sqrt(variances[Math.floor(rng()*variances.length)]));
@@ -161,7 +174,7 @@ function mixtureLab() {
     rain.setAttribute('aria-label',`120 values sampled from the finite normal mixture. ${outside} outside the visible range.`);
     const start=performance.now();
     const animate=time=>{
-      const progress=motion?Math.min(1,(time-start)/1500):1;
+      const progress=motion && !$('#three').hidden && !$('#probability-mixture').hidden && !document.hidden?Math.min(1,(time-start)/1500):1;
       drawRain(progress);
       if(progress<1)rainFrame=requestAnimationFrame(animate);
     };
@@ -171,6 +184,7 @@ function mixtureLab() {
     pressed('[data-bells-answer]',button);
     $('#bells-answer').textContent=button.dataset.bellsAnswer==='no'?'Exactly. Every component is symmetric and decreases as you move away from zero. A positive weighted average keeps those properties. Mixing different means would be a different model.':'The shared center is the key. All these bells peak at zero and decline on either side; their weighted mixture does too. General mixtures with different means can have multiple peaks.';
   }));
+  watchChart('#mixture-plot',update);
   update();
 }
 
@@ -186,6 +200,7 @@ function familyLab() {
     $('#eta-label').textContent=negative?'Power-tail shape η':'Peak character η';
   }
   function render() {
+    const previousParameters=[familyState.r,familyState.eta,familyState.vartheta];
     familyState.r=Number(r.value);familyState.eta=Number(eta.value);familyState.vartheta=10**Number(scale.value);
     explorerModel=mixture(familyState.r,familyState.eta,familyState.vartheta);
     $('#r-value').textContent=fmt(familyState.r);
@@ -215,7 +230,9 @@ function familyLab() {
     if(peak>50)description+=' The top of the density is clipped at 50 in this view.';
     $('#family-explanation').textContent=description;
     describe($('#family-density'),`Numerical mixture density for r=${familyState.r}, eta=${familyState.eta}, variance scale=${familyState.vartheta.toFixed(3)}. Probability beyond magnitude 3 is ${(tails*100).toFixed(2)} percent.`);
-    onFamilyChange();
+    // Native range values may round their decimal text on first use.
+    // A redraw with equivalent parameters must not discard a completed fit.
+    if([familyState.r,familyState.eta,familyState.vartheta].some((value,index)=>Math.abs(value-previousParameters[index])>1e-12*Math.max(1,Math.abs(value))))onFamilyChange();
   }
   const schedule=coalesced(()=>{ $$('[data-preset]').forEach(b=>b.setAttribute('aria-pressed','false'));render(); });
   [r,eta,scale].forEach(control=>control.addEventListener('input',schedule));
@@ -229,6 +246,7 @@ function familyLab() {
     const [rp,ep,vp]=presets[button.dataset.preset];branch.value=rp<0?'negative':'positive';branchRanges(rp<0);
     r.value=rp;eta.value=ep;scale.value=Math.log10(vp);pressed('[data-preset]',button);render();
   }));
+  watchChart('#family-density',render);
   render();
 }
 
@@ -238,6 +256,7 @@ function fitLab() {
   let mode='normal';
   let fittedFamily=null;
   let task=0;
+  let dirty=false;
   const widthControl=$('#fit-width'),auto=$('#auto-fit');
   function cancelSearch(message) {
     if(auto.disabled){task++;auto.disabled=false;$('#fit-status').textContent=message;}
@@ -256,6 +275,8 @@ function fitLab() {
     return {cdf:distribution.cdf,name:fittedFamily?'Searched family':'Explorer model',description:fittedFamily?'24 shape pairs':'current slider settings'};
   }
   function render() {
+    if($('#five').hidden){dirty=true;return;}
+    dirty=false;
     const candidates=Object.fromEntries(['normal','laplace','family'].map(kind=>[kind,candidate(kind)]));
     const selected=candidates[mode];
     const gap=ksGap(observations,selected.cdf);
@@ -303,6 +324,10 @@ function fitLab() {
     if(fittedFamily)$('#fit-status').textContent='The explorer changed. Its new model replaces the previous search winner in the comparison.';
     fittedFamily=null;render();
   };
+  document.addEventListener('research:layout',()=>{
+    if($('#five').hidden)cancelSearch('Search paused when you left this experiment. Run it again here.');
+    else if(dirty)render();
+  });
   auto.addEventListener('click',async()=>{
     const thisTask=++task;auto.disabled=true;
     const rGrid=[.35,.5,.7,1,1.5,2.2],etaGrid=[-.65,-.25,.3,1];
@@ -334,6 +359,7 @@ function fitLab() {
     $('#cutoff-outcome').textContent=.02>cutoff?'Would reject this fixed model':'Would not reject this fixed model';
   };
   $('#sample-size').addEventListener('input',sizeUpdate);sizeUpdate();newSample();
+  watchChart('#fit-plot',render);
 }
 
 function failureLab() {
@@ -364,6 +390,7 @@ function failureLab() {
     pressed('[data-failure-answer]',button);
     $('#failure-answer').textContent=button.dataset.failureAnswer===selected?descriptions[selected]:`Look again at ${selected==='skew'?'the difference between the left and right sides':selected==='bimodal'?'where the two largest peaks are':"the probability assigned to exactly zero"}. ${selected==='spike'?'A continuous narrow peak and an exact point mass are not the same thing.':'Which shape property survives every zero-centered normal mixture?'}`;
   }));
+  watchChart('#failure-plot',render);
   render();
 }
 
@@ -395,38 +422,31 @@ function dependenceLab() {
     if(shuffled)for(let i=ys.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[ys[i],ys[j]]=[ys[j],ys[i]];}
     render();
   });
+  watchChart('#dependence-plot',render);
   render();
 }
 
-function navigation() {
-  const sections=$$('main > section[id]');
-  const links=$$('.chapter-nav a');
-  let pending=false;
-  let lastCurrent;
-  function update() {
-    pending=false;
-    const position=innerHeight*.28;
-    let current=sections[0]?.id;
-    sections.forEach(section=>{if(section.getBoundingClientRect().top<=position)current=section.id;});
-    links.forEach(link=>{if(link.hash===`#${current}`)link.setAttribute('aria-current','step');else link.removeAttribute('aria-current');});
-    if(current!==lastCurrent){
-      const active=links.find(link=>link.hash===`#${current}`);
-      const nav=$('.chapter-nav');
-      if(active && nav.scrollWidth>nav.clientWidth){
-        nav.scrollTo({left:active.offsetLeft-nav.clientWidth/2+active.offsetWidth/2,behavior:motion?'smooth':'auto'});
-      }
-      lastCurrent=current;
-    }
-    const total=document.documentElement.scrollHeight-innerHeight;
-    document.documentElement.style.setProperty('--chapter-progress',String(total>0?scrollY/total:0));
-  }
-  addEventListener('scroll',()=>{if(!pending){pending=true;requestAnimationFrame(update);}},{passive:true});
-  addEventListener('resize',coalesced(update));update();
-}
-
 initializeMotion();
-const initializers=[inverseLab,initImageLab,()=>initHeroArt({motionEnabled:()=>motion}),mixtureLab,familyLab,fitLab,initEvidence,failureLab,dependenceLab,navigation];
-for(const initialize of initializers){
-  try {initialize();}
-  catch(error){console.error(`Research companion: ${initialize.name||'visual lesson'} could not initialize.`,error);}
+initHeroArt({motionEnabled:()=>motion && (!document.body.dataset.view || document.body.dataset.view==='intro') && !document.hidden});
+initEvidence();
+const sublessons=new Set();
+async function startSublesson(id) {
+  if(sublessons.has(id))return;
+  sublessons.add(id);
+  if(id==='probability-intro') {
+    const { initProbabilityLab }=await import('./probability-lab.mjs');
+    initProbabilityLab();
+  } else if(id==='probability-mixture') mixtureLab();
 }
+document.addEventListener('research:sublesson',event=>startSublesson(event.detail.id));
+const chapterInitializers={
+  one:inverseLab,
+  two:initImageLab,
+  three:()=>startSublesson('probability-intro'),
+  four:familyLab,
+  five:fitLab,
+  six:()=>{},
+  seven:()=>{failureLab();dependenceLab();},
+  eight:async()=>{const { initInferenceLab }=await import('./inference-lab.mjs');initInferenceLab();}
+};
+initJourney({initializeChapter:id=>chapterInitializers[id]?.(),initializeSource:initEvidence,motionEnabled:()=>motion});

@@ -95,6 +95,7 @@ export function initEvidence() {
     const button = element('button', 'result-row');
     button.type = 'button';
     button.dataset.result = result.id;
+    button.style.setProperty('--result-share',`${result.combinedPassPct}%`);
     button.setAttribute('aria-pressed', 'false');
     button.setAttribute('aria-controls', 'dataset-context combined-pass pass-bar paper-ks paper-samples result-note');
     button.setAttribute('aria-label', `${result.label}, ${result.transform}: ${percent(result.combinedPassPct)} of coefficient groups classified as statistical or practical passes. Select this result.`);
@@ -127,7 +128,9 @@ export function initEvidence() {
     const grouping = element('p', 'context-note', 'Related transformed coefficients are pooled across the image collection. A fitted group contains many coefficients, not just one image.');
     const contextSource = sourceLink('Dataset details · Table 1 ↗', dataset.source);
     contextSource.className = 'source-note';
-    nodes['dataset-context'].replaceChildren(contextTitle, description, count, note, grouping, contextSource);
+    const extra=element('details','dataset-notes');
+    extra.append(element('summary','','Dataset & grouping notes'),note,grouping,contextSource);
+    nodes['dataset-context'].replaceChildren(contextTitle, description, count, extra);
 
     const statistical = result.statisticalPassPct;
     const practical = Number((result.combinedPassPct - statistical).toFixed(1));

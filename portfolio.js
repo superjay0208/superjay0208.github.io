@@ -7,6 +7,9 @@
   const dustCanvas = document.getElementById('dust-canvas');
   const video = document.getElementById('projector-video');
   const motionButton = document.getElementById('motion-toggle');
+  const heroMotionButton = document.getElementById('hero-motion');
+  const turnInput = document.getElementById('sculpture-turn');
+  const formButtons = [...document.querySelectorAll('[data-form]')];
   const systemMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let preference = null;
   try { preference = localStorage.getItem('zw-motion'); } catch { /* Storage can be unavailable in private browsing. */ }
@@ -20,6 +23,9 @@
   let width = 1;
   let height = 1;
   let heroProgress = 0;
+  let form = 0;
+  let targetForm = 0;
+  let turn = 0;
   const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
   document.getElementById('year').textContent = new Date().getFullYear();
@@ -36,10 +42,12 @@
     uniform float u_time;
     uniform float u_scroll;
     uniform float u_mobile;
+    uniform float u_form;
+    uniform float u_turn;
     mat2 turn(float a) { float s = sin(a), c = cos(a); return mat2(c, -s, s, c); }
     vec3 localPoint(vec3 p) {
       p.xy = turn(-0.36 + sin(u_time * 0.17) * 0.08 + u_pointer.x * 0.08) * p.xy;
-      p.xz = turn(0.33 + sin(u_time * 0.21) * 0.21 + u_scroll * 0.7 + u_pointer.x * 0.13) * p.xz;
+      p.xz = turn(0.33 + u_turn + sin(u_time * 0.21) * 0.21 + u_scroll * 0.7 + u_pointer.x * 0.35) * p.xz;
       p.yz = turn(0.34 + cos(u_time * 0.16) * 0.13 + u_pointer.y * 0.10) * p.yz;
       return p;
     }
@@ -47,7 +55,11 @@
       p = localPoint(p);
       p.x /= 1.16;
       vec2 ring = vec2(length(p.xy) - 1.03, p.z);
-      return length(ring) - 0.285;
+      float halo = length(ring) - 0.285;
+      float orbit = min(length(ring) - 0.145, length(vec2(length(p.xz) - 0.93, p.y)) - 0.145);
+      float pebble = length(p * vec3(0.96, 1.12, 1.35)) - 1.05;
+      pebble += 0.035 * sin(p.x * 4.0 + u_time * 0.4) * sin(p.y * 3.5);
+      return mix(mix(halo, orbit, clamp(u_form, 0.0, 1.0)), pebble, clamp(u_form - 1.0, 0.0, 1.0));
     }
     vec3 normalAt(vec3 p) {
       vec2 e = vec2(0.0012, 0.0);
@@ -65,7 +77,7 @@
     void main() {
       vec2 uv = (2.0*gl_FragCoord.xy-u_resolution)/min(u_resolution.x,u_resolution.y);
       if (u_mobile > 0.5) { uv -= vec2(0.0,-0.75); uv *= 1.7; }
-      else { uv -= vec2(u_resolution.x/u_resolution.y * 0.40,-0.015); uv *= 1.1; }
+      else { uv -= vec2(u_resolution.x/u_resolution.y * 0.40,0.08); uv *= 1.28; }
       uv.y += sin(u_time*0.37)*0.035;
       vec3 ro = vec3(0.0,0.0,4.5);
       vec3 rd = normalize(vec3(uv,-3.4));
@@ -90,7 +102,8 @@
       vec3 material = mix(transmission,reflected,fresnel*0.72+0.20);
       vec3 lp = localPoint(p);
       float interference = 0.5+0.5*cos(17.0*facing+lp.x*2.7+lp.y*1.8);
-      vec3 spectral = mix(vec3(0.20,0.36,0.37),vec3(0.67,0.30,0.14),interference);
+      vec3 spectral = mix(vec3(0.20,0.36,0.42),vec3(0.67,0.30,0.14),interference);
+      spectral = mix(spectral, vec3(0.23,0.42,0.41), 0.24*u_form);
       material += spectral * (0.13+fresnel*0.27);
       material += pow(1.0-facing,10.0)*vec3(0.95,0.76,0.50)*0.5;
       material = pow(material,vec3(0.87));
@@ -132,7 +145,7 @@
       const position = gl.getAttribLocation(program, 'a_position');
       gl.enableVertexAttribArray(position);
       gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-      uniforms = Object.fromEntries(['resolution','pointer','time','scroll','mobile'].map(name => [name, gl.getUniformLocation(program, `u_${name}`)]));
+      uniforms = Object.fromEntries(['resolution','pointer','time','scroll','mobile','form','turn'].map(name => [name, gl.getUniformLocation(program, `u_${name}`)]));
       root.classList.add('webgl-ready');
     } catch (error) {
       gl = null;
@@ -197,6 +210,8 @@
     gl.uniform1f(uniforms.time, elapsed);
     gl.uniform1f(uniforms.scroll, motion ? heroProgress : 0);
     gl.uniform1f(uniforms.mobile, width <= 700 ? 1 : 0);
+    gl.uniform1f(uniforms.form, form);
+    gl.uniform1f(uniforms.turn, turn);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
@@ -207,6 +222,7 @@
     lastTime = time;
     pointer.x += (pointer.targetX - pointer.x) * 0.055;
     pointer.y += (pointer.targetY - pointer.y) * 0.055;
+    form += (targetForm - form) * 0.07;
     // 30fps is enough for this quiet sculpture, with much lower idle GPU use.
     if (time - lastDraw > 32) { draw(); lastDraw = time; }
     frameId = requestAnimationFrame(tick);
@@ -229,33 +245,47 @@
     motionButton.setAttribute('aria-pressed', String(!motion));
     motionButton.querySelector('span').textContent = motion ? 'Pause motion' : 'Enable motion';
     motionButton.querySelector('path').setAttribute('d', motion ? 'M2 1h3v10H2zm5 0h3v10H7z' : 'M3 1l8 5-8 5z');
+    heroMotionButton.setAttribute('aria-pressed', String(!motion));
+    heroMotionButton.textContent = motion ? 'Pause' : 'Resume';
+    if (!motion) form = targetForm;
     syncAnimation();
     draw();
   }
 
-  motionButton.addEventListener('click', () => {
+  function toggleMotion() {
     motion = !motion;
     preference = motion ? 'on' : 'off';
     try { localStorage.setItem('zw-motion', preference); } catch { /* Optional preference only. */ }
     syncMotion();
+  }
+  motionButton.addEventListener('click', toggleMotion);
+  heroMotionButton.addEventListener('click', toggleMotion);
+  document.querySelector('.sculpture-dock').hidden = false;
+  formButtons.forEach(button => button.addEventListener('click', () => {
+    targetForm = Number(button.dataset.form);
+    formButtons.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    root.dataset.sculpture = ['halo', 'orbit', 'pebble'][targetForm];
+    if (!motion || !heroVisible) form = targetForm;
+    draw();
+  }));
+  turnInput.addEventListener('input', () => {
+    turn = Number(turnInput.value) * Math.PI / 180;
+    document.getElementById('turn-value').textContent = `${turnInput.value}°`;
+    turnInput.setAttribute('aria-valuetext', `${turnInput.value} degrees`);
+    root.style.setProperty('--sculpture-turn', `${turnInput.value}deg`);
+    draw();
   });
   systemMotion.addEventListener('change', () => {
     if (!preference) { motion = !systemMotion.matches; syncMotion(); }
   });
 
   let scrollPending = false;
-  const perspective = document.querySelector('.perspective-section');
-  const phrases = [...document.querySelectorAll('.perspective-text > span')];
   function updateScroll() {
     scrollPending = false;
     const total = document.documentElement.scrollHeight - innerHeight;
     root.style.setProperty('--scroll', total > 0 ? String(scrollY / total) : '0');
     heroProgress = Math.min(1, Math.max(0, scrollY / height));
     root.style.setProperty('--hero-scroll', motion ? String(heroProgress) : '0');
-    const box = perspective.getBoundingClientRect();
-    const progress = Math.max(0, Math.min(1, (innerHeight * 0.65 - box.top) / Math.max(innerHeight, box.height - innerHeight * 0.3)));
-    perspective.style.setProperty('--perspective-progress', String(progress));
-    phrases.forEach((phrase, index) => phrase.classList.toggle('lit', progress >= index * 0.23));
     if (heroVisible && !motion) draw();
   }
   addEventListener('scroll', () => {
@@ -268,6 +298,63 @@
     pointer.targetY = ((event.clientY - box.top) / box.height - 0.5) * 2;
   }, { passive: true });
   hero.addEventListener('pointerleave', () => { pointer.targetX = 0; pointer.targetY = 0; });
+
+  // Local highlights respond directly to the hand; there is no extra animation loop.
+  document.querySelectorAll('.project-feature, .project-card, .graphics-study, .doorways a').forEach(card => {
+    card.addEventListener('pointermove', event => {
+      if (!motion || event.pointerType === 'touch') return;
+      const box = card.getBoundingClientRect();
+      const x = (event.clientX - box.left) / box.width;
+      const y = (event.clientY - box.top) / box.height;
+      card.style.setProperty('--light-x', `${(x * 100).toFixed(1)}%`);
+      card.style.setProperty('--light-y', `${(y * 100).toFixed(1)}%`);
+      card.style.setProperty('--look-x', `${((x - .5) * 9).toFixed(2)}deg`);
+      card.style.setProperty('--look-y', `${((.5 - y) * 6).toFixed(2)}deg`);
+    }, { passive: true });
+    card.addEventListener('pointerleave', () => {
+      card.style.setProperty('--look-x', '0deg');
+      card.style.setProperty('--look-y', '0deg');
+    });
+  });
+
+  // Real unit-scale densities, explicitly presented as teaching examples, not fits.
+  const densityButtons = [...document.querySelectorAll('[data-density]')];
+  const curve = document.getElementById('density-curve');
+  const area = document.getElementById('density-area');
+  const densities = {
+    normal: { value: x => Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI), caption: 'A familiar bell. Thin tails.', label: 'Normal probability density: a smooth bell with thin tails' },
+    laplace: { value: x => Math.exp(-Math.abs(x)) / 2, caption: 'A sharp middle. Heavier tails.', label: 'Laplace probability density: a sharp middle with heavier tails than a normal distribution' },
+    cauchy: { value: x => 1 / (Math.PI * (1 + x * x)), caption: 'Rare extremes stay plausible.', label: 'Cauchy probability density: a rounded middle with heavy, polynomially decaying tails' }
+  };
+  const sampleDensity = key => Array.from({length: 161}, (_, i) => densities[key].value(-4 + i / 20));
+  let displayedDensity = sampleDensity('laplace');
+  let densityFrame = 0;
+  function drawDensity(values) {
+    const path = values.map((value, i) => `${i ? 'L' : 'M'}${(40 + i * 2.25).toFixed(2)},${(244 - value * 365).toFixed(2)}`).join('');
+    curve.setAttribute('d', path);
+    area.setAttribute('d', `${path}L400,244L40,244Z`);
+    displayedDensity = values;
+  }
+  drawDensity(displayedDensity);
+  document.querySelector('.density-switch').hidden = false;
+  densityButtons.forEach(button => button.addEventListener('click', () => {
+    const key = button.dataset.density;
+    const startValues = displayedDensity.slice();
+    const destination = sampleDensity(key);
+    if (densityFrame) cancelAnimationFrame(densityFrame);
+    densityButtons.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    document.getElementById('density-caption').textContent = densities[key].caption;
+    document.getElementById('density-preview').setAttribute('aria-label', densities[key].label);
+    if (!motion) { drawDensity(destination); return; }
+    const startTime = performance.now();
+    function blend(time) {
+      const progress = motion ? Math.min(1, (time - startTime) / 420) : 1;
+      const eased = 1 - (1 - progress) ** 3;
+      drawDensity(destination.map((value, i) => startValues[i] + (value - startValues[i]) * eased));
+      densityFrame = progress < 1 ? requestAnimationFrame(blend) : 0;
+    }
+    densityFrame = requestAnimationFrame(blend);
+  }));
 
   if ('IntersectionObserver' in window) {
     const reveals = new IntersectionObserver(entries => {
