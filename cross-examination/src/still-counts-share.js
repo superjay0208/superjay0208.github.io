@@ -1,8 +1,8 @@
 export const topicURL = (base, id) => { const url = new URL(base); url.search = ''; url.hash = ''; url.searchParams.set('topic', id); return url.href; };
 export function receiptText(model, url) {
-  return [`STILL COUNTS? · ${model.question}`, model.adult ? 'My calls on fictional scenarios' : model.title,
-    '', ...model.rows.map(r => `${r.verdict === 'yes' ? '●' : '○'} ${r.label}: ${r.verdictLabel}`),
-    '', model.headline, model.line, '', url].join('\n');
+  return [`STILL COUNTS? · ${model.question}`,
+    '', ...model.rows.map(r => `${r.label} ${r.verdictLabel}`),
+    '', model.headline, '', url].join('\n');
 }
 export function wrapLines(ctx, text, width) {
   const lines = []; let line = '';
@@ -20,9 +20,8 @@ export async function receiptPNG(model) {
   ctx.fillStyle = '#e8dfd1'; ctx.fillRect(0, 0, 1080, 1350);
   ctx.fillStyle = '#fffdf6'; ctx.fillRect(54, 42, 972, 1250);
   ctx.fillStyle = '#202024'; ctx.font = '900 72px Arial'; ctx.fillText('STILL COUNTS?', 100, 142);
-  ctx.font = '600 23px monospace'; ctx.fillText(`${model.day}  /  EDITION ${model.revision}${model.updated ? '  /  UPDATED' : ''}`, 104, 189);
+  ctx.font = '600 23px monospace'; ctx.fillText(`${model.day}${model.updated ? '  /  UPDATED' : ''}`, 104, 189);
   ctx.font = '700 37px Arial'; ctx.fillText(model.question, 104, 255);
-  ctx.font = '20px monospace'; ctx.fillText(model.adult ? 'MY CALLS ON FICTIONAL SCENARIOS' : model.title, 104, 299);
   ctx.strokeStyle = '#202024'; ctx.setLineDash([8, 7]); ctx.beginPath(); ctx.moveTo(104, 326); ctx.lineTo(976, 326); ctx.stroke(); ctx.setLineDash([]);
   let y = 370;
   for (const row of model.rows) {
@@ -38,8 +37,6 @@ export async function receiptPNG(model) {
   ctx.fillStyle = '#202024'; ctx.font = 'bold 31px Arial';
   const headline = wrapLines(ctx, model.headline, 845);
   headline.forEach((line, i) => ctx.fillText(line, 112, y + 8 + i * 36));
-  ctx.font = '24px Arial';
-  wrapLines(ctx, model.line, 840).forEach((line, i) => ctx.fillText(line, 112, y + 22 + headline.length * 36 + i * 30));
   ctx.font = '21px monospace'; ctx.fillText('still counts?  /  Your line. Your call.', 104, 1261);
   return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Image export failed')), 'image/png'));
 }

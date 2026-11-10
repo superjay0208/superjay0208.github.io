@@ -1,15 +1,14 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f5f0e8">
-<meta name="description" content="Eight calls. One questionable boundary. Decide what still counts, then take your receipt to the group chat.">
-<meta property="og:title" content="Still Counts?"><meta property="og:description" content="Sandwiches. Relationships. Definitely working. Where the hell is the line?">
-<title>Still Counts? — Your line. Your call.</title><link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css?v=sc1"><script type="module" src="./src/app.js?v=sc1"></script>
+<meta name="description" content="Sandwiches, dates, and work. Eight quick calls. Where do you draw the line?">
+<meta property="og:title" content="Still Counts?"><meta property="og:description" content="Sandwiches, dates, and work. Where do you draw the line?">
+<title>Still Counts? — Your line. Your call.</title><link rel="icon" href="./favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="./styles.css?v=sc2"><script type="module" src="./src/app.js?v=sc2"></script>
 </head><body>
 <a class="skip-link" href="#main">Skip to game</a>
-<header class="site-header"><a class="wordmark" href="./" aria-label="Still Counts home">still counts<span>?</span><i aria-hidden="true">↗</i></a><div class="header-controls"><button id="topics-button" class="text-button">Other topics <span aria-hidden="true">↗</span></button><button id="sound-button" class="sound-button" aria-pressed="true" aria-label="Sound on">♫</button></div></header>
-<main id="main" tabindex="-1"><p class="loading" role="status">Opening the inspection desk…</p></main>
-<footer class="site-footer"><span>EIGHT CALLS. ONE QUESTIONABLE BOUNDARY.</span><span>YOUR LINE. YOUR CALL.</span></footer>
-<dialog id="topics-dialog" aria-labelledby="topics-title"><button class="close-dialog" data-close aria-label="Close topics">×</button><p class="eyebrow">PICK YOUR SMALL HILL</p><h2 id="topics-title">Where's the line?</h2><div id="topic-list"></div><p class="dialog-note">Three topics. Strong opinions. No right answers.</p></dialog>
-<dialog id="copy-dialog" aria-labelledby="copy-title"><button class="close-dialog" data-close aria-label="Close result text">×</button><h2 id="copy-title">Your calls, to go.</h2><textarea id="copy-output" rows="13" readonly aria-label="Shareable result"></textarea><p>Copy this text to share your result.</p></dialog>
+<header class="site-header"><a class="wordmark" href="./" aria-label="Still Counts home">still counts<span>?</span></a><div class="header-controls"><button id="topics-button" class="text-button">Topics</button><button id="sound-button" class="text-button" aria-pressed="true" aria-label="Sound on">Sound on</button></div></header>
+<main id="main" tabindex="-1"><p class="loading" role="status">Loading…</p></main>
+<dialog id="topics-dialog" aria-labelledby="topics-title"><button class="close-dialog" data-close aria-label="Close topics">Close</button><h2 id="topics-title">Pick a question.</h2><div id="topic-list"></div></dialog>
+<dialog id="copy-dialog" aria-labelledby="copy-title"><button class="close-dialog" data-close aria-label="Close result text">Close</button><h2 id="copy-title">Your calls.</h2><textarea id="copy-output" rows="13" readonly aria-label="Shareable result"></textarea></dialog>
 <div id="effects" aria-hidden="true"></div><div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
 </body></html>

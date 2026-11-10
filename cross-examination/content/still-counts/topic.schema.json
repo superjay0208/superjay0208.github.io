@@ -76,7 +76,7 @@
     },
     "scope": {
       "type": "string",
-      "minLength": 1,
+      "minLength": 0,
       "maxLength": 300
     },
     "completionTitle": {
@@ -287,8 +287,7 @@
       "required": [
         "id",
         "label",
-        "body",
-        "scene"
+        "body"
       ],
       "properties": {
         "id": {
