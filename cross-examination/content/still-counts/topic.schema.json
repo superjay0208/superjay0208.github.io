@@ -1,0 +1,351 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Still Counts topic",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "revision",
+    "title",
+    "question",
+    "labels",
+    "adult",
+    "contentLabel",
+    "scope",
+    "completionTitle",
+    "sceneStyle",
+    "cases",
+    "slots",
+    "comparisons",
+    "receiptRules",
+    "receiptFallback",
+    "editorial"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "yes",
+        "no"
+      ],
+      "properties": {
+        "yes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "no": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        }
+      }
+    },
+    "adult": {
+      "type": "boolean"
+    },
+    "contentLabel": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "completionTitle": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "sceneStyle": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 24,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    },
+    "slots": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/fixedSlot"
+        },
+        {
+          "$ref": "#/$defs/fixedSlot"
+        },
+        {
+          "$ref": "#/$defs/fixedSlot"
+        },
+        {
+          "$ref": "#/$defs/fixedSlot"
+        },
+        {
+          "$ref": "#/$defs/fixedSlot"
+        },
+        {
+          "$ref": "#/$defs/fixedSlot"
+        }
+      ],
+      "items": {
+        "$ref": "#/$defs/branchSlot"
+      }
+    },
+    "comparisons": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    },
+    "receiptRules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/rule"
+      }
+    },
+    "receiptFallback": {
+      "$ref": "#/$defs/copy"
+    },
+    "editorial": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "maxLength": 60
+    },
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caseId",
+        "verdict"
+      ],
+      "properties": {
+        "caseId": {
+          "$ref": "#/$defs/id"
+        },
+        "verdict": {
+          "enum": [
+            "yes",
+            "no"
+          ]
+        }
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/condition"
+      }
+    },
+    "fixedSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caseId"
+      ],
+      "properties": {
+        "caseId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "branchSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "options",
+        "fallbackCaseId"
+      ],
+      "properties": {
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "when",
+              "caseId"
+            ],
+            "properties": {
+              "when": {
+                "$ref": "#/$defs/conditions"
+              },
+              "caseId": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        },
+        "fallbackCaseId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "copy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "line"
+      ],
+      "properties": {
+        "headline": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "line": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 220
+        }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "when",
+        "caseIds",
+        "headline",
+        "line"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "when": {
+          "$ref": "#/$defs/conditions"
+        },
+        "caseIds": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "headline": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "line": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 220
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "body",
+        "scene"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 260
+        },
+        "scene": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "brief",
+            "alt"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/id"
+            },
+            "brief": {
+              "type": "string",
+              "minLength": 1
+            },
+            "alt": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240
+            }
+          }
+        },
+        "mutation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fromCaseId",
+            "changeLabel"
+          ],
+          "properties": {
+            "fromCaseId": {
+              "$ref": "#/$defs/id"
+            },
+            "changeLabel": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 90
+            }
+          }
+        }
+      }
+    }
+  }
+}
