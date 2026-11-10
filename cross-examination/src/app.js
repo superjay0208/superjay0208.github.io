@@ -1,8 +1,7 @@
-import { createRun, answer, undo, revise, finishReview, finalAnswers, nextCase, caseById, receiptModel, featuredTopic } from './still-counts-engine.js?v=sc1';
-import { storageAdapter } from './still-counts-storage.js?v=sc1';
-import { receiptPNG, receiptText, topicURL } from './still-counts-share.js?v=sc1';
-import { sceneSVG } from './still-counts-scenes.js?v=sc1';
-import { sound, confetti, reduced } from './still-counts-effects.js?v=sc1';
+import { createRun, answer, undo, revise, finishReview, finalAnswers, nextCase, caseById, receiptModel, featuredTopic } from './still-counts-engine.js?v=sc2';
+import { storageAdapter } from './still-counts-storage.js?v=sc2';
+import { receiptPNG, receiptText, topicURL } from './still-counts-share.js?v=sc2';
+import { sound, confetti, reduced } from './still-counts-effects.js?v=sc2';
 
 const main = document.querySelector('#main'), announcer = document.querySelector('#announcer');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -10,38 +9,31 @@ let backing; try { backing = localStorage; } catch { backing = null; }
 const store = storageAdapter(backing);
 let manifest, topic, run, generation = 0, locked = false, soundOn = store.read('still-counts:sound') !== 'off', notice = '';
 const topicCache = new Map(), held = new Set();
-const art = (c, mini = false) => `<div class="scene${mini ? ' mini' : ''}" role="img" aria-label="${esc(c.scene.alt)}">${sceneSVG(c.scene.id, { mini })}</div>`;
 const label = verdict => topic.labels[verdict];
 function save() { store.save(topic, run); }
 function notify(text) { announcer.textContent = text; }
-function soundUI() { const b = document.querySelector('#sound-button'); b.setAttribute('aria-pressed', String(soundOn)); b.setAttribute('aria-label', `Sound ${soundOn ? 'on' : 'off'}`); b.textContent = soundOn ? '♫' : '♩'; }
+function soundUI() { const b = document.querySelector('#sound-button'); b.setAttribute('aria-pressed', String(soundOn)); b.setAttribute('aria-label', `Sound ${soundOn ? 'on' : 'off'}`); b.textContent = `Sound ${soundOn ? 'on' : 'off'}`; }
 function progress() {
-  return `<div class="progress-row"><span>${run.phase === 'choosing' ? `CALL ${run.originalAnswers.length + 1}` : 'ALL CALLS IN'}<b> / 8</b></span><div class="progress-marks" role="progressbar" aria-label="Calls made" aria-valuenow="${run.originalAnswers.length}" aria-valuemin="0" aria-valuemax="8">${Array.from({ length: 8 }, (_, i) => `<i class="${i < run.originalAnswers.length ? run.originalAnswers[i].verdict : i === run.originalAnswers.length ? 'current' : ''}"></i>`).join('')}</div></div>`;
+  return `<div class="progress-row"><span>${run.originalAnswers.length + 1} / 8</span><div class="progress-track" role="progressbar" aria-label="Calls made" aria-valuenow="${run.originalAnswers.length}" aria-valuemin="0" aria-valuemax="8"><i style="width:${run.originalAnswers.length / 8 * 100}%"></i></div></div>`;
 }
 function topicIntro() {
-  return `<aside class="topic-intro"><div class="edition"><span class="edition-dot"></span>${esc(topic.contentLabel.toUpperCase())}</div><h1>${esc(topic.question)}</h1><p class="scope">${esc(topic.scope)}</p><div class="desk-seal" aria-hidden="true"><span>DEPARTMENT OF</span><strong>YOUR<br>BUSINESS</strong><span>EST. ABOUT NOW</span></div><p class="intro-note">Your call.<br><em>There is no wrong answer.</em></p></aside>`;
-}
-function trays() {
-  if (!run.originalAnswers.length) return `<div class="first-note"><span aria-hidden="true">↖</span> Trust your gut. We'll bring the awkward examples.</div>`;
-  const answers = finalAnswers(run);
-  return `<div class="trays" aria-label="Your earlier calls">${['yes', 'no'].map(verdict => `<div class="tray ${verdict}"><span>${esc(label(verdict))}</span><div>${run.originalAnswers.filter(a => answers[a.caseId] === verdict).map(a => `<span class="tray-token" title="${esc(caseById(topic, a.caseId).label)}">${sceneSVG(caseById(topic, a.caseId).scene.id, { mini: true })}<span class="sr-only">${esc(caseById(topic, a.caseId).label)}</span></span>`).join('') || '<i class="empty-tray">Nothing yet.</i>'}</div></div>`).join('')}</div>`;
+  return `<header class="topic-intro"><h1>${esc(topic.question)}</h1>${topic.scope ? `<p class="scope">${esc(topic.scope)}</p>` : ''}</header>`;
 }
 function choosingView() {
-  const c = nextCase(topic, run), last = run.originalAnswers.at(-1);
-  const direct = c.mutation && c.mutation.fromCaseId === last?.caseId;
-  return `<section class="play-layout">${topicIntro()}<div class="inspection">${progress()}<article class="case-card ${direct ? 'mutation' : ''}" id="case-card"><div class="case-top"><span>${direct ? 'ONLY CHANGE' : run.originalAnswers.length >= 6 ? 'ONE MORE THING…' : 'EXHIBIT ' + String(run.originalAnswers.length + 1).padStart(2, '0')}</span><span aria-hidden="true">✳</span></div>${art(c)}<div class="case-copy"><p class="change-note">${direct ? esc(c.mutation.changeLabel) : c.mutation ? 'Another case. Same question.' : '&nbsp;'}</p><h2 id="case-title" tabindex="-1">${esc(c.label)}</h2><p>${esc(c.body)}</p></div><div class="verdict-stamp" id="verdict-stamp" aria-hidden="true"></div></article><div class="choice-buttons"><button class="choice yes" data-verdict="yes"><span>${esc(label('yes'))}</span><kbd>1</kbd><b aria-hidden="true">↗</b></button><button class="choice no" data-verdict="no"><span>${esc(label('no'))}</span><kbd>2</kbd><b aria-hidden="true">↘</b></button></div><div class="below-choices"><span>GO WITH YOUR GUT.</span><button id="undo-button" class="text-button" ${run.originalAnswers.length ? '' : 'disabled'}>↶ Undo</button></div>${trays()}</div></section>`;
+  const c = nextCase(topic, run);
+  return `<section class="play-layout">${topicIntro()}${progress()}<article class="case-card" id="case-card"><h2 id="case-title" tabindex="-1">${esc(c.label)}</h2><div class="verdict-stamp" id="verdict-stamp" aria-hidden="true"></div></article><div class="choice-buttons"><button class="choice yes" data-verdict="yes">${esc(label('yes'))}</button><button class="choice no" data-verdict="no">${esc(label('no'))}</button></div><div class="below-choices"><button id="undo-button" class="text-button" ${run.originalAnswers.length ? '' : 'disabled'}>Undo</button></div></section>`;
 }
 function reviewView() {
   const pair = topic.comparisons.find(p => p.id === run.reviewPairId), answers = finalAnswers(run);
   const changed = Object.keys(run.overrides).length > 0;
-  return `<section class="review-view"><p class="eyebrow">WAIT. LOOK AT THESE TWO.</p><h1 id="case-title" tabindex="-1">${esc(changed ? 'Your line. Updated.' : pair.headline)}</h1><p class="review-sub">${changed ? 'Your updated calls are below. You can keep both.' : esc(pair.line)}</p><div class="review-pair">${pair.caseIds.map(id => { const c = caseById(topic, id); return `<article class="review-card">${art(c)}<div class="review-copy"><h2>${esc(c.label)}</h2><p>${esc(c.body)}</p><span class="verdict-pill ${answers[id]}">${esc(label(answers[id]))}</span><button class="change-call" data-revise="${esc(id)}">↶ Change this call</button></div></article>`; }).join('')}</div><div class="review-actions"><button class="primary-button" id="finish-button">${changed ? 'Done. Print it.' : 'Keep my calls.'}<span aria-hidden="true">↗</span></button><button class="text-button" id="skip-review">See receipt</button></div><p class="small-note">A boundary, not a gotcha. You're allowed to draw it there.</p></section>`;
+  return `<section class="review-view"><p class="eyebrow">${esc(topic.question)}</p><h1 id="case-title" tabindex="-1">${esc(changed ? 'Keep these calls?' : pair.headline)}</h1><div class="review-pair">${pair.caseIds.map(id => { const c = caseById(topic, id); return `<article class="review-card"><h2>${esc(c.label)}</h2><span class="verdict-pill ${answers[id]}">${esc(label(answers[id]))}</span><button class="change-call" data-revise="${esc(id)}">Change</button></article>`; }).join('')}</div><div class="review-actions"><button class="primary-button" id="finish-button">${changed ? 'Done' : 'Keep my calls'}</button></div></section>`;
 }
 function receiptHTML(model) {
-  return `<article class="receipt-paper" id="receipt"><div class="receipt-logo">still counts<span>?</span></div><div class="receipt-meta">${esc(model.day)} / EDITION ${model.revision}${model.updated ? ' / UPDATED' : ''}</div><h2>${esc(model.question)}</h2><p class="receipt-title">${esc(model.title)}</p><div class="receipt-rule"></div><ol class="receipt-rows">${model.rows.map((r, i) => `<li class="${model.pairIds.includes(r.id) ? 'spotlight' : ''}"><span class="receipt-index">0${i + 1}</span><span>${esc(r.label)}</span><b class="${r.verdict}">${esc(r.verdictLabel)}</b></li>`).join('')}</ol><div class="receipt-observation"><span aria-hidden="true">✳</span><h3>${esc(model.headline)}</h3><p>${esc(model.line)}</p></div><div class="receipt-bottom"><span>YOUR LINE. YOUR CALL.</span><i class="barcode" aria-hidden="true"></i><span>TAKE IT UP WITH THE GROUP CHAT.</span></div></article>`;
+  return `<article class="receipt-paper" id="receipt"><div class="receipt-logo">still counts<span>?</span></div><div class="receipt-meta">${esc(model.day)}${model.updated ? ' / UPDATED' : ''}</div><h2>${esc(model.question)}</h2><ol class="receipt-rows">${model.rows.map((r, i) => `<li class="${model.pairIds.includes(r.id) ? 'spotlight' : ''}"><span class="receipt-index">${i + 1}</span><span>${esc(r.label)}</span><b class="${r.verdict}">${esc(r.verdictLabel)}</b></li>`).join('')}</ol><div class="receipt-observation"><h3>${esc(model.headline)}</h3></div></article>`;
 }
 function resultView() {
   const model = receiptModel(topic, run);
-  return `<section class="result-layout"><aside class="result-intro"><p class="eyebrow">THE CALLS ARE YOURS. THE RECEIPT IS OURS.</p><h1 id="case-title" tabindex="-1">Well. <br>That's <br><em>your line.</em></h1><p>Someone you know is going to disagree.</p><div class="result-actions"><button class="primary-button" id="save-receipt">Save receipt <span aria-hidden="true">↓</span></button><button class="secondary-button" id="copy-result">Copy result <span aria-hidden="true">↗</span></button><p id="export-status" role="status"></p></div><button class="text-button" id="another-topic">Try another topic ↗</button><button class="text-button replay" id="replay-button">Make your calls again ↶</button></aside>${receiptHTML(model)}</section>`;
+  return `<section class="result-layout"><h1 id="case-title" class="sr-only" tabindex="-1">Your receipt</h1>${receiptHTML(model)}<div class="result-actions"><button class="primary-button" id="save-receipt">Save receipt</button><button class="secondary-button" id="copy-result">Copy result</button><p id="export-status" role="status"></p></div><div class="replay-actions"><button class="text-button" id="another-topic">Other topics</button><button class="text-button" id="replay-button">Play again</button></div></section>`;
 }
 function render({ focus = false } = {}) {
   generation++; locked = false;
@@ -83,7 +75,7 @@ async function saveReceipt() {
   finally { button.disabled = false; }
 }
 function openTopics() {
-  document.querySelector('#topic-list').innerHTML = manifest.topics.map(item => `<button class="topic-option ${item.id === topic.id ? 'selected' : ''}" data-topic="${esc(item.id)}"><span>${esc(item.label)}</span><strong>${esc(item.question)}</strong><b aria-hidden="true">↗</b></button>`).join('');
+  document.querySelector('#topic-list').innerHTML = manifest.topics.map(item => `<button class="topic-option ${item.id === topic.id ? 'selected' : ''}" data-topic="${esc(item.id)}">${esc(item.question)}</button>`).join('');
   document.querySelectorAll('.topic-option[data-topic]').forEach(b => b.addEventListener('click', async () => { document.querySelector('#topics-dialog').close(); await loadTopic(b.dataset.topic, true); }));
   document.querySelector('#topics-dialog').showModal();
 }
@@ -92,7 +84,7 @@ async function loadTopic(id, updateURL = false) {
   const item = manifest.topics.find(t => t.id === id) ?? featuredTopic(manifest);
   try {
     if (!topicCache.has(item.id)) {
-      const response = await fetch(new URL(`../content/still-counts/${item.file}?v=sc1`, import.meta.url));
+      const response = await fetch(new URL(`../content/still-counts/${item.file}?v=sc2`, import.meta.url));
       if (!response.ok) throw new Error('Topic unavailable');
       const value = await response.json();
       if (value.id !== item.id || value.revision !== item.revision || value.slots.length !== 8) throw new Error('Invalid topic');
@@ -122,7 +114,7 @@ document.addEventListener('keydown', event => {
 document.addEventListener('keyup', e => held.delete(e.key)); window.addEventListener('blur', () => held.clear());
 soundUI();
 try {
-  const response = await fetch(new URL('../content/still-counts/manifest.json?v=sc1', import.meta.url));
+  const response = await fetch(new URL('../content/still-counts/manifest.json?v=sc2', import.meta.url));
   if (!response.ok) throw new Error('Manifest unavailable'); manifest = await response.json();
   const requested = new URL(location.href).searchParams.get('topic');
   await loadTopic(requested ?? featuredTopic(manifest).id);

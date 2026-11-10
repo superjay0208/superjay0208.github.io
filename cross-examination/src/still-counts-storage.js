@@ -1,4 +1,4 @@
-import { restoreRun } from './still-counts-engine.js?v=sc1';
+import { restoreRun } from './still-counts-engine.js?v=sc2';
 export const runKey = topic => `still-counts:run:v1:${topic.id}:${topic.revision}`;
 export function storageAdapter(storage) {
   let available = true;

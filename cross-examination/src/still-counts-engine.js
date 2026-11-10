@@ -59,7 +59,7 @@ export function receiptModel(topic, run) {
     line: rule?.line ?? topic.receiptFallback.line,
     pairIds: rule?.caseIds ?? [],
     rows: run.originalAnswers.map(a => ({ id: a.caseId, label: caseById(topic, a.caseId).label,
-      verdict: answers[a.caseId], verdictLabel: topic.labels[answers[a.caseId]], sceneId: caseById(topic, a.caseId).scene.id })) };
+      verdict: answers[a.caseId], verdictLabel: topic.labels[answers[a.caseId]] })) };
 }
 export function restoreRun(topic, raw) {
   try {
