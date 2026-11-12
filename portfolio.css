@@ -290,3 +290,21 @@ a:hover .project-link>span,a.text-link:hover>span,a:hover .text-link>span{transf
 .motion-paused .crux-card:hover .climbing-scene{transform:translate(9%,4%) scale(1.08)}
 .motion-paused .project-feature:after,.motion-paused .card-art:after,.motion-paused .graphics-art:after,.motion-paused .doorways a:after{display:none}
 @media(prefers-reduced-motion:reduce){.perspective-sticky{min-height:0}.doorways a:hover .doorway-symbol{transform:none}.project-feature:hover .projected-screen{transform:perspective(800px) rotateY(-13deg) rotateX(2deg)}.project-feature:after,.card-art:after,.graphics-art:after,.doorways a:after{display:none}}
+
+/* The glass itself is the pointer surface; its angle control remains keyboard accessible. */
+.hero:after{background-image:radial-gradient(#ded1b5 0.45px,transparent .7px);background-size:4px 4px;opacity:.025}
+.sculpture-surface{position:absolute;z-index:4;left:49%;right:3%;top:11%;bottom:22%;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.sculpture-surface.is-turning{cursor:grabbing}
+.sculpture-dock{width:304px;padding:10px 12px 7px;background:linear-gradient(135deg,#38342b80,#151a169c);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.dock-caption{font-size:7px;letter-spacing:.09em;margin-bottom:5px}
+.dock-caption button{font-size:9px}
+.form-switch button{min-height:40px}
+.turn-control{opacity:.55;transition:opacity .2s;margin-top:3px}
+.sculpture-dock:hover .turn-control,.sculpture-dock:focus-within .turn-control{opacity:1}
+.project-feature:focus-visible:after,.project-card:focus-visible .card-art:after,.graphics-study:focus-visible .graphics-art:after,.doorways a:focus-visible:after{opacity:1}
+.project-feature:focus-visible .projected-screen{transform:perspective(800px) rotateY(calc(-9deg + var(--look-x))) rotateX(var(--look-y)) scale(1.03)}
+.doorways a:focus-visible .doorway-symbol{transform:rotate(20deg)}
+@media(max-width:1000px){.sculpture-surface{left:49%;right:2%;top:17%;bottom:25%}.sculpture-dock{width:280px}.perspective-text{font-size:46px}}
+@media(max-width:700px){.sculpture-surface{left:8%;right:8%;top:47%;bottom:28%}.sculpture-dock{width:min(310px,84%)}.turn-control{opacity:.8}.dock-caption{font-size:7px}.form-switch button{min-height:44px}.dock-caption button{min-height:30px}.perspective-text{font-size:39px}.perspective-text br{display:block}}
+@media(prefers-reduced-motion:reduce){.project-feature:focus-visible .projected-screen,.doorways a:focus-visible .doorway-symbol{transform:none}}
+.density-probe{pointer-events:none}.density-probe line{stroke:#a66a49;stroke-width:1;stroke-dasharray:3 4;opacity:.45}.density-probe circle{fill:#f4ebd9;stroke:#9c583d;stroke-width:1.5}.paper-visual .density-probe text{font-size:10px;fill:#80533d;text-anchor:middle;font-variant-numeric:tabular-nums}.paper-visual svg:focus-visible{outline:1px solid #af7657;outline-offset:5px;border-radius:5px}

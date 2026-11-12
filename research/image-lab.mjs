@@ -63,13 +63,19 @@ export function generateTeachingImage(scene = 'fields', size = SIZE) {
 export function retainHaarDetails(transform, percent) {
   const count = transform.coefficients.length - 1;
   const keep = Math.max(0,Math.min(count,Math.round(count * clamp(percent,0,100) / 100)));
-  const ordered = Array.from({length:count},(_,index)=>index+1)
-    .sort((a,b)=>Math.abs(transform.coefficients[b])-Math.abs(transform.coefficients[a]) || a-b);
+  let ordered = retentionOrder.get(transform.coefficients);
+  if (!ordered) {
+    ordered = Array.from({length:count},(_,index)=>index+1)
+      .sort((a,b)=>Math.abs(transform.coefficients[b])-Math.abs(transform.coefficients[a]) || a-b);
+    retentionOrder.set(transform.coefficients,ordered);
+  }
   const coefficients = new Float64Array(transform.coefficients.length);
   coefficients[0] = transform.coefficients[0];
   for (let i = 0; i < keep; i++) coefficients[ordered[i]] = transform.coefficients[ordered[i]];
   return { ...transform, coefficients, retained:keep };
 }
+// Transforms are immutable inputs. Scene changes produce a new coefficient array.
+const retentionOrder = new WeakMap();
 
 function intensityColor(value) {
   return blend(COLORS.forest,COLORS.ivory,clamp(value));
@@ -80,15 +86,18 @@ function coefficientColor(value, maximum) {
   return blend(COLORS.ivory,value < 0 ? COLORS.copper : COLORS.forest,clamp(strength));
 }
 
+const gridBuffers = new WeakMap();
 function renderGrid(canvas, values, colorFor) {
   const context = canvas.getContext('2d');
   if (!context) return;
-  const temporary = document.createElement('canvas');
-  temporary.width = SIZE;
-  temporary.height = SIZE;
-  const temporaryContext = temporary.getContext('2d');
-  if (!temporaryContext) return;
-  const pixels = temporaryContext.createImageData(SIZE,SIZE);
+  let buffer = gridBuffers.get(canvas);
+  if (!buffer) {
+    const temporary = document.createElement('canvas');temporary.width=SIZE;temporary.height=SIZE;
+    const temporaryContext=temporary.getContext('2d');if(!temporaryContext)return;
+    buffer={temporary,temporaryContext,pixels:temporaryContext.createImageData(SIZE,SIZE)};
+    gridBuffers.set(canvas,buffer);
+  }
+  const {temporary,temporaryContext,pixels}=buffer;
   values.forEach((value,index)=>{
     const rgb = colorFor(value);
     pixels.data[index*4] = rgb[0];
@@ -276,9 +285,33 @@ export function initHeroArt({ motionEnabled = () => !matchMedia('(prefers-reduce
   });
   let frame = 0;
   let run = 0;
+  let scrubFrame = 0;
+  let lastAmount = -1;
+  const originalRaster=document.createElement('canvas'),coefficientRaster=document.createElement('canvas'),distributionRaster=document.createElement('canvas');
+  for(const raster of [originalRaster,coefficientRaster,distributionRaster]){raster.width=width;raster.height=height;}
+  const originalContext=originalRaster.getContext('2d'),coefficientContext=coefficientRaster.getContext('2d'),distributionContext=distributionRaster.getContext('2d');
+  if(!originalContext||!coefficientContext||!distributionContext)return () => {};
+  const particlesByColor=new Map();
+  let dcParticle;
+  // Color conversion and the stationary rasterization happen once, not per frame.
+  for(let index=0;index<original.length;index++){
+    const x=gridLeft+(index%SIZE)*cell,y=gridTop+Math.floor(index/SIZE)*cell;
+    originalContext.fillStyle=cssColor(intensityColor(original[index]));originalContext.fillRect(x,y,cell*.94,cell*.94);
+    const color=cssColor(coefficientColor(transform.coefficients[index],detailMaximum));
+    coefficientContext.fillStyle=color;coefficientContext.fillRect(x,y,cell*.94,cell*.94);
+    const target=index?targetList[index-1]:{x,y};
+    const particle={x,y,tx:target.x,ty:target.y};
+    if(!index){dcParticle={...particle,color};continue;}
+    if(!particlesByColor.has(color))particlesByColor.set(color,[]);
+    particlesByColor.get(color).push(particle);
+    distributionContext.fillStyle=color;distributionContext.fillRect(target.x,target.y,1.7,Math.max(.6,rowHeight*.86));
+  }
 
   function draw(progress) {
     const amount = clamp(progress);
+    if(amount===lastAmount)return;
+    lastAmount=amount;
+    canvas.dispatchEvent(new CustomEvent('research:representation'));
     const crossfade = smooth(amount*2);
     const moving = smooth((amount-.5)*2);
     context.clearRect(0,0,width,height);
@@ -287,7 +320,7 @@ export function initHeroArt({ motionEnabled = () => !matchMedia('(prefers-reduce
     context.letterSpacing = '1px';
     context.fillStyle = '#aab99a';
     const stateName = amount<.25 ? 'Pixels' : amount<.75 ? 'Coefficients' : 'Distribution';
-    state.textContent = stateName;
+    if(state.textContent!==stateName)state.textContent = stateName;
     slider.setAttribute('aria-valuetext',`${stateName}: ${Math.round(amount*100)} percent through the representation transformation.`);
     context.textAlign = 'left';
     context.fillText('01 / PIXELS',36,25);
@@ -317,22 +350,19 @@ export function initHeroArt({ motionEnabled = () => !matchMedia('(prefers-reduce
       context.fillText('SIGNED HAAR DETAIL VALUE',(plotLeft+plotRight)/2,baseline+42);
     }
     context.globalAlpha = 1;
-    for (let index=0;index<original.length;index++) {
-      const value = transform.coefficients[index];
-      const fromColor = intensityColor(original[index]);
-      const toColor = coefficientColor(value,detailMaximum);
-      const color = blend(fromColor,toColor,crossfade);
-      if (index===0) context.globalAlpha = 1-moving;
-      const startX = gridLeft+(index%SIZE)*cell;
-      const startY = gridTop+Math.floor(index/SIZE)*cell;
-      const target = index ? targetList[index-1] : {x:startX,y:startY};
-      const xx = startX+(target.x-startX)*moving;
-      const yy = startY+(target.y-startY)*moving;
-      context.fillStyle = cssColor(color);
-      const dotWidth = cell*.94+(1.7-cell*.94)*moving;
-      const dotHeight = cell*.94+(Math.max(.6,rowHeight*.86)-cell*.94)*moving;
-      context.fillRect(xx,yy,dotWidth,dotHeight);
-      context.globalAlpha = 1;
+    if(amount<=.5){
+      context.drawImage(originalRaster,0,0);
+      context.globalAlpha=crossfade;context.drawImage(coefficientRaster,0,0);context.globalAlpha=1;
+    }else if(amount===1){
+      context.drawImage(distributionRaster,0,0);
+    }else{
+      const dotWidth=cell*.94+(1.7-cell*.94)*moving;
+      const dotHeight=cell*.94+(Math.max(.6,rowHeight*.86)-cell*.94)*moving;
+      for(const [color,particles] of particlesByColor){
+        context.fillStyle=color;
+        for(const particle of particles)context.fillRect(particle.x+(particle.tx-particle.x)*moving,particle.y+(particle.ty-particle.y)*moving,dotWidth,dotHeight);
+      }
+      context.globalAlpha=1-moving;context.fillStyle=dcParticle.color;context.fillRect(dcParticle.x,dcParticle.y,dotWidth,dotHeight);context.globalAlpha=1;
     }
     context.textAlign = 'center';
     context.font = '12px Inter, Arial, sans-serif';
@@ -351,7 +381,10 @@ export function initHeroArt({ motionEnabled = () => !matchMedia('(prefers-reduce
     play.setAttribute('aria-label','Play the image-to-distribution transformation');
     play.setAttribute('aria-pressed','false');
   }
-  function onSlider() { cancel(); draw(Number(slider.value)); }
+  function onSlider() {
+    cancel();
+    if(!scrubFrame)scrubFrame=requestAnimationFrame(()=>{scrubFrame=0;draw(Number(slider.value));});
+  }
   function onPlay() {
     if (frame) { cancel(); return; }
     if (!motionEnabled()) { cancel(); slider.value='1'; draw(1); return; }
@@ -377,7 +410,39 @@ export function initHeroArt({ motionEnabled = () => !matchMedia('(prefers-reduce
   }
   slider.addEventListener('input',onSlider);
   play.addEventListener('click',onPlay);
+  canvas.style.cursor='ew-resize';canvas.style.touchAction='pan-y';
+  let gesture=null;
+  const scrub=event=>{
+    const rect=canvas.getBoundingClientRect();
+    slider.value=String(clamp((event.clientX-rect.left)/Math.max(rect.width,1)));
+    slider.dispatchEvent(new Event('input',{bubbles:true}));
+  };
+  const down=event=>{
+    if(event.button!==0)return;
+    gesture={id:event.pointerId,x:event.clientX,y:event.clientY,captured:event.pointerType!=='touch'};
+    if(gesture.captured){canvas.setPointerCapture(event.pointerId);scrub(event);}
+  };
+  const move=event=>{
+    if(gesture?.id===event.pointerId){
+      if(!gesture.captured){
+        const dx=Math.abs(event.clientX-gesture.x),dy=Math.abs(event.clientY-gesture.y);
+        if(dx>8&&dx>dy*1.2){gesture.captured=true;canvas.setPointerCapture(event.pointerId);}
+      }
+      if(gesture.captured)scrub(event);
+    }else if(event.pointerType==='mouse'&&!event.buttons&&document.activeElement!==slider&&motionEnabled())scrub(event);
+  };
+  const up=event=>{
+    if(gesture?.id===event.pointerId&&!gesture.captured&&Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)<8)scrub(event);
+    gesture=null;
+  };
+  const abort=()=>{gesture=null;};
+  canvas.addEventListener('pointerdown',down);canvas.addEventListener('pointermove',move);canvas.addEventListener('pointerup',up);
+  canvas.addEventListener('pointercancel',abort);canvas.addEventListener('lostpointercapture',abort);
   play.setAttribute('aria-pressed','false');
   draw(Number(slider.value));
-  return () => { cancel(); slider.removeEventListener('input',onSlider); play.removeEventListener('click',onPlay); };
+  return () => {
+    cancel();cancelAnimationFrame(scrubFrame);slider.removeEventListener('input',onSlider);play.removeEventListener('click',onPlay);
+    canvas.removeEventListener('pointerdown',down);canvas.removeEventListener('pointermove',move);canvas.removeEventListener('pointerup',up);
+    canvas.removeEventListener('pointercancel',abort);canvas.removeEventListener('lostpointercapture',abort);
+  };
 }

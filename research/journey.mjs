@@ -1,5 +1,5 @@
 /** Progressive enhancement: the complete document remains readable without JS. */
-export function initJourney({ initializeChapter, initializeSource, motionEnabled = () => true }) {
+export function initJourney({ initializeChapter, initializeSource, initializeIntro=()=>{}, motionEnabled = () => true }) {
   const ids = ['one','two','three','four','five','six','seven','eight'];
   const labels = ['Missing pieces','Image language','Probability','Shape a prior','Find the fit','The evidence','The limits','Make it useful'];
   const takeaways = [
@@ -21,8 +21,8 @@ export function initJourney({ initializeChapter, initializeSource, motionEnabled
   const bottom = document.querySelector('.journey-bottom');
   const readingButton = document.getElementById('reading-mode');
   let current = 'one', reading = false;
+  let introStarted=false;
   const started = new Set();
-  const explored = new Set();
   panels.forEach(panel => panel.classList.add('journey-panel'));
   links.forEach((link,index)=>link.setAttribute('aria-label',`${String(index+1).padStart(2,'0')} ${labels[index]}`));
   const sourceReturn=document.createElement('a');
@@ -43,9 +43,7 @@ export function initJourney({ initializeChapter, initializeSource, motionEnabled
     links.forEach(link => {
       const active = link.dataset.chapter === current && document.body.dataset.view === 'lab';
       if (active) link.setAttribute('aria-current','step'); else link.removeAttribute('aria-current');
-      link.classList.toggle('is-explored',explored.has(link.dataset.chapter));
     });
-    document.getElementById('explored-count').textContent = `${explored.size} of 8 explored`;
     document.documentElement.style.setProperty('--chapter-progress',String((index+1)/8));
     document.getElementById('current-chapter-count').textContent = `EXPERIMENT ${String(index+1).padStart(2,'0')} / 08`;
     document.getElementById('chapter-takeaway').textContent = takeaways[index];
@@ -73,6 +71,7 @@ export function initJourney({ initializeChapter, initializeSource, motionEnabled
     panels.forEach(panel=>{panel.hidden=route.view!=='lab' || (!reading && panel.id!==current);});
     sources.hidden=route.view!=='sources';
     toolbar.hidden=bottom.hidden=route.view!=='lab';
+    if(route.view==='intro'&&!introStarted){introStarted=true;initializeIntro();}
     if(route.view==='sources'){initializeSource();sourceReturn.href=`#${current}`;}
     if(route.view==='lab') {
       const sublesson=route.target.closest('[data-lesson-panel]');
@@ -111,18 +110,6 @@ export function initJourney({ initializeChapter, initializeSource, motionEnabled
   },{rootMargin:'-12% 0px -62% 0px',threshold:0});
   panels.forEach(panel=>readingObserver.observe(panel));
 
-  function recordInteraction(event) {
-    const panel=event.target.closest?.('.journey-panel');
-    if(!panel || (event.type==='click' && !event.target.closest('button:not([data-lesson-target])')))return;
-    explored.add(panel.id);updateNavigation();
-  }
-  document.addEventListener('input',recordInteraction);
-  document.addEventListener('change',recordInteraction);
-  document.addEventListener('click',recordInteraction);
-  document.addEventListener('research:interaction',event=>{
-    const id=event.detail?.lab==='probability'?'three':event.target.closest?.('.journey-panel')?.id;
-    if(id){explored.add(id);updateNavigation();}
-  });
 
   // One chapter can host a pair of complementary experiments without a long scroll.
   for(const switcher of document.querySelectorAll('.lesson-switch')) {
@@ -132,11 +119,6 @@ export function initJourney({ initializeChapter, initializeSource, motionEnabled
       buttons.forEach(item=>{const selected=item===button;item.setAttribute('aria-pressed',String(selected));document.getElementById(item.dataset.lessonTarget).hidden=!selected;});
       document.dispatchEvent(new CustomEvent('research:sublesson',{detail:{id:button.dataset.lessonTarget,chapter:group.id}}));
       document.dispatchEvent(new CustomEvent('research:layout',{detail:{chapter:group.id}}));
-      if(group.id==='three'){
-        const mixed=button.dataset.lessonTarget==='probability-mixture';
-        group.querySelector('.experiment-cue>div>span').textContent=mixed?'BUILD A CURVE FROM OTHER CURVES':'GIVE THE SHADED AREA A MEANING';
-        group.querySelector('.experiment-cue>div>p').textContent=mixed?'Set width variety to zero, then turn it up. Release some draws.':'Move the threshold. Compare expected share with actual draws.';
-      }
       updateNavigation();
     };
     buttons.forEach(button=>button.addEventListener('click',()=>select(button)));
@@ -156,9 +138,10 @@ export function initJourney({ initializeChapter, initializeSource, motionEnabled
   const morph=document.getElementById('hero-morph');
   const phaseButtons=[...document.querySelectorAll('[data-morph]')];
   let morphFrame=0;
-  function updatePhase(){const value=Number(morph.value);phaseButtons.forEach(button=>button.setAttribute('aria-pressed',String(Math.abs(value-Number(button.dataset.morph))<.24)));}
+  let activePhase=-1;
+  function updatePhase(){const phase=Math.round(Number(morph.value)*2);if(phase===activePhase)return;activePhase=phase;phaseButtons.forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.morph)*2===phase)));}
   morph.addEventListener('input',updatePhase);
-  new MutationObserver(updatePhase).observe(document.getElementById('hero-state'),{childList:true});
+  document.getElementById('hero-canvas').addEventListener('research:representation',updatePhase);
   morph.addEventListener('pointerdown',()=>cancelAnimationFrame(morphFrame));
   morph.addEventListener('keydown',()=>cancelAnimationFrame(morphFrame));
   phaseButtons.forEach(button=>button.addEventListener('click',()=>{

@@ -2,6 +2,8 @@ import { mixture, normalPdf, normalCdf, createRng, sampleNormal, logGamma, ksGap
 import { initImageLab, initHeroArt } from './image-lab.mjs';
 import { initEvidence } from './evidence-ui.mjs';
 import { initJourney } from './journey.mjs';
+import { createFitEvaluator } from './fit-model.mjs';
+import { bindHorizontalControl } from './direct-input.mjs';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -116,6 +118,7 @@ function inverseLab() {
     $$('[data-detail]').forEach(button=>button.setAttribute('aria-pressed',String(Number(button.dataset.detail)===d)));
   };
   control.addEventListener('input',update);
+  bindHorizontalControl($('.two-pixels'),control,{sensitivity:1.6});
   $$('[data-detail]').forEach(button=>button.addEventListener('click',()=>{control.value=button.dataset.detail;update();}));
   update();
 }
@@ -147,7 +150,7 @@ function mixtureLab() {
     });
     ctx.fillStyle='#93aa7f';ctx.font='9px Arial';
     ctx.fillText('−4',35,h-4);ctx.fillText('0',w/2-4,h-4);ctx.fillText('4',w-22,h-4);
-    if(!draws.length)ctx.fillText('Release draws to see where individual values land.',40,70);
+    if(!draws.length)ctx.fillText('Samples from the mixture.',40,70);
   }
   const update=()=>{
     cancelAnimationFrame(rainFrame);
@@ -193,6 +196,8 @@ let explorerModel;
 let onFamilyChange=()=>{};
 function familyLab() {
   const branch=$('#tail-branch'),r=$('#r-control'),eta=$('#eta-control'),scale=$('#scale-control');
+  bindHorizontalControl($('#family-density'),scale);
+  let cachedShape;
   function branchRanges(negative) {
     r.min=negative?'-2':'0.35';r.max=negative?'-.4':'2.5';r.step='0.05';
     eta.min=negative?'-5':'-.75';eta.max=negative?'-1.7':'3';eta.step='0.05';
@@ -202,16 +207,20 @@ function familyLab() {
   function render() {
     const previousParameters=[familyState.r,familyState.eta,familyState.vartheta];
     familyState.r=Number(r.value);familyState.eta=Number(eta.value);familyState.vartheta=10**Number(scale.value);
-    explorerModel=mixture(familyState.r,familyState.eta,familyState.vartheta);
+    const shapeKey=JSON.stringify(familyState);
+    if(cachedShape?.key!==shapeKey){
+      explorerModel=mixture(familyState.r,familyState.eta,familyState.vartheta);
+      cachedShape={key:shapeKey,model:explorerModel,points:Array.from({length:401},(_,i)=>{
+        const t=(i-200)/200,x=Math.sign(t)*5*t*t;return [x,explorerModel.pdf(x)];
+      }),tails:Math.max(0,2*(1-explorerModel.cdf(3)))};
+    }
+    explorerModel=cachedShape.model;
     $('#r-value').textContent=fmt(familyState.r);
     $('#eta-value').textContent=fmt(familyState.eta);
     $('#scale-value').textContent=fmt(familyState.vartheta);
     scale.setAttribute('aria-valuetext',`Variance scale ${familyState.vartheta.toPrecision(4)}`);
     $('#beta-value').textContent=fmt(explorerModel.beta);
-    const points=Array.from({length:401},(_,i)=>{
-      const t=(i-200)/200;const x=Math.sign(t)*5*t*t;
-      return [x,explorerModel.pdf(x)];
-    });
+    const points=cachedShape.points;
     const peak=explorerModel.pdf(0);
     const yMax=Math.min(50,Math.max(.06,peak*1.13));
     const density=chart($('#family-density'),{xMin:-5,xMax:5,yMax,xTicks:[-5,-2.5,0,2.5,5],yLabel:'Density f(x)'});
@@ -219,7 +228,7 @@ function familyLab() {
     const logMax=Math.max(0,Math.ceil(Math.log10(peak)));
     const logarithmic=chart($('#family-log'),{xMin:-5,xMax:5,yMin:-7,yMax:logMax,xTicks:[-5,0,5],yTicks:[-7,-4,0,...(logMax>0?[logMax]:[])],yLabel:'log₁₀ f(x)'});
     line(logarithmic,points.map(([x,p])=>[x,Math.log10(Math.max(p,1e-100))]),{color:palette.copper,width:2.5});
-    const tails=Math.max(0,2*(1-explorerModel.cdf(3)));
+    const tails=cachedShape.tails;
     $('#tail-probability').textContent=`${(tails*100).toFixed(tails<.001?3:2)}%`;
     $('#peak-value').textContent=Number.isFinite(peak)?peak>999?peak.toExponential(2):fmt(peak,3):'unbounded';
     $('#variance-value').textContent=explorerModel.finiteVariance?explorerModel.variance>999?explorerModel.variance.toExponential(2):fmt(explorerModel.variance,3):'not finite';
@@ -257,36 +266,30 @@ function fitLab() {
   let fittedFamily=null;
   let task=0;
   let dirty=false;
+  let evaluator;
   const widthControl=$('#fit-width'),auto=$('#auto-fit');
+  bindHorizontalControl($('#fit-plot'),widthControl);
   function cancelSearch(message) {
     if(auto.disabled){task++;auto.disabled=false;$('#fit-status').textContent=message;}
   }
   const moment=()=>observations.reduce((sum,x)=>sum+x*x,0)/observations.length;
   function candidate(kind, factor=10**Number(widthControl.value)) {
-    const sd=Math.sqrt(moment())*factor;
+    const evaluation=evaluator.evaluate(kind,fittedFamily||familyState,factor);
     const scaleDescription=Math.abs(factor-1)<1e-8?'variance-matched baseline':`baseline width ×${factor.toFixed(2)}`;
-    if(kind==='normal')return {cdf:x=>normalCdf(x,0,sd),name:'One normal',description:scaleDescription};
-    if(kind==='laplace'){
-      const b=sd/Math.SQRT2;
-      return {cdf:x=>x<0?.5*Math.exp(x/b):1-.5*Math.exp(-x/b),name:'Laplace',description:scaleDescription};
-    }
-    const params=fittedFamily||familyState;
-    const distribution=mixture(params.r,params.eta,params.vartheta*factor*factor,{steps:512});
-    return {cdf:distribution.cdf,name:fittedFamily?'Searched family':'Explorer model',description:fittedFamily?'24 shape pairs':'current slider settings'};
+    if(kind==='normal')return {...evaluation,name:'One normal',description:scaleDescription};
+    if(kind==='laplace')return {...evaluation,name:'Laplace',description:scaleDescription};
+    return {...evaluation,name:fittedFamily?'Searched family':'Explorer model',description:fittedFamily?'24 shape pairs':'current slider settings'};
   }
   function render() {
     if($('#five').hidden){dirty=true;return;}
     dirty=false;
     const candidates=Object.fromEntries(['normal','laplace','family'].map(kind=>[kind,candidate(kind)]));
     const selected=candidates[mode];
-    const gap=ksGap(observations,selected.cdf);
-    const range=Math.max(3,...observations.map(x=>Math.abs(x)))*1.08;
+    const gap=selected.gap;
+    const range=evaluator.range;
     const plot=chart($('#fit-plot'),{xMin:-range,xMax:range,yMax:1,xTicks:[-range,0,range],yTicks:[0,.25,.5,.75,1],yLabel:'Share at or below x',xLabel:'Coefficient value x'});
-    line(plot,sampleCurve(selected.cdf,-range,range,240),{color:palette.copper,width:2.5});
-    const sorted=[...observations].sort((a,b)=>a-b);
-    const steps=[[-range,0]];
-    sorted.forEach((x,index)=>{steps.push([x,index/sorted.length],[x,(index+1)/sorted.length]);});steps.push([range,1]);
-    line(plot,steps,{color:palette.forest,width:2.1});
+    line(plot,selected.curve,{color:palette.copper,width:2.5});
+    line(plot,evaluator.empirical,{color:palette.forest,width:2.1});
     plot.layer.append(svgNode('line',{x1:plot.x(gap.x),x2:plot.x(gap.x),y1:plot.y(gap.empirical),y2:plot.y(gap.theoretical),stroke:'#954f35','stroke-width':3,'stroke-dasharray':'4 4'}));
     [gap.empirical,gap.theoretical].forEach(value=>plot.layer.append(svgNode('circle',{cx:plot.x(gap.x),cy:plot.y(value),r:4,fill:'#a9623e'})));
     plot.svg.append(svgNode('text',{x:clamp(plot.x(gap.x)+12,plot.box.left,plot.box.right-100),y:Math.max(plot.box.top+15,plot.y(Math.max(gap.empirical,gap.theoretical))-12),style:'fill:#9b5435;font-size:12px'},`D = ${gap.d.toFixed(3)}`));
@@ -298,7 +301,7 @@ function fitLab() {
     describe($('#fit-plot'),`${selected.name} CDF versus 240 synthetic observations. Largest step-aware KS gap ${gap.d.toFixed(4)} at x ${gap.x.toFixed(3)}.`);
     const comparison=$('#fit-comparison');comparison.replaceChildren();
     ['normal','laplace','family'].forEach(kind=>{
-      const model=candidates[kind], result=kind===mode?gap:ksGap(observations,model.cdf);
+      const model=candidates[kind], result=model.gap;
       const row=document.createElement('div');row.className='fit-result';
       const name=document.createElement('span');name.textContent=`${model.name} · ${model.description}`;
       const number=document.createElement('strong');number.textContent=result.d.toFixed(3);row.append(name,number);comparison.append(row);
@@ -307,6 +310,7 @@ function fitLab() {
   function newSample() {
     task++;auto.disabled=false;
     observations=mixture(.65,-.4,.45).samples(240,createRng(seed++));
+    evaluator=createFitEvaluator(observations);
     fittedFamily=null;mode='normal';widthControl.value=0;
     $$('[data-fit]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.fit===mode)));
     $('#fit-status').textContent='New reproducible sample. The reference normal and Laplace widths match its second moment about zero.';
@@ -382,7 +386,7 @@ function failureLab() {
     }
     plot.svg.append(svgNode('text',{x:plot.box.left+8,y:plot.box.top+15,style:'fill:#85936f;font-size:9px'},'Dashed: normal reference, not a fitted result'));
     describe($('#failure-plot'),`${selected==='skew'?'Asymmetric shifted exponential':selected==='bimodal'?'Two separated normal modes':'A 55 percent point mass at zero plus a continuous normal part'}. Constructed teaching example. Dashed normal is only a reference.`);
-    $('#failure-answer').textContent='Choose the feature that changing the variance distribution cannot fix.';
+    $('#failure-answer').textContent=descriptions[selected];
     $$('[data-failure-answer]').forEach(button=>button.setAttribute('aria-pressed','false'));
   }
   $$('[data-failure]').forEach(button=>button.addEventListener('click',()=>{selected=button.dataset.failure;pressed('[data-failure]',button);render();}));
@@ -427,8 +431,6 @@ function dependenceLab() {
 }
 
 initializeMotion();
-initHeroArt({motionEnabled:()=>motion && (!document.body.dataset.view || document.body.dataset.view==='intro') && !document.hidden});
-initEvidence();
 const sublessons=new Set();
 async function startSublesson(id) {
   if(sublessons.has(id))return;
@@ -445,8 +447,10 @@ const chapterInitializers={
   three:()=>startSublesson('probability-intro'),
   four:familyLab,
   five:fitLab,
-  six:()=>{},
+  six:initEvidence,
   seven:()=>{failureLab();dependenceLab();},
   eight:async()=>{const { initInferenceLab }=await import('./inference-lab.mjs');initInferenceLab();}
 };
-initJourney({initializeChapter:id=>chapterInitializers[id]?.(),initializeSource:initEvidence,motionEnabled:()=>motion});
+initJourney({initializeChapter:id=>chapterInitializers[id]?.(),initializeSource:initEvidence,
+  initializeIntro:()=>initHeroArt({motionEnabled:()=>motion && document.body.dataset.view==='intro' && !document.hidden}),
+  motionEnabled:()=>motion});
