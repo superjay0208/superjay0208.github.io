@@ -1,7 +1,7 @@
-import { createRun, answer, undo, revise, finishReview, finalAnswers, nextCase, caseById, receiptModel, featuredTopic } from './still-counts-engine.js?v=sc2';
-import { storageAdapter } from './still-counts-storage.js?v=sc2';
-import { receiptPNG, receiptText, topicURL } from './still-counts-share.js?v=sc2';
-import { sound, confetti, reduced } from './still-counts-effects.js?v=sc2';
+import { createRun, answer, undo, revise, finishReview, finalAnswers, nextCase, caseById, receiptModel, featuredTopic } from './still-counts-engine.js?v=sc3';
+import { storageAdapter } from './still-counts-storage.js?v=sc3';
+import { receiptPNG, receiptText, topicURL } from './still-counts-share.js?v=sc3';
+import { sound, confetti, reduced } from './still-counts-effects.js?v=sc3';
 
 const main = document.querySelector('#main'), announcer = document.querySelector('#announcer');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -21,25 +21,87 @@ function topicIntro() {
 }
 function choosingView() {
   const c = nextCase(topic, run);
-  return `<section class="play-layout">${topicIntro()}${progress()}<article class="case-card" id="case-card"><h2 id="case-title" tabindex="-1">${esc(c.label)}</h2><div class="verdict-stamp" id="verdict-stamp" aria-hidden="true"></div></article><div class="choice-buttons"><button class="choice yes" data-verdict="yes">${esc(label('yes'))}</button><button class="choice no" data-verdict="no">${esc(label('no'))}</button></div><div class="below-choices"><button id="undo-button" class="text-button" ${run.originalAnswers.length ? '' : 'disabled'}>Undo</button></div></section>`;
+  return `<section class="play-layout">${topicIntro()}${progress()}<article class="case-card" id="case-card"><h2 id="case-title" tabindex="-1">${esc(c.label)}</h2><div class="verdict-stamp" id="verdict-stamp" aria-hidden="true"></div></article><div class="choice-buttons"><button class="choice yes" type="button" data-verdict="yes">${esc(label('yes'))}<span class="key-hint" aria-hidden="true">1</span></button><button class="choice no" type="button" data-verdict="no">${esc(label('no'))}<span class="key-hint" aria-hidden="true">2</span></button></div><div class="below-choices"><span class="drag-hint">Swipe card or tap</span><button id="undo-button" class="text-button" type="button" ${run.originalAnswers.length ? '' : 'disabled'}>Undo</button></div></section>`;
 }
 function reviewView() {
   const pair = topic.comparisons.find(p => p.id === run.reviewPairId), answers = finalAnswers(run);
   const changed = Object.keys(run.overrides).length > 0;
-  return `<section class="review-view"><p class="eyebrow">${esc(topic.question)}</p><h1 id="case-title" tabindex="-1">${esc(changed ? 'Keep these calls?' : pair.headline)}</h1><div class="review-pair">${pair.caseIds.map(id => { const c = caseById(topic, id); return `<article class="review-card"><h2>${esc(c.label)}</h2><span class="verdict-pill ${answers[id]}">${esc(label(answers[id]))}</span><button class="change-call" data-revise="${esc(id)}">Change</button></article>`; }).join('')}</div><div class="review-actions"><button class="primary-button" id="finish-button">${changed ? 'Done' : 'Keep my calls'}</button></div></section>`;
+  return `<section class="review-view"><p class="eyebrow">${esc(topic.question)}</p><h1 id="case-title" tabindex="-1">${esc(changed ? 'Keep these calls?' : pair.headline)}</h1><div class="review-pair">${pair.caseIds.map(id => { const c = caseById(topic, id); return `<article class="review-card"><h2>${esc(c.label)}</h2><span class="verdict-pill ${answers[id]}">${esc(label(answers[id]))}</span><button class="change-call" type="button" data-revise="${esc(id)}">Change</button></article>`; }).join('')}</div><div class="review-actions"><button class="primary-button" type="button" id="finish-button">${changed ? 'Done' : 'Keep my calls'}</button></div></section>`;
 }
 function receiptHTML(model) {
   return `<article class="receipt-paper" id="receipt"><div class="receipt-logo">still counts<span>?</span></div><div class="receipt-meta">${esc(model.day)}${model.updated ? ' / UPDATED' : ''}</div><h2>${esc(model.question)}</h2><ol class="receipt-rows">${model.rows.map((r, i) => `<li class="${model.pairIds.includes(r.id) ? 'spotlight' : ''}"><span class="receipt-index">${i + 1}</span><span>${esc(r.label)}</span><b class="${r.verdict}">${esc(r.verdictLabel)}</b></li>`).join('')}</ol><div class="receipt-observation"><h3>${esc(model.headline)}</h3></div></article>`;
 }
 function resultView() {
   const model = receiptModel(topic, run);
-  return `<section class="result-layout"><h1 id="case-title" class="sr-only" tabindex="-1">Your receipt</h1>${receiptHTML(model)}<div class="result-actions"><button class="primary-button" id="save-receipt">Save receipt</button><button class="secondary-button" id="copy-result">Copy result</button><p id="export-status" role="status"></p></div><div class="replay-actions"><button class="text-button" id="another-topic">Other topics</button><button class="text-button" id="replay-button">Play again</button></div></section>`;
+  return `<section class="result-layout"><h1 id="case-title" class="sr-only" tabindex="-1">Your receipt</h1>${receiptHTML(model)}<div class="result-actions"><button class="primary-button" type="button" id="save-receipt">Save receipt</button><button class="secondary-button" type="button" id="copy-result">Copy result</button><p id="export-status" role="status"></p></div><div class="replay-actions"><button class="text-button" type="button" id="another-topic">Other topics</button><button class="text-button" type="button" id="replay-button">Play again</button></div></section>`;
 }
+
+function bindCardSwipe() {
+  const card = document.querySelector('#case-card');
+  const stamp = document.querySelector('#verdict-stamp');
+  const yesBtn = document.querySelector('.choice.yes');
+  const noBtn = document.querySelector('.choice.no');
+  if (!card || !stamp) return;
+  let gesture = null;
+  const resetVisual = () => {
+    card.classList.remove('is-dragging');
+    card.style.transform = '';
+    stamp.style.opacity = '';
+    stamp.className = 'verdict-stamp';
+    stamp.textContent = '';
+    yesBtn?.classList.remove('is-preview');
+    noBtn?.classList.remove('is-preview');
+  };
+  card.addEventListener('pointerdown', event => {
+    if (locked || event.button !== 0 || document.querySelector('dialog[open]')) return;
+    gesture = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp, active: false };
+  });
+  card.addEventListener('pointermove', event => {
+    if (!gesture || gesture.id !== event.pointerId || !event.buttons || locked) return;
+    const dx = event.clientX - gesture.x, dy = event.clientY - gesture.y;
+    if (!gesture.active) {
+      if (Math.abs(dy) > 9 && Math.abs(dy) > Math.abs(dx)) { gesture = null; return; }
+      if (Math.abs(dx) < 7 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      gesture.active = true;
+      card.setPointerCapture?.(event.pointerId);
+      card.classList.add('is-dragging');
+    }
+    const verdict = dx >= 0 ? 'yes' : 'no';
+    const progress = Math.min(1, Math.abs(dx) / 78);
+    if (!reduced()) card.style.transform = `translate3d(${(dx * 0.65).toFixed(1)}px, ${(dy * 0.12).toFixed(1)}px, 0) rotate(${(dx * 0.038).toFixed(2)}deg)`;
+    stamp.textContent = label(verdict);
+    stamp.className = `verdict-stamp ${verdict}`;
+    stamp.style.opacity = progress > 0.15 ? progress.toFixed(2) : '0';
+    yesBtn?.classList.toggle('is-preview', verdict === 'yes' && progress > 0.25);
+    noBtn?.classList.toggle('is-preview', verdict === 'no' && progress > 0.25);
+  });
+  const endSwipe = event => {
+    if (!gesture || gesture.id !== event.pointerId) return;
+    const dx = (event.clientX ?? gesture.x) - gesture.x;
+    const dt = Math.max(16, (event.timeStamp || performance.now()) - gesture.time);
+    const velocity = Math.abs(dx) / dt;
+    const wasActive = gesture.active;
+    gesture = null;
+    if (wasActive && event.type === 'pointerup' && (Math.abs(dx) > 68 || (Math.abs(dx) > 34 && velocity > 0.55))) {
+      card.classList.remove('is-dragging');
+      card.style.transform = '';
+      stamp.style.opacity = '';
+      yesBtn?.classList.remove('is-preview');
+      noBtn?.classList.remove('is-preview');
+      makeChoice(dx >= 0 ? 'yes' : 'no');
+    } else if (!locked) resetVisual();
+  };
+  card.addEventListener('pointerup', endSwipe);
+  card.addEventListener('pointercancel', () => { gesture = null; if (!locked) resetVisual(); });
+  card.addEventListener('lostpointercapture', () => { if (gesture) { gesture = null; if (!locked) resetVisual(); } });
+}
+
 function render({ focus = false } = {}) {
   generation++; locked = false;
   document.body.dataset.topic = topic.id; document.body.dataset.phase = run.phase;
   main.innerHTML = `${notice ? `<p class="notice">${esc(notice)}</p>` : ''}${!store.available ? '<p class="notice">Progress cannot be saved here. Keep this tab open to finish.</p>' : ''}${run.phase === 'choosing' ? choosingView() : run.phase === 'review' ? reviewView() : resultView()}`;
   document.querySelectorAll('[data-verdict]').forEach(b => b.addEventListener('click', e => { if (e.detail > 1) return; makeChoice(b.dataset.verdict); }));
+  if (run.phase === 'choosing') bindCardSwipe();
   document.querySelector('#undo-button')?.addEventListener('click', () => { if (locked) return; run = undo(run); save(); render({ focus: true }); });
   document.querySelectorAll('[data-revise]').forEach(b => b.addEventListener('click', () => { run = revise(topic, run, b.dataset.revise); save(); sound('review', soundOn); render(); document.querySelector(`[data-revise="${b.dataset.revise}"]`)?.focus(); notify('Call changed. Both updated verdicts are shown.'); }));
   for (const id of ['finish-button', 'skip-review']) document.getElementById(id)?.addEventListener('click', () => { run = finishReview(run); save(); sound('receipt', soundOn); render({ focus: true }); });
@@ -55,9 +117,10 @@ function makeChoice(verdict) {
   const token = generation; run = answer(topic, run, verdict); save();
   document.querySelectorAll('.choice, #undo-button').forEach(b => { b.disabled = true; });
   const card = document.querySelector('#case-card'), stamp = document.querySelector('#verdict-stamp');
+  stamp.style.opacity = '';
   stamp.textContent = label(verdict); stamp.classList.add(verdict, 'landed'); card.classList.add('decided', verdict);
   sound(verdict, soundOn); confetti(document.querySelector('#effects'), verdict);
-  setTimeout(() => { if (generation !== token) return; render({ focus: true }); notify(run.phase === 'choosing' ? `Call ${run.originalAnswers.length + 1} of 8. ${nextCase(topic, run).label}` : run.phase === 'review' ? 'Your calls are in. Look at these two.' : 'Your receipt is ready.'); if (run.phase === 'result') sound('receipt', soundOn); }, reduced() ? 110 : 420);
+  setTimeout(() => { if (generation !== token) return; render({ focus: true }); notify(run.phase === 'choosing' ? `Call ${run.originalAnswers.length + 1} of 8. ${nextCase(topic, run).label}` : run.phase === 'review' ? 'Your calls are in. Look at these two.' : 'Your receipt is ready.'); if (run.phase === 'result') sound('receipt', soundOn); }, reduced() ? 100 : 380);
 }
 async function copyResult() {
   const text = receiptText(receiptModel(topic, run), topicURL(location.href, topic.id));
@@ -75,7 +138,7 @@ async function saveReceipt() {
   finally { button.disabled = false; }
 }
 function openTopics() {
-  document.querySelector('#topic-list').innerHTML = manifest.topics.map(item => `<button class="topic-option ${item.id === topic.id ? 'selected' : ''}" data-topic="${esc(item.id)}">${esc(item.question)}</button>`).join('');
+  document.querySelector('#topic-list').innerHTML = manifest.topics.map(item => `<button class="topic-option ${item.id === topic.id ? 'selected' : ''}" type="button" data-topic="${esc(item.id)}">${esc(item.question)}</button>`).join('');
   document.querySelectorAll('.topic-option[data-topic]').forEach(b => b.addEventListener('click', async () => { document.querySelector('#topics-dialog').close(); await loadTopic(b.dataset.topic, true); }));
   document.querySelector('#topics-dialog').showModal();
 }
@@ -84,7 +147,7 @@ async function loadTopic(id, updateURL = false) {
   const item = manifest.topics.find(t => t.id === id) ?? featuredTopic(manifest);
   try {
     if (!topicCache.has(item.id)) {
-      const response = await fetch(new URL(`../content/still-counts/${item.file}?v=sc2`, import.meta.url));
+      const response = await fetch(new URL(`../content/still-counts/${item.file}?v=sc3`, import.meta.url));
       if (!response.ok) throw new Error('Topic unavailable');
       const value = await response.json();
       if (value.id !== item.id || value.revision !== item.revision || value.slots.length !== 8) throw new Error('Invalid topic');
@@ -98,7 +161,7 @@ async function loadTopic(id, updateURL = false) {
     save(); render({ focus: updateURL }); if (updateURL) window.scrollTo({ top: 0 });
   } catch {
     if (generation !== token) return;
-    main.innerHTML = '<section class="error-view"><h1>The desk is stuck.</h1><p>This topic could not load. Reload to try again.</p><button class="primary-button" id="retry-button">Try again ↗</button></section>';
+    main.innerHTML = '<section class="error-view"><h1>The desk is stuck.</h1><p>This topic could not load. Reload to try again.</p><button class="primary-button" type="button" id="retry-button">Try again ↗</button></section>';
     document.querySelector('#retry-button').addEventListener('click', () => loadTopic(item.id, updateURL));
   }
 }
@@ -106,15 +169,20 @@ document.querySelector('#sound-button').addEventListener('click', () => { soundO
 document.querySelector('#topics-button').addEventListener('click', () => { if (manifest && topic) openTopics(); });
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 document.addEventListener('keydown', event => {
-  if (event.repeat || held.has(event.key)) { if (['1', '2', 'Enter', ' '].includes(event.key)) event.preventDefault(); return; }
+  if (event.repeat || held.has(event.key)) { if (['1', '2', 'Enter', ' ', 'ArrowLeft', 'ArrowRight'].includes(event.key)) event.preventDefault(); return; }
   held.add(event.key);
   if (event.ctrlKey || event.altKey || event.metaKey || document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
-  if (event.key === '1' || event.key === '2') { event.preventDefault(); makeChoice(event.key === '1' ? 'yes' : 'no'); }
+  if (event.key === '1' || event.key === 'ArrowLeft') { event.preventDefault(); makeChoice('yes'); }
+  else if (event.key === '2' || event.key === 'ArrowRight') { event.preventDefault(); makeChoice('no'); }
+  else if ((event.key === 'Backspace' || event.key === 'z' || event.key === 'Z') && !locked && run?.phase === 'choosing' && run.originalAnswers.length) {
+    event.preventDefault();
+    run = undo(run); save(); render({ focus: true });
+  }
 });
 document.addEventListener('keyup', e => held.delete(e.key)); window.addEventListener('blur', () => held.clear());
 soundUI();
 try {
-  const response = await fetch(new URL('../content/still-counts/manifest.json?v=sc2', import.meta.url));
+  const response = await fetch(new URL('../content/still-counts/manifest.json?v=sc3', import.meta.url));
   if (!response.ok) throw new Error('Manifest unavailable'); manifest = await response.json();
   const requested = new URL(location.href).searchParams.get('topic');
   await loadTopic(requested ?? featuredTopic(manifest).id);

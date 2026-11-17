@@ -1,7 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="../assets/monogram.svg" type="image/svg+xml">
+    <link rel="preload" href="../slide-projector/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
     <title>CS 184 Final Report - Exploring Non-Photorealistic Rendering</title>
     <style>
         body {
@@ -99,8 +102,19 @@
         }
 
     </style>
-    </head>
+        <link rel="stylesheet" href="../studies.css">
+    <script src="../studies.js" defer></script>
+</head>
 <body>
+  <div class="study-progress" aria-hidden="true"></div>
+  <header class="study-topbar">
+    <a class="study-home" href="../#studies"><b>zw<span>°</span></b> <span>← Portfolio</span></a>
+    <nav class="study-switcher" aria-label="Study navigation">
+      <a href="./index.html" aria-current="page">CS 184 · NPR Shaders</a>
+      <a href="../CS%20180/project0/index.html">CS 180 · Vision ↗</a>
+    </nav>
+  </header>
+  <main class="study-shell">
 
     <h1>Exploring Non-Photorealistic Rendering</h1>
 
@@ -193,12 +207,12 @@
         <li><b>3D Math and Transformations:</b> Reinforced understanding of essential 3D graphics concepts like model, view, and projection matrices, normal transformations, and vector operations (dot products, normalization) used in lighting calculations. Also, implementing multiple light sources using a vector of light directions proved simple and effective.</li>
         <li><b>NPR Techniques:</b> Learned the core principles behind toon/cel shading, specifically how quantizing lighting calculations can achieve a stylized, non-photorealistic look.</li>
         <li><b>OBJ File Format and Loading:</b> Gained familiarity with the structure of OBJ files and the complexities of parsing them, including handling vertex indexing, normals, and the need for vertex de-duplication for efficient rendering.</li>
-        <li<b>Working with textures:</b> Importing textures and adding shaders on top was more challenging than we had initially thought. We learned a lot about which aspects of textures are preserved when mapping them to 3D models, and which are not.</li>
+        <li><b>Working with textures:</b> Importing textures and adding shaders on top was more challenging than we had initially thought. We learned a lot about which aspects of textures are preserved when mapping them to 3D models, and which are not.</li>
     </ul>
     <h2>Project Links</h2>
     <ul>
-        <li><strong>Full Results:</strong> <a href=https://drive.google.com/drive/folders/1w7E7JuO_nEW7F01tdn2gu8siVbKvwKQW?usp=sharing>https://drive.google.com/drive/folders/1w7E7JuO_nEW7F01tdn2gu8siVbKvwKQW?usp=sharing</a></li>
-        <li><strong>Code Repo:</strong> <a href=https://github.com/superjay0208/cs184_sp25_final_project>https://github.com/superjay0208/cs184_sp25_final_project</a></li>
+        <li><strong>Full Results:</strong> <a href="https://drive.google.com/drive/folders/1w7E7JuO_nEW7F01tdn2gu8siVbKvwKQW?usp=sharing">https://drive.google.com/drive/folders/1w7E7JuO_nEW7F01tdn2gu8siVbKvwKQW?usp=sharing</a></li>
+        <li><strong>Code Repo:</strong> <a href="https://github.com/superjay0208/cs184_sp25_final_project">https://github.com/superjay0208/cs184_sp25_final_project</a></li>
         <li><strong>Website:</strong> <a href="https://superjay0208.github.io/" target="_blank">https://superjay0208.github.io/</a></li>
         <li><strong>Presentation:</strong> <a href="https://docs.google.com/presentation/d/1RfQtmLIhLqFPoOdPa2pzxL3zuBOIFqItZJ2SWw2I9kE/edit?usp=sharing" target="_blank">Google Slides Presentation</a></li>
         <li><strong>Video Demo:</strong> <a href="https://drive.google.com/file/d/1MA8pasBDFyrZDKzD0pBjy2Qdmx0CHSao/view?usp=sharing" target="_blank">Google Drive Video Demo</a></li>
@@ -209,17 +223,17 @@
       <div class="showcase-group">
         <h3>Thermal</h3>
         <div class="group-images">
-          <img src="images/tung_thermal.apng" alt="tung_thermal">
-          <img src="images/tralala_thermal.apng" alt="tralala_thermal">
+          <img src="images/tung_thermal.apng" alt="tung_thermal" loading="lazy" decoding="async">
+          <img src="images/tralala_thermal.apng" alt="tralala_thermal" loading="lazy" decoding="async">
         </div>
-        <p class="caption">Tung Tung Tung Sahur and Tralalero Tralala with termal coloring shader.</p>
+        <p class="caption">Tung Tung Tung Sahur and Tralalero Tralala with thermal coloring shader.</p>
       </div>
       <!-- Polka Dot Group -->
       <div class="showcase-group">
         <h3>Polka Dot</h3>
         <div class="group-images">
-          <img src="images/tung_polka.apng" alt="tung_polka">
-          <img src="images/tralala_polka.apng" alt="tralala_polka">
+          <img src="images/tung_polka.apng" alt="tung_polka" loading="lazy" decoding="async">
+          <img src="images/tralala_polka.apng" alt="tralala_polka" loading="lazy" decoding="async">
         </div>
         <p class="caption">Tung Tung Tung Sahur and Tralalero Tralala with polka dot shader.</p>
       </div>
@@ -228,8 +242,8 @@
       <div class="showcase-group">
         <h3>Notebook</h3>
         <div class="group-images">
-          <img src="images/tung_notebook.apng" alt="tung_notebook">
-          <img src="images/tralala_notebook.apng" alt="tralala_notebook">
+          <img src="images/tung_notebook.apng" alt="tung_notebook" loading="lazy" decoding="async">
+          <img src="images/tralala_notebook.apng" alt="tralala_notebook" loading="lazy" decoding="async">
         </div>
         <p class="caption">Tung Tung Tung Sahur and Tralalero Tralala with notebook shader.</p>
       </div>
@@ -258,8 +272,9 @@
         <li><strong>Minjae Kwak:</strong> I worked on exploring textured NPR methods with crosshatch pattern and recording the results for the final presentation and the website. </li>
         <li><strong>Zixun Wang:</strong> I worked mainly on basic toon shading framework, and camera interactions. I helped with drafting the write-up website.</li>
         <li><strong>Shashwat Bansal:</strong> I mainly worked on the upgrades of the toon shader, along with some other shaders such as Notebook and Polka Dot. I also implemented the chroma shader and the guap shader, for the former of which I added multiple lighting sources to <code>main.cpp</code>.</li>
-        <li><strong>Jaymes Ryan Garbe:</strong> I helped build the camera rotation mechanism to automatically keep rotating the models while keeping light sources fixed. I also helped setup the OpenGL framework.</fli>
+        <li><strong>Jaymes Ryan Garbe:</strong> I helped build the camera rotation mechanism to automatically keep rotating the models while keeping light sources fixed. I also helped setup the OpenGL framework.</li>
     </ul>
 
+  </main>
 </body>
 </html>

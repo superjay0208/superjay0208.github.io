@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>CS180 • Project 3 — Image Warping & Mosaicing</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="../../assets/monogram.svg" type="image/svg+xml">
+  <link rel="preload" href="../../slide-projector/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <style>
     :root { --ink:#333; --sub:#555; --rule:#ccc; }
     * { box-sizing: border-box; }
@@ -91,8 +93,16 @@
     .cols-2 .image-block { flex: 1 1 48%; max-width: 48%; }
     .cols-3 .image-block { flex: 1 1 31%; max-width: 31%; }
   </style>
+  <link rel="stylesheet" href="../../studies.css">
+  <script src="../../studies.js" defer></script>
 </head>
 <body>
+  <div class="study-progress" aria-hidden="true"></div>
+  <header class="study-topbar">
+    <a class="study-home" href="../../#studies"><b>zw<span>°</span></b> <span>← Portfolio</span></a>
+    <nav class="study-switcher" aria-label="CS 180 projects"><a href="../project0/index.html">00 · Camera</a><a href="../project1/index.html">01 · Colorize</a><a href="../project2/index.html">02 · Frequencies</a><a href="../project3/index.html" aria-current="page">03 · Mosaics</a><a href="../project4/index.html">04 · NeRF</a><a href="../project5/index.html">05 · Diffusion</a></nav>
+  </header>
+  <main class="study-shell">
 
   <h1>Programming Project #3: [Auto]Stitching Photo Mosaics</h1>
 
@@ -114,11 +124,11 @@
   <h3>Set 1 — Door</h3>
   <div class="group-images">
     <div class="image-block">
-      <img src="images/door_1.jpg" alt="door set frame 1">
+      <img src="images/door_1.jpg" alt="door set frame 1" decoding="async">
       <div class="caption">door_1.jpg</div>
     </div>
     <div class="image-block">
-      <img src="images/door_2.jpg" alt="door set frame 2">
+      <img src="images/door_2.jpg" alt="door set frame 2" decoding="async">
       <div class="caption">door_2.jpg</div>
     </div>
   </div>
@@ -126,11 +136,11 @@
   <h3>Set 2 — Fridge</h3>
   <div class="group-images">
     <div class="image-block">
-      <img src="images/fridge_1.jpg" alt="fridge set frame 1">
+      <img src="images/fridge_1.jpg" alt="fridge set frame 1" loading="lazy" decoding="async">
       <div class="caption">fridge_1.jpg</div>
     </div>
     <div class="image-block">
-      <img src="images/fridge_2.jpg" alt="fridge set frame 2">
+      <img src="images/fridge_2.jpg" alt="fridge set frame 2" loading="lazy" decoding="async">
       <div class="caption">fridge_2.jpg</div>
     </div>
   </div>
@@ -138,11 +148,11 @@
   <h3>Set 3 — Laptop</h3>
   <div class="group-images">
     <div class="image-block">
-      <img src="images/laptop_1.jpg" alt="laptop set frame 1">
+      <img src="images/laptop_1.jpg" alt="laptop set frame 1" loading="lazy" decoding="async">
       <div class="caption">laptop_1.jpg</div>
     </div>
     <div class="image-block">
-      <img src="images/laptop_2.jpg" alt="laptop set frame 2">
+      <img src="images/laptop_2.jpg" alt="laptop set frame 2" loading="lazy" decoding="async">
       <div class="caption">laptop_2.jpg</div>
     </div>
   </div>
@@ -176,19 +186,19 @@
   <h3>Correspondences Visualized</h3>
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/door_points.png" alt="door points">
+      <img src="images/door_points.png" alt="door points" loading="lazy" decoding="async">
       <div class="caption">door_points.png — clicked matches used to build A and b</div>
     </div>
   </div>
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/fridge_points.png" alt="fridge points">
+      <img src="images/fridge_points.png" alt="fridge points" loading="lazy" decoding="async">
       <div class="caption">fridge_points.png — clicked matches used to build A and b</div>
     </div>
   </div>
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/laptop_points.png" alt="laptop points">
+      <img src="images/laptop_points.png" alt="laptop points" loading="lazy" decoding="async">
       <div class="caption">laptop_points.png — clicked matches used to build A and b</div>
     </div>
   </div>
@@ -229,19 +239,19 @@ Recovered H:
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/door_rectification.png" alt="door rectification compare">
+      <img src="images/door_rectification.png" alt="door rectification compare" loading="lazy" decoding="async">
       <div class="caption">door_rectification.png — bilinear vs nearest</div>
     </div>
   </div>
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/fridge_rectification.png" alt="fridge rectification compare">
+      <img src="images/fridge_rectification.png" alt="fridge rectification compare" loading="lazy" decoding="async">
       <div class="caption">fridge_rectification.png — bilinear vs nearest</div>
     </div>
   </div>
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/laptop_rectification.png" alt="laptop rectification compare">
+      <img src="images/laptop_rectification.png" alt="laptop rectification compare" loading="lazy" decoding="async">
       <div class="caption">laptop_rectification.png — bilinear vs nearest</div>
     </div>
   </div>
@@ -254,17 +264,17 @@ Recovered H:
 
   <div class="group-images">
     <div class="image-block">
-      <img src="images/door_mosaic.png" alt="door mosaic">
+      <img src="images/door_mosaic.png" alt="door mosaic" loading="lazy" decoding="async">
       <div class="caption">door_mosaic.png</div>
     </div>
     <div class="image-block">
-      <img src="images/fridge_mosaic.png" alt="fridge mosaic">
+      <img src="images/fridge_mosaic.png" alt="fridge mosaic" loading="lazy" decoding="async">
       <div class="caption">fridge_mosaic.png</div>
     </div>
   </div>
   <div class="group-images">
     <div class="image-block">
-      <img src="images/laptop_mosaic.png" alt="laptop mosaic">
+      <img src="images/laptop_mosaic.png" alt="laptop mosaic" loading="lazy" decoding="async">
       <div class="caption">laptop_mosaic.png</div>
     </div>
   </div>
@@ -284,7 +294,7 @@ Recovered H:
 
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/door_corners.png" alt="door corners">
+      <img src="images/door_corners.png" alt="door corners" loading="lazy" decoding="async">
       <div class="caption">Harris & ANMS corners — Door </div>
     </div>
   </div>
@@ -299,13 +309,13 @@ Recovered H:
 
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/door_descriptor.png" alt="door 8x8 descriptors">
+      <img src="images/door_descriptor.png" alt="door 8x8 descriptors" loading="lazy" decoding="async">
       <div class="caption">Door — four 8×8 descriptors (from 40×40 patches)</div>
     </div>
   </div>
     <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/door_descriptor_location.png" alt="door 8x8 descriptors locations">
+      <img src="images/door_descriptor_location.png" alt="door 8x8 descriptors locations" loading="lazy" decoding="async">
       <div class="caption">Door — four 8×8 descriptor locations (from 40×40 patches)</div>
     </div>
   </div>
@@ -320,7 +330,7 @@ A match was only accepted if the distance to the nearest neighbor was significan
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/door_correspondance.png" alt="door matches">
+      <img src="images/door_correspondance.png" alt="door matches" loading="lazy" decoding="async">
       <div class="caption">Door — putative matches after Lowe ratio</div>
     </div>
   </div>
@@ -341,34 +351,35 @@ A match was only accepted if the distance to the nearest neighbor was significan
   <h3>Manual vs. Automatic Stitching</h3>
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/door_mosaic.png" alt="door manual mosaic">
+      <img src="images/door_mosaic.png" alt="door manual mosaic" loading="lazy" decoding="async">
       <div class="caption">Door — manual correspondences</div>
     </div>
     <div class="image-block">
-      <img src="images/door_auto.png" alt="door auto mosaic">
+      <img src="images/door_auto.png" alt="door auto mosaic" loading="lazy" decoding="async">
       <div class="caption">Door — automatic (Harris+ANMS+Desc+Match+RANSAC)</div>
     </div>
   </div>
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/fridge_mosaic.png" alt="fridge manual mosaic">
+      <img src="images/fridge_mosaic.png" alt="fridge manual mosaic" loading="lazy" decoding="async">
       <div class="caption">Fridge — manual</div>
     </div>
     <div class="image-block">
-      <img src="images/fridge_auto.png" alt="fridge auto mosaic">
+      <img src="images/fridge_auto.png" alt="fridge auto mosaic" loading="lazy" decoding="async">
       <div class="caption">Fridge — automatic</div>
     </div>
   </div>
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/laptop_mosaic.png" alt="laptop manual mosaic">
+      <img src="images/laptop_mosaic.png" alt="laptop manual mosaic" loading="lazy" decoding="async">
       <div class="caption">Laptop — manual</div>
     </div>
     <div class="image-block">
-      <img src="images/laptop_auto.png" alt="laptop auto mosaic">
+      <img src="images/laptop_auto.png" alt="laptop auto mosaic" loading="lazy" decoding="async">
       <div class="caption">Laptop — automatic</div>
     </div>
   </div>
 
+  </main>
 </body>
 </html>

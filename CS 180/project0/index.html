@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>CS180 • Project 0 — Becoming Friends with Your Camera</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="../../assets/monogram.svg" type="image/svg+xml">
+  <link rel="preload" href="../../slide-projector/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <style>
     :root { --ink:#333; --sub:#555; --rule:#ccc; }
     * { box-sizing: border-box; }
@@ -90,35 +92,44 @@
       body { box-shadow: none; }
     }
   </style>
+  <link rel="stylesheet" href="../../studies.css">
+  <script src="../../studies.js" defer></script>
 </head>
 <body>
+  <div class="study-progress" aria-hidden="true"></div>
+  <header class="study-topbar">
+    <a class="study-home" href="../../#studies"><b>zw<span>°</span></b> <span>← Portfolio</span></a>
+    <nav class="study-switcher" aria-label="CS 180 projects"><a href="../project0/index.html" aria-current="page">00 · Camera</a><a href="../project1/index.html">01 · Colorize</a><a href="../project2/index.html">02 · Frequencies</a><a href="../project3/index.html">03 · Mosaics</a><a href="../project4/index.html">04 · NeRF</a><a href="../project5/index.html">05 · Diffusion</a></nav>
+  </header>
+  <main class="study-shell">
 
   <h1>CS180 — Project 0: Becoming Friends with Your Camera</h1>
 
 
   <h2>Part 1 — Selfie: The Wrong Way vs. The Right Way</h2>
   <div class="group">
-    <div class="group-images">
-      <img src="images/face1.jpg" alt="Close-up selfie from very near (wrong way)." />
-      <img src="images/face2.jpg" alt="Stepped back and zoomed portrait with same face size (right way)." />
+    <div class="group-images" data-compare-pair>
+      <img src="images/face1.jpg" alt="Close-up selfie from very near (wrong way)." decoding="async" />
+      <img src="images/face2.jpg" alt="Stepped back and zoomed portrait with same face size (right way)." decoding="async" />
     </div>
     <p class="caption">Close portrait comparison — left: close-up; right: stepped-back + zoomed to match face size.</p>
   </div>
 
   <h2>Part 2 — Architectural Perspective Compression</h2>
   <div class="group">
-    <div class="group-images">
-      <img src="images/hallway2.jpg" alt="Zoomed-in long street/path view (flattened/compressed perspective)." />
-      <img src="images/hallway1.jpg" alt="Walked forward, no zoom, matching scene size (deeper perspective)." />
+    <div class="group-images" data-compare-pair>
+      <img src="images/hallway2.jpg" alt="Zoomed-in long street/path view (flattened/compressed perspective)." loading="lazy" decoding="async" />
+      <img src="images/hallway1.jpg" alt="Walked forward, no zoom, matching scene size (deeper perspective)." loading="lazy" decoding="async" />
     </div>
     <p class="caption">Hallway scene comparison — left: zoomed from afar (flatter look); right: moved closer, no zoom.</p>
   </div>
 
   <h2>Part 3 — The Dolly Zoom (Animated GIF)</h2>
   <div class="group solo">
-    <img src="images/shark.gif" alt="Dolly zoom GIF created from stills: camera moves back while zooming in." />
+    <img src="images/shark.gif" alt="Dolly zoom GIF created from stills: camera moves back while zooming in." loading="lazy" decoding="async" />
   </div>
   <p class="caption">Dolly Zoom — camera dolly back + zoom in, keeping subject size roughly constant.</p>
 
+  </main>
 </body>
 </html>

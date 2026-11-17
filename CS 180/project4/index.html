@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>CS180 • Project 4 — Neural Radiance Fields</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="../../assets/monogram.svg" type="image/svg+xml">
+  <link rel="preload" href="../../slide-projector/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <style>
     :root { --ink:#333; --sub:#555; --rule:#ccc; }
     * { box-sizing: border-box; }
@@ -75,8 +77,16 @@
     .cols-2 .image-block { flex: 1 1 48%; max-width: 48%; }
     .cols-3 .image-block { flex: 1 1 31%; max-width: 31%; }
   </style>
+  <link rel="stylesheet" href="../../studies.css">
+  <script src="../../studies.js" defer></script>
 </head>
 <body>
+  <div class="study-progress" aria-hidden="true"></div>
+  <header class="study-topbar">
+    <a class="study-home" href="../../#studies"><b>zw<span>°</span></b> <span>← Portfolio</span></a>
+    <nav class="study-switcher" aria-label="CS 180 projects"><a href="../project0/index.html">00 · Camera</a><a href="../project1/index.html">01 · Colorize</a><a href="../project2/index.html">02 · Frequencies</a><a href="../project3/index.html">03 · Mosaics</a><a href="../project4/index.html" aria-current="page">04 · NeRF</a><a href="../project5/index.html">05 · Diffusion</a></nav>
+  </header>
+  <main class="study-shell">
 
   <h1>Programming Project #4: Neural Radiance Field</h1>
 
@@ -102,11 +112,11 @@
   <h3>0.1-0.2: tags and object</h3>
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/tag.jpg" alt="aruco tag example">
+      <img src="images/tag.jpg" alt="aruco tag example" decoding="async">
       <div class="caption">tag example</div>
     </div>
     <div class="image-block">
-      <img src="images/object.jpg" alt="object example">
+      <img src="images/object.jpg" alt="object example" decoding="async">
       <div class="caption">object example</div>
     </div>
   </div>
@@ -114,11 +124,11 @@
   <h3>0.3: Camera Frustums in Viser </h3>
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/fiston1.png" alt="camera frustums front view">
+      <img src="images/fiston1.png" alt="camera frustums front view" loading="lazy" decoding="async">
       <div class="caption">Viser camera frustums 1.</div>
     </div>
     <div class="image-block">
-      <img src="images/fiston2.png" alt="camera frustums top view">
+      <img src="images/fiston2.png" alt="camera frustums top view" loading="lazy" decoding="async">
       <div class="caption">Viser camera frustums 2.</div>
     </div>
   </div>
@@ -145,15 +155,15 @@
   <h3>1.2: Training Progression — Provided Test Image</h3>
   <div class="group-images cols-3">
     <div class="image-block">
-      <img src="images/fox_100.png" alt="test image iteration 100">
+      <img src="images/fox_100.png" alt="test image iteration 100" loading="lazy" decoding="async">
       <div class="caption">Iteration 100.</div>
     </div>
     <div class="image-block">
-      <img src="images/fox_500.png" alt="test image iteration 500">
+      <img src="images/fox_500.png" alt="test image iteration 500" loading="lazy" decoding="async">
       <div class="caption">Iteration 500.</div>
     </div>
     <div class="image-block">
-      <img src="images/fox_2000.png" alt="test image iteration 2000">
+      <img src="images/fox_2000.png" alt="test image iteration 2000" loading="lazy" decoding="async">
       <div class="caption">Iteration 2000 (final).</div>
     </div>
   </div>
@@ -161,15 +171,15 @@
   <h3>1.3: Training Progression — My Own Image</h3>
   <div class="group-images cols-3">
     <div class="image-block">
-      <img src="images/piggy_100.png" alt="own image iteration 100">
+      <img src="images/piggy_100.png" alt="own image iteration 100" loading="lazy" decoding="async">
       <div class="caption">Iteration 100.</div>
     </div>
     <div class="image-block">
-      <img src="images/piggy_500.png" alt="own image iteration 500">
+      <img src="images/piggy_500.png" alt="own image iteration 500" loading="lazy" decoding="async">
       <div class="caption">Iteration 500.</div>
     </div>
     <div class="image-block">
-      <img src="images/piggy_2000.png" alt="own image iteration 2000">
+      <img src="images/piggy_2000.png" alt="own image iteration 2000" loading="lazy" decoding="async">
       <div class="caption">Iteration 2500 (final).</div>
     </div>
   </div>
@@ -181,7 +191,7 @@
   <h3>1.5: PSNR Curve</h3>
   <div class="group-images">
     <div class="image-block">
-      <img src="images/piggy_psnr.png" alt="PSNR curve">
+      <img src="images/piggy_psnr.png" alt="PSNR curve" loading="lazy" decoding="async">
       <div class="caption">PSNR vs iterations for piggy.</div>
     </div>
   </div>
@@ -201,11 +211,11 @@
   <h3>2.3: Visualization of Rays and Samples with Cameras</h3>
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/lego_single.png" alt="lego iteration 100">
+      <img src="images/lego_single.png" alt="lego iteration 100" loading="lazy" decoding="async">
       <div class="caption">Lego single camera.</div>
     </div>
     <div class="image-block">
-      <img src="images/lego_multi.png" alt="lego iteration 500">
+      <img src="images/lego_multi.png" alt="lego iteration 500" loading="lazy" decoding="async">
       <div class="caption">Lego multi-camera.</div>
     </div>
   </div>
@@ -229,15 +239,15 @@
   <h3>2.5: Lego Training Progression</h3>
   <div class="group-images cols-3">
     <div class="image-block">
-      <img src="images/lego_100.png" alt="lego iteration 100">
+      <img src="images/lego_100.png" alt="lego iteration 100" loading="lazy" decoding="async">
       <div class="caption">Lego — iteration 100.</div>
     </div>
     <div class="image-block">
-      <img src="images/lego_500.png" alt="lego iteration 500">
+      <img src="images/lego_500.png" alt="lego iteration 500" loading="lazy" decoding="async">
       <div class="caption">Lego — iteration 500.</div>
     </div>
     <div class="image-block">
-      <img src="images/lego_1000.png" alt="lego iteration 1000">
+      <img src="images/lego_1000.png" alt="lego iteration 1000" loading="lazy" decoding="async">
       <div class="caption">Lego — iteration 1000.</div>
     </div>
   </div>
@@ -245,14 +255,14 @@
   <h3>2.5: PSNR Curve on Validation Set</h3>
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/lego_psnr.png" alt="lego psnr curve">
+      <img src="images/lego_psnr.png" alt="lego psnr curve" loading="lazy" decoding="async">
       <div class="caption">Lego validation PSNR over training iterations.</div>
     </div>
   </div>
 
   <h3>2.5: Spherical Rendering Video (Lego)</h3>
     <div class="image-block">
-      <img src="images/lego.gif" alt="lego nerf gif">
+      <img src="images/lego.gif" alt="lego nerf gif" loading="lazy" decoding="async">
       <div class="caption">GIF — camera circling lego showing novel views.</div>
     </div>
   </div>
@@ -263,7 +273,7 @@
   <h3>2.6.1: GIF of Camera Circling My Object</h3>
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/trader.gif" alt="trader nerf gif">
+      <img src="images/trader.gif" alt="trader nerf gif" loading="lazy" decoding="async">
       <div class="caption">GIF — camera circling my object showing novel views.</div>
     </div>
   </div>
@@ -279,7 +289,7 @@
   <h3>2.6.3: Training Loss Plot</h3>
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/trader_psnr.png" alt="trader loss curve">
+      <img src="images/trader_psnr.png" alt="trader loss curve" loading="lazy" decoding="async">
       <div class="caption">Training loss vs iterations for my object NeRF.</div>
     </div>
   </div>
@@ -287,19 +297,20 @@
   <h3>2.6.4: Intermediate Renders</h3>
   <div class="group-images cols-3">
     <div class="image-block">
-      <img src="images/trader_100.png" alt="trader iteration 100">
+      <img src="images/trader_100.png" alt="trader iteration 100" loading="lazy" decoding="async">
       <div class="caption">Iteration 100.</div>
     </div>
     <div class="image-block">
-      <img src="images/trader_500.png" alt="trader iteration 500">
+      <img src="images/trader_500.png" alt="trader iteration 500" loading="lazy" decoding="async">
       <div class="caption">Iteration 500.</div>
     </div>
     <div class="image-block">
-      <img src="images/trader_2000.png" alt="trader iteration 2000">
+      <img src="images/trader_2000.png" alt="trader iteration 2000" loading="lazy" decoding="async">
       <div class="caption">Iteration 2000.</div>
     </div>
   </div>
 
 
+  </main>
 </body>
 </html>

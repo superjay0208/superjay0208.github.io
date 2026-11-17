@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>CS180 • Project 1 — Colorizing Prokudin-Gorskii</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="../../assets/monogram.svg" type="image/svg+xml">
+  <link rel="preload" href="../../slide-projector/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <style>
     :root { --ink:#333; --sub:#555; --rule:#ccc; }
     * { box-sizing: border-box; }
@@ -86,8 +88,16 @@
       body { box-shadow: none; }
     }
   </style>
+  <link rel="stylesheet" href="../../studies.css">
+  <script src="../../studies.js" defer></script>
 </head>
 <body>
+  <div class="study-progress" aria-hidden="true"></div>
+  <header class="study-topbar">
+    <a class="study-home" href="../../#studies"><b>zw<span>°</span></b> <span>← Portfolio</span></a>
+    <nav class="study-switcher" aria-label="CS 180 projects"><a href="../project0/index.html">00 · Camera</a><a href="../project1/index.html" aria-current="page">01 · Colorize</a><a href="../project2/index.html">02 · Frequencies</a><a href="../project3/index.html">03 · Mosaics</a><a href="../project4/index.html">04 · NeRF</a><a href="../project5/index.html">05 · Diffusion</a></nav>
+  </header>
+  <main class="study-shell">
 
   <h1>Programming Project #1: Colorizing the Prokudin-Gorskii Collection</h1>
 
@@ -122,7 +132,7 @@
   </p>
 
   <figure style="text-align: center;">
-    <img src="images/Image_pyramid.png" alt="Image Pyramid Example" style="max-width: 80%; height: auto; border: 1px solid #ccc; border-radius: 8px;">
+    <img src="images/Image_pyramid.png" alt="Image Pyramid Example" style="max-width: 80%; height: auto; border: 1px solid #ccc; border-radius: 8px;" decoding="async">
     <figcaption>
       Figure: Illustration of an image pyramid (source: 
       <a href="https://en.wikipedia.org/wiki/Pyramid_(image_processing)" target="_blank">Wikipedia</a>)
@@ -136,7 +146,7 @@
       <h3>cathedral.jpg</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/cathedral_aligned.jpg" alt="Colorized result for cathedral.jpg" />
+          <img src="images/cathedral_aligned.jpg" alt="Colorized result for cathedral.jpg" decoding="async" />
           <div class="caption">Processing Time: <strong>0.10s</strong> | Green: <strong>(5, 2)</strong> | Red: <strong>(12, 3)</strong></div>
         </div>
       </div>
@@ -146,7 +156,7 @@
       <h3>church.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/church_aligned.jpg" alt="Colorized result for church.tif" />
+          <img src="images/church_aligned.jpg" alt="Colorized result for church.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>9.95s</strong> | Green: <strong>(25, 3)</strong> | Red: <strong>(58, -5)</strong></div>
         </div>
       </div>
@@ -156,7 +166,7 @@
       <h3>harvesters.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/harvesters_aligned.jpg" alt="Colorized result for harvesters.tif" />
+          <img src="images/harvesters_aligned.jpg" alt="Colorized result for harvesters.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>9.24s</strong> | Green: <strong>(60, 16)</strong> | Red: <strong>(124, 14)</strong></div>
         </div>
       </div>
@@ -166,7 +176,7 @@
       <h3>icon.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/icon_aligned.jpg" alt="Colorized result for icon.tif" />
+          <img src="images/icon_aligned.jpg" alt="Colorized result for icon.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>9.45s</strong> | Green: <strong>(40, 17)</strong> | Red: <strong>(89, 23)</strong></div>
         </div>
       </div>
@@ -176,7 +186,7 @@
       <h3>melons.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/melons_aligned.jpg" alt="Colorized result for melons.tif" />
+          <img src="images/melons_aligned.jpg" alt="Colorized result for melons.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>9.37s</strong> | Green: <strong>(82, 9)</strong> | Red: <strong>(177, 11)</strong></div>
         </div>
       </div>
@@ -186,7 +196,7 @@
       <h3>monastery.jpg</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/monastery_aligned.jpg" alt="Colorized result for monastery.jpg" />
+          <img src="images/monastery_aligned.jpg" alt="Colorized result for monastery.jpg" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>0.09s</strong> | Green: <strong>(-3, 2)</strong> | Red: <strong>(3, 2)</strong></div>
         </div>
       </div>
@@ -196,7 +206,7 @@
       <h3>self_portrait.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/self_portrait_aligned.jpg" alt="Colorized result for self_portrait.tif" />
+          <img src="images/self_portrait_aligned.jpg" alt="Colorized result for self_portrait.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>9.34s</strong> | Green: <strong>(79, 29)</strong> | Red: <strong>(175, 34)</strong></div>
         </div>
       </div>
@@ -206,7 +216,7 @@
       <h3>three_generations.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/three_generations_aligned.jpg" alt="Colorized result for three_generations.tif" />
+          <img src="images/three_generations_aligned.jpg" alt="Colorized result for three_generations.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>9.12s</strong> | Green: <strong>(55, 13)</strong> | Red: <strong>(112, 10)</strong></div>
         </div>
       </div>
@@ -216,7 +226,7 @@
       <h3>tobolsk.jpg</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/tobolsk_aligned.jpg" alt="Colorized result for tobolsk.jpg" />
+          <img src="images/tobolsk_aligned.jpg" alt="Colorized result for tobolsk.jpg" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>0.13s</strong> | Green: <strong>(3, 2)</strong> | Red: <strong>(6, 3)</strong></div>
         </div>
       </div>
@@ -226,7 +236,7 @@
       <h3>italil.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/italil_aligned.jpg" alt="Colorized result for italil.tif" />
+          <img src="images/italil_aligned.jpg" alt="Colorized result for italil.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>9.32s</strong> | Green: <strong>(38, 21)</strong> | Red: <strong>(77, 35)</strong></div>
         </div>
       </div>
@@ -236,7 +246,7 @@
       <h3>lastochikino.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/lastochikino_aligned.jpg" alt="Colorized result for lastochikino.tif" />
+          <img src="images/lastochikino_aligned.jpg" alt="Colorized result for lastochikino.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>10.76s</strong> | Green: <strong>(-3, -2)</strong> | Red: <strong>(76, -9)</strong></div>
         </div>
       </div>
@@ -246,7 +256,7 @@
       <h3>lugano.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/lugano_aligned.jpg" alt="Colorized result for lugano.tif" />
+          <img src="images/lugano_aligned.jpg" alt="Colorized result for lugano.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>11.19s</strong> | Green: <strong>(41, -17)</strong> | Red: <strong>(92, -28)</strong></div>
         </div>
       </div>
@@ -256,7 +266,7 @@
       <h3>siren.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/siren_aligned.jpg" alt="Colorized result for siren.tif" />
+          <img src="images/siren_aligned.jpg" alt="Colorized result for siren.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>11.33s</strong> | Green: <strong>(49, -7)</strong> | Red: <strong>(96, -25)</strong></div>
         </div>
       </div>
@@ -266,7 +276,7 @@
       <h3>emir.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/emir_aligned.jpg" alt="Colorized result for emir.tif" />
+          <img src="images/emir_aligned.jpg" alt="Colorized result for emir.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>9.48s</strong> | Green: <strong>(49, 24)</strong> | Red: <strong>(102, 43)</strong></div>
         </div>
       </div>
@@ -281,7 +291,7 @@
       <h3>hut.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/hut_aligned.jpg" alt="Colorized result for hut.tif" />
+          <img src="images/hut_aligned.jpg" alt="Colorized result for hut.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>9.31s</strong> | Green: <strong>(48, 38)</strong> | Red: <strong>(107, 55)</strong></div>
         </div>
       </div>
@@ -292,7 +302,7 @@
       <h3>napoleon.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/napoleon_aligned.jpg" alt="Colorized result for napoleon.tif" />
+          <img src="images/napoleon_aligned.jpg" alt="Colorized result for napoleon.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>9.93s</strong> | Green: <strong>(63, 5)</strong> | Red: <strong>(132, -1)</strong></div>
         </div>
       </div>
@@ -302,7 +312,7 @@
       <h3>sea.tif</h3>
       <div class="group-images">
         <div class="image-block">
-          <img src="images/sea_aligned.jpg" alt="Colorized result for sea.tif" />
+          <img src="images/sea_aligned.jpg" alt="Colorized result for sea.tif" loading="lazy" decoding="async" />
           <div class="caption">Processing Time: <strong>11.22s</strong> | Green: <strong>(43, -34)</strong> | Red: <strong>(258, -70)</strong></div>
         </div>
       </div>
@@ -313,5 +323,6 @@
   <p>
     I spent most of the time tuning the image-pyramid hyperparameters. I played with the number of levels, the downscale factor, and the fine-level search window. More levels (and slightly larger fine windows) helped stabilize big misalignments without blowing up runtime, but the gains tapered off quickly after 4 levels. I also varied the crop fraction during scoring so the matcher focused on the interior; small crops (~5–10%) were safest—anything larger started dropping useful signal. I tried switching to zero-mean NCC (subtracting the mean before correlation) to reduce sensitivity to brightness shifts, but in practice it didn’t improve the tricky cases much compared to plain NCC with the tuned pyramid. Overall, careful pyramid settings (≈4 levels, 0.5 downscale, ±2–3 px fine search, ~5–10% crop) worked well for me.  </p>
   <p>
+  </main>
 </body>
 </html>

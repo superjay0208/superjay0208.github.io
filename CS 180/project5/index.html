@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>CS180 • Project 5 — Diffusion + Flow Matching</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="../../assets/monogram.svg" type="image/svg+xml">
+  <link rel="preload" href="../../slide-projector/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <style>
     :root { --ink:#333; --sub:#555; --rule:#ccc; --bg:#fff; }
     * { box-sizing: border-box; }
@@ -90,9 +92,17 @@
     .one-up .image-block{ flex: 1 1 100%; max-width: 860px; }
     .tight .caption{ margin-top: 6px; }
   </style>
+  <link rel="stylesheet" href="../../studies.css">
+  <script src="../../studies.js" defer></script>
 </head>
 
 <body>
+  <div class="study-progress" aria-hidden="true"></div>
+  <header class="study-topbar">
+    <a class="study-home" href="../../#studies"><b>zw<span>°</span></b> <span>← Portfolio</span></a>
+    <nav class="study-switcher" aria-label="CS 180 projects"><a href="../project0/index.html">00 · Camera</a><a href="../project1/index.html">01 · Colorize</a><a href="../project2/index.html">02 · Frequencies</a><a href="../project3/index.html">03 · Mosaics</a><a href="../project4/index.html">04 · NeRF</a><a href="../project5/index.html" aria-current="page">05 · Diffusion</a></nav>
+  </header>
+  <main class="study-shell">
 
   <h1>
     Programming Project #5: Fun with Diffusion Models
@@ -121,7 +131,7 @@
 
   <div class="group-images cols-1">
     <div class="image-block">
-      <img src="images/0.0.png" alt="step 30 and 60 for three prompts">
+      <img src="images/0.0.png" alt="step 30 and 60 for three prompts" decoding="async">
       <div class="caption">step 30 and 60 for the three prompts</div>
     </div>
   </div>
@@ -134,7 +144,7 @@
 
   <div class="group-images cols-1">
     <div class="image-block">
-      <img src="images/1.1.png" alt="campanile">
+      <img src="images/1.1.png" alt="campanile" decoding="async">
       <div class="caption">Original, noisy at t=250, 500, 750.</div>
     </div>
   </div>
@@ -146,7 +156,7 @@
 
   <div class="group-images cols-1">
     <div class="image-block">
-      <img src="images/1.2.png" alt="campanile">
+      <img src="images/1.2.png" alt="campanile" loading="lazy" decoding="async">
       <div class="caption">Noise at t=250, 500, 750 and Gaussian blur denoised.</div>
     </div>
   </div>
@@ -158,7 +168,7 @@
 
   <div class="group-images cols-1">
     <div class="image-block">
-      <img src="images/1.3.png" alt="campanile">
+      <img src="images/1.3.png" alt="campanile" loading="lazy" decoding="async">
       <div class="caption">One-step denoised at t=250, 500, 750.</div>
     </div>
   </div>
@@ -171,7 +181,7 @@
 
   <div class="group-images cols-1">
     <div class="image-block">
-      <img src="images/1.4.png" alt="campanile">
+      <img src="images/1.4.png" alt="campanile" loading="lazy" decoding="async">
       <div class="caption">Iterative denoising at strided timesteps.</div>
     </div>
   </div>
@@ -184,7 +194,7 @@
 
   <div class="group-images cols-1">
     <div class="image-block">
-      <img src="images/1.5.png" alt="campanile">
+      <img src="images/1.5.png" alt="campanile" loading="lazy" decoding="async">
       <div class="caption">Diffusion sampling from pure noise.</div>
     </div>
   </div>
@@ -196,7 +206,7 @@
 
   <div class="group-images cols-1">
     <div class="image-block">
-      <img src="images/1.6.png" alt="campanile">
+      <img src="images/1.6.png" alt="campanile" loading="lazy" decoding="async">
       <div class="caption">CFG sampling from pure noise.</div>
   </div>
   </div>
@@ -209,15 +219,15 @@
 
   <div class="group-images cols-3">
     <div class="image-block">
-      <img src="images/1.7.1.png" alt="Campanile at various starting indices">
+      <img src="images/1.7.1.png" alt="Campanile at various starting indices" loading="lazy" decoding="async">
     <div class="caption">Campanile edits at various starting indices.</div>
     </div>
     <div class="image-block">
-      <img src="images/1.7.2.png" alt="Labubu at various starting indices">
+      <img src="images/1.7.2.png" alt="Labubu at various starting indices" loading="lazy" decoding="async">
       <div class="caption">Labubu edits at various starting indices.</div>
     </div>
     <div class="image-block">
-      <img src="images/1.7.3.png" alt="Chocolate at various starting indices">
+      <img src="images/1.7.3.png" alt="Chocolate at various starting indices" loading="lazy" decoding="async">
       <div class="caption">Chocolate edits at various starting indices.</div>
   </div>
   </div>
@@ -227,15 +237,15 @@
 
   <div class="group-images cols-3">
     <div class="image-block">
-      <img src="images/1.8.1.png" alt="Bear at various starting indices">
+      <img src="images/1.8.1.png" alt="Bear at various starting indices" loading="lazy" decoding="async">
     <div class="caption">Bear edits at various starting indices.</div>
     </div>
     <div class="image-block">
-      <img src="images/1.8.2.png" alt="drawn piggy at various starting indices">
+      <img src="images/1.8.2.png" alt="drawn piggy at various starting indices" loading="lazy" decoding="async">
       <div class="caption">Drawn piggy edits at various starting indices.</div>
     </div>
     <div class="image-block">
-      <img src="images/1.8.3.png" alt="drawn flower at various starting indices">
+      <img src="images/1.8.3.png" alt="drawn flower at various starting indices" loading="lazy" decoding="async">
       <div class="caption">Drawn flower edits at various starting indices.</div>
   </div>
 </div>
@@ -248,15 +258,15 @@
 
   <div class="group-images cols-3">
     <div class="image-block">
-      <img src="images/1.9.1.png" alt="Campanile with mask">
+      <img src="images/1.9.1.png" alt="Campanile with mask" loading="lazy" decoding="async">
     <div class="caption">Campanile with mask  </div>
     </div>
     <div class="image-block">
-      <img src="images/1.9.2.png" alt="bear with mask">
+      <img src="images/1.9.2.png" alt="bear with mask" loading="lazy" decoding="async">
       <div class="caption">Bear with mask.</div>
     </div>
     <div class="image-block">
-      <img src="images/1.9.3.png" alt="labubu with mask">
+      <img src="images/1.9.3.png" alt="labubu with mask" loading="lazy" decoding="async">
       <div class="caption">Labubu with mask.</div>
   </div>
 </div>
@@ -268,15 +278,15 @@
 
   <div class="group-images cols-3">
     <div class="image-block">
-      <img src="images/1.10.1.png" alt="Campanile with mask">
+      <img src="images/1.10.1.png" alt="Campanile with mask" loading="lazy" decoding="async">
     <div class="caption">campanile from shark and seal </div>
     </div>
     <div class="image-block">
-      <img src="images/1.10.2.png" alt="bear at various starting indices">
+      <img src="images/1.10.2.png" alt="bear at various starting indices" loading="lazy" decoding="async">
       <div class="caption">bear from shark and seal </div>
     </div>
     <div class="image-block">
-      <img src="images/1.10.3.png" alt="labubu at various starting indices">
+      <img src="images/1.10.3.png" alt="labubu at various starting indices" loading="lazy" decoding="async">
       <div class="caption">labubu from shark and seal </div>
   </div>
 </div>
@@ -294,11 +304,11 @@
 
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/1.11.1.png" alt="anagram upright">
+      <img src="images/1.11.1.png" alt="anagram upright" loading="lazy" decoding="async">
       <div class="caption">Wineyard and hotspring.</div>
     </div>
     <div class="image-block">
-      <img src="images/1.11.2.png" alt="anagram flipped">
+      <img src="images/1.11.2.png" alt="anagram flipped" loading="lazy" decoding="async">
       <div class="caption">girl and baby seal.</div>
     </div>
   </div>
@@ -312,11 +322,11 @@
 
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/1.12.1.png" alt="anagram upright">
+      <img src="images/1.12.1.png" alt="anagram upright" loading="lazy" decoding="async">
       <div class="caption">Village and old man</div>
     </div>  
     <div class="image-block">
-      <img src="images/1.12.2.png" alt="anagram flipped">
+      <img src="images/1.12.2.png" alt="anagram flipped" loading="lazy" decoding="async">
       <div class="caption">rocket ship and campfire.</div>
     </div>
   </div>
@@ -334,7 +344,7 @@
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/2.1.png" alt="noising visualization">
+      <img src="images/2.1.png" alt="noising visualization" loading="lazy" decoding="async">
       <div class="caption">Visualization of the noising process for different σ (from the notebook).</div>
     </div>
   </div>
@@ -342,15 +352,15 @@
   <h3>1.2.1: Training Loss + Test Results</h3>
   <div class="group-images cols-3">
     <div class="image-block">
-      <img src="images/2.2.3.png" alt="denoiser loss">
+      <img src="images/2.2.3.png" alt="denoiser loss" loading="lazy" decoding="async">
       <div class="caption">Training loss curve for denoising UNet (5 epochs).</div>
     </div>
     <div class="image-block">
-      <img src="images/2.2.1.png" alt="epoch 1 and 5 denoising results">
+      <img src="images/2.2.1.png" alt="epoch 1 and 5 denoising results" loading="lazy" decoding="async">
       <div class="caption">Denoising results (σ=0.5) after epoch 1.</div>
     </div>
     <div class="image-block">
-      <img src="images/2.2.2.png" alt="epoch 1 and 5 denoising results">
+      <img src="images/2.2.2.png" alt="epoch 1 and 5 denoising results" loading="lazy" decoding="async">
       <div class="caption">Denoising results (σ=0.5) after epoch 5.</div>
     </div>
   </div>
@@ -363,7 +373,7 @@
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/2.3.1.png" alt="ood sigma sweep">
+      <img src="images/2.3.1.png" alt="ood sigma sweep" loading="lazy" decoding="async">
       <div class="caption">OOD denoising results while sweeping σ (same digits, different noise).</div>
     </div>
   </div>
@@ -376,15 +386,15 @@
 
   <div class="group-images cols-2">
     <div class="image-block">
-      <img src="images/2.4.1.png" alt="pure noise loss">
+      <img src="images/2.4.1.png" alt="pure noise loss" loading="lazy" decoding="async">
       <div class="caption">Training loss curve for denoising pure noise.</div>
     </div>
     <div class="image-block">
-      <img src="images/2.4.2.png" alt="pure noise samples">
+      <img src="images/2.4.2.png" alt="pure noise samples" loading="lazy" decoding="async">
       <div class="caption">Generated outputs from pure noise after epoch 1.</div>
     </div>
         <div class="image-block">
-      <img src="images/2.4.3.png" alt="pure noise samples">
+      <img src="images/2.4.3.png" alt="pure noise samples" loading="lazy" decoding="async">
       <div class="caption">Generated outputs from pure noise after epoch 5.</div>
     </div>
   </div>
@@ -405,22 +415,22 @@
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/2.5.1.png" alt="time-conditioned loss">
+      <img src="images/2.5.1.png" alt="time-conditioned loss" loading="lazy" decoding="async">
       <div class="caption">Training loss curve for the time-conditioned UNet.</div>
     </div>
   </div>
 
   <div class="group-images cols-3">
     <div class="image-block">
-      <img src="images/2.5.2.png" alt="time samples epoch 1">
+      <img src="images/2.5.2.png" alt="time samples epoch 1" loading="lazy" decoding="async">
       <div class="caption">Sampling after epoch 1.</div>
     </div>
     <div class="image-block">
-      <img src="images/2.5.3.png" alt="time samples epoch 5">
+      <img src="images/2.5.3.png" alt="time samples epoch 5" loading="lazy" decoding="async">
       <div class="caption">Sampling after epoch 5.</div>
     </div>
     <div class="image-block">
-      <img src="images/2.5.4.png" alt="time samples epoch 10">
+      <img src="images/2.5.4.png" alt="time samples epoch 10" loading="lazy" decoding="async">
       <div class="caption">Sampling after epoch 10.</div>
     </div>
   </div>
@@ -438,28 +448,28 @@
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/2.6.1.png" alt="class loss with scheduler">
+      <img src="images/2.6.1.png" alt="class loss with scheduler" loading="lazy" decoding="async">
       <div class="caption">Class-conditioned training loss (with scheduler).</div>
     </div>
   </div>
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/2.6.2.png" alt="class samples with scheduler epoch 1">
+      <img src="images/2.6.2.png" alt="class samples with scheduler epoch 1" loading="lazy" decoding="async">
       <div class="caption">With scheduler — epoch 1 (4 samples per digit, CFG=5.0).</div>
     </div>
   </div>
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/2.6.3.png" alt="class samples with scheduler epoch 5">
+      <img src="images/2.6.3.png" alt="class samples with scheduler epoch 5" loading="lazy" decoding="async">
       <div class="caption">With scheduler — epoch 5 (4 samples per digit, CFG=5.0).</div>
     </div>
   </div>
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/2.6.4.png" alt="class samples with scheduler epoch 10">
+      <img src="images/2.6.4.png" alt="class samples with scheduler epoch 10" loading="lazy" decoding="async">
       <div class="caption">With scheduler — epoch 10 (4 samples per digit, CFG=5.0).</div>
     </div>
   </div>
@@ -482,17 +492,18 @@ Added gradient clipping (1.0) to prevent occasional big updates from destabilizi
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/2.6.5.png" alt="class loss no scheduler">
+      <img src="images/2.6.5.png" alt="class loss no scheduler" loading="lazy" decoding="async">
       <div class="caption">Class-conditioned training loss (no scheduler).</div>
     </div>
   </div>
 
   <div class="group-images one-up">
     <div class="image-block">
-      <img src="images/2.6.6.png" alt="class samples no scheduler epoch 10">
+      <img src="images/2.6.6.png" alt="class samples no scheduler epoch 10" loading="lazy" decoding="async">
       <div class="caption">No scheduler — epoch 10 (4 samples per digit, CFG=5.0).</div>
     </div>
   </div>
 
+  </main>
 </body>
 </html>
