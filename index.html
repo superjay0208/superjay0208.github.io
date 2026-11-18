@@ -10,6 +10,16 @@
   <link rel="preload" href="./slide-projector/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./portfolio.css">
   <script src="./portfolio.js" defer></script>
+  <style>
+    @media (min-width: 1060px) {
+      .project-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .project-grid > .reveal:nth-child(3) { transition-delay: .16s; }
+    }
+    .crux-motion-art { display: block; background: #13242a; z-index: 2; }
+    .motion-scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .5s; }
+    .crux-motion-card:hover .motion-scene { transform: scale(1.035); }
+    .route-tag.motion-tag { background: #101e24d9; color: #9ce7c8; border: 1px solid #9ce7c833; letter-spacing: .06em; }
+  </style>
 </head>
 <body>
   <a class="skip-link" href="#work">Skip to projects</a>
@@ -121,6 +131,40 @@
             <span class="card-eyebrow">PHYSICS PUZZLE</span>
             <h3><a class="card-main-link" href="https://superjay0208.github.io/crux/">Crux <span aria-hidden="true">↗</span></a></h3>
             <p>A climbing puzzle built around reach, tension, and center of mass.</p>
+          </div>
+        </article>
+
+        <article class="project-card crux-motion-card reveal">
+          <a class="card-art crux-motion-art" href="./crux-motion/" tabindex="-1" aria-hidden="true">
+            <svg class="motion-scene" viewBox="0 0 600 420" fill="none">
+              <rect width="600" height="420" fill="#13242a"/>
+              <path d="M0 140H600M0 280H600M195 0V420M405 0V420" stroke="#9ce7c8" stroke-opacity=".08" stroke-width="1"/>
+              <path d="M214 316 Q292 356 364 276" stroke="#9ce7c8" stroke-opacity=".28" stroke-width="1.6" stroke-dasharray="4 6"/>
+              <path d="M276 206 Q326 142 384 114" stroke="#9ce7c8" stroke-opacity=".68" stroke-width="2" stroke-dasharray="5 5"/>
+              <g>
+                <circle cx="386" cy="112" r="21" stroke="#9ce7c8" stroke-width="1.5" stroke-dasharray="4 4" opacity=".8"/>
+                <path d="M368 113c4-11 28-13 35-2 3 6-4 12-18 12-12 0-20-4-17-10Z" fill="#8ae2c7"/>
+                <path d="M236 168l31-6 6 11-34 7Z" fill="#efb373"/>
+                <path d="M166 248c7-9 27-9 34 1 2 5-6 9-18 9-11 0-19-4-16-10Z" fill="#a9baf2"/>
+                <path d="M418 222l12-17 11 5-9 21Z" fill="#ef9f96"/>
+                <path d="M294 278c5-10 26-10 32 0 2 5-5 10-16 10s-18-4-16-10Z" fill="#8ae2c7"/>
+              </g>
+              <g stroke-linecap="round" stroke-linejoin="round">
+                <path d="M290 256 L264 318 L244 358 M298 258 L322 314 L346 346" stroke="#8ba3a8" stroke-width="11"/>
+                <path d="M284 212 L252 192 L254 170" stroke="#7bcbb0" stroke-width="11"/>
+                <path d="M274 208 L294 260 L306 256 L292 204 Z" fill="#edf1df"/>
+                <circle cx="281" cy="186" r="14" fill="#edf1df"/>
+                <circle cx="301" cy="259" r="5.5" fill="#efb373"/>
+                <path d="M292 210 L334 168 L368 126" stroke="#edf1df" stroke-width="11"/>
+                <circle cx="368" cy="126" r="6" fill="#9ce7c8"/>
+              </g>
+            </svg>
+            <span class="route-tag motion-tag pill">Webcam + physics</span>
+          </a>
+          <div class="card-content">
+            <span class="card-eyebrow">CAMPUS CLIMBING · 120 HZ</span>
+            <h3><a class="card-main-link" href="./crux-motion/">Crux Motion <span aria-hidden="true">↗</span></a></h3>
+            <p>Camera-controlled 2D campus climbing &bull; Crossed arms, swings &amp; dynos</p>
           </div>
         </article>
       </div>
