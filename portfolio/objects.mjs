@@ -50,6 +50,9 @@ export function batch(group) {
   const inverse = group.matrixWorld.clone().invert();
   group.traverse(node => {
     if (!node.isMesh || Array.isArray(node.material)) return;
+    for (let owner = node; owner !== group; owner = owner.parent) {
+      if (owner.userData.articulated) return;
+    }
     const key = [node.material.id, node.castShadow, node.receiveShadow].join(':');
     if (!sets.has(key)) sets.set(key, []);
     sets.get(key).push(node);
@@ -185,17 +188,25 @@ function objects() {
     counts(group) {
       box(group, 0, .055, 0, .98, .10, .56, iron);
       cylinder(group, 0, .39, 0, .055, .66, brass);
-      const arm = box(group, 0, .72, 0, .96, .037, .048, brass);
-      arm.rotation.z = -.12;
-      for (const [x, y, surface] of [[-.37,.43,black],[.37,.34,ivory]]) {
-        for (const z of [-.11, .11]) tube(group, [[x, .72 - x * .12, 0], [x, y, z]], .009, brass, 5);
-        cylinder(group, x, y, 0, .22, .047, surface, 6);
+      const beam = new THREE.Group();
+      beam.position.y = .72;
+      beam.userData.articulated = true;
+      group.add(beam);
+      group.userData.scaleBeam = beam;
+      box(beam, 0, 0, 0, .96, .037, .048, brass);
+      for (const [x, y, surface] of [[-.37,-.25,black],[.37,-.29,ivory]]) {
+        for (const z of [-.11, .11]) tube(beam, [[x, 0, 0], [x, y, z]], .009, brass, 5);
+        cylinder(beam, x, y, 0, .22, .047, surface, 14);
       }
       ring(group, 0, .76, 0, .073, .015, steel);
     },
     rendering(group) {
+      group.userData.renderSurfaces = [];
       for (let i = 0; i < 3; i++) {
-        const tone = [steel, red, ivory][i];
+        const tone = [steel, red, ivory][i].clone();
+        tone.emissive.set([0x1b74aa, 0xb04121, 0xffab6a][i]);
+        tone.emissiveIntensity = 0;
+        group.userData.renderSurfaces.push(tone);
         const piece = mesh(group, new THREE.IcosahedronGeometry(.23, i === 0 ? 0 : 1), (i - 1) * .37, .25 + (i === 1 ? .24 : 0), -.03, tone);
         piece.scale.set(.84, 1.42, .84);
         piece.rotation.y = .19 * i;

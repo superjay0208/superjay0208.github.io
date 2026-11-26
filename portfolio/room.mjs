@@ -3,6 +3,7 @@ import { createProjectorModel } from './projector.ts';
 import { detailSpecimen } from './specimens.mjs';
 import { batch, box, makeExhibit, makeTitle, material, stock, tube } from './objects.mjs';
 
+import { makeExhibitReaction } from './exhibit-reactions.mjs';
 import { makeRoomParticles } from './room-particles.mjs';
 import { fixtures, makeDust, makeFragments, makeGlows, makeGrain, reflections } from './atmosphere.mjs';
 
@@ -161,7 +162,7 @@ function beamVolume() {
   return new THREE.Mesh(new THREE.ConeGeometry(1, 1, 48, 1, true), surface);
 }
 
-export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
+export function mountRoom({ room, canvas, grip, reveal, links }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -249,6 +250,8 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
     batch(entry.work);
     entry.bounds = new THREE.Box3();
     entry.activation = 0;
+    entry.gesture = 0;
+    entry.reaction = makeExhibitReaction(entry, scene);
     scene.add(entry.root);
     return [id, entry];
   }));
@@ -260,6 +263,8 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
   const direction = new THREE.Vector3();
   const toObject = new THREE.Vector3();
   const projectorBounds = new THREE.Box3();
+  const projectorLocalBounds = new THREE.Box3().setFromObject(projector).expandByScalar(.085);
+  const projectorHits = [];
   const matrix = new THREE.Matrix4();
   const screen = new THREE.Vector3();
   const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
@@ -276,6 +281,8 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
   const hover = new THREE.Vector2();
   const delta = new THREE.Vector3();
   const inspection = new THREE.Vector2();
+  const response = {power:0, progress:0, side:0, lastSide:1, time:0, x:0, y:0, source};
+  let opening;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let previousPreference;
   try { previousPreference = localStorage.getItem('zw-motion'); } catch { /* Settings storage is optional. */ }
@@ -371,6 +378,7 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
       liftedAim.copy(initialAim);
       goalAim.copy(initialAim);
       steered = false;
+      opening = null;
       select(null);
       layout = next;
       downstroke = false;
@@ -443,7 +451,7 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
       spot.shadow.needsUpdate = true;
       lightDirty = false;
     }
-    const reacting = animateSpecimens(dt, immediate);
+    const reacting = animateSpecimens(dt, immediate, now);
     const elapsed = lastFrame ? now - lastFrame : 16;
     if (!immediate) particleTime += Math.min(82, elapsed) * .001;
     lastFrame = now;
@@ -482,6 +490,12 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
     driftFragments(particleTime, source, direction);
     renderer.render(scene, camera);
 
+    if (opening?.complete) {
+      const destination = links.get(opening.entry.id);
+      if (opening.entry.id === 'vision') document.getElementById('project-index').open = true;
+      opening = null;
+      destination.click();
+    }
     if (!immediate && (moving || rolling || reacting || focusing)) schedule();
     else if (!immediate && now - lastInput < 5200 && !dustTimer) {
       dustTimer = setTimeout(() => {
@@ -491,41 +505,59 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
     }
   }
 
-  function animateSpecimens(dt, immediate) {
-    const fraction = immediate ? 1 : 1 - Math.exp(-dt / 135);
-    let animating = false;
+  function animateSpecimens(dt, immediate, now) {
+    const blend = immediate ? 1 : 1 - Math.exp(-dt / 124);
+    let animating = Boolean(opening);
     for (const entry of entries.values()) {
       const focused = entry === selected;
       const target = focused ? 1 : 0;
       const previous = entry.activation;
       const difference = target - previous;
-      entry.activation = Math.abs(difference) < .003 ? target : previous + difference * fraction;
-      const amount = entry.activation;
-      const lift = amount * (layout === SETUPS.tall ? .16 : .23);
-      const yaw = amount * (.12 + (focused ? inspection.x * .66 : 0));
-      const pitch = focused ? amount * inspection.y * .41 : 0;
-      const rotation = entry.work.rotation;
-      const error = Math.abs(rotation.y - yaw) + Math.abs(rotation.x - pitch);
-      const pivot = immediate || error < .003 ? 1 : Math.min(1, fraction * 2.1);
-      if (amount !== previous || error || entry.work.position.y !== lift) {
+      entry.activation = Math.abs(difference) < .003 ? target : previous + difference * blend;
+      if (!entry.activation && !previous) continue;
+
+      const drag = pendingClick?.entry === entry ? pendingClick : null;
+      let goal = drag?.progress ?? 0;
+      if (opening?.entry === entry) {
+        const elapsed = immediate ? 1 : clamp((now - opening.start) / 650, 0, 1);
+        goal = opening.from + (1 - opening.from) * THREE.MathUtils.smoothstep(elapsed * 1.7, 0, 1);
+        if (elapsed === 1) opening.complete = true;
+      }
+      const gap = goal - entry.gesture;
+      entry.gesture = Math.abs(gap) < .004 ? goal : entry.gesture + gap * blend;
+      response.power = entry.activation;
+      response.progress = entry.gesture;
+      response.time = particleTime;
+      response.x = focused ? inspection.x : 0;
+      response.y = focused ? inspection.y : 0;
+      response.side = response.x ? Math.sign(response.x) : (entry.side ?? 1);
+      response.lastSide = entry.side ?? 1;
+      entry.reaction.update(response);
+
+      // The rigs stay bolted down. Only the objects and their mechanisms respond.
+      const lift = entry.id === 'rendering' ? entry.activation * .046 : 0;
+      const yaw = entry.activation * response.x * (entry.id === 'optics' ? .28 : .11);
+      const pitch = entry.activation * response.y * .08;
+      const orient = entry.work.rotation;
+      const error = Math.abs(orient.y - yaw) + Math.abs(orient.x - pitch);
+      const pivot = immediate || error < .003 ? 1 : Math.min(1, blend * 2.1);
+      if (entry.work.position.y !== lift || error > 0) {
         entry.work.position.y = lift;
-        rotation.set(
-          THREE.MathUtils.lerp(rotation.x, pitch, pivot),
-          THREE.MathUtils.lerp(rotation.y, yaw, pivot),
-          -.07 * amount - (focused ? inspection.x * .045 : 0)
-        );
+        orient.set(THREE.MathUtils.lerp(orient.x, pitch, pivot), THREE.MathUtils.lerp(orient.y, yaw, pivot), 0);
         spot.shadow.needsUpdate = true;
       }
-      if (amount !== target || (!immediate && error > .003)) animating = true;
+      if (entry.activation !== target || Math.abs(gap) > .004 || error > .003) animating = true;
     }
     return animating;
   }
 
-  function placeGrip(element, bounds) {
+  function placeGrip(element, bounds, worldMatrix) {
     const { min, max } = bounds;
     let left = 1, right = -1, bottom = 1, top = -1;
     for (const x of [min.x, max.x]) for (const y of [min.y, max.y]) for (const z of [min.z, max.z]) {
-      witness.set(x, y, z).project(camera);
+      witness.set(x, y, z);
+      if (worldMatrix) witness.applyMatrix4(worldMatrix);
+      witness.project(camera);
       left = Math.min(left, witness.x);
       right = Math.max(right, witness.x);
       bottom = Math.min(bottom, witness.y);
@@ -540,7 +572,7 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
 
   function updateGrip() {
     projectorBounds.setFromObject(projector).expandByScalar(.13);
-    placeGrip(grip, projectorBounds);
+    placeGrip(grip, projectorLocalBounds, projector.matrixWorld);
   }
 
   function select(entry) {
@@ -549,7 +581,6 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
     inspection.set(0, 0);
     if (!entry) {
       reveal.hidden = true;
-      specimenGrip.hidden = true;
       return;
     }
     if (performance.now() - chosenAt > 160 && !stillsOnly()) {
@@ -559,7 +590,7 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
       bursts.emit('exhibit', contour, particleTime);
       chosenAt = performance.now();
     }
-    placeGrip(specimenGrip, entry.bounds);
+    placeGrip(reveal, entry.bounds);
     const link = links.get(entry.id);
     reveal.href = link.href;
     reveal.firstElementChild.textContent = link.textContent;
@@ -581,16 +612,8 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
         best = alignment;
       }
     }
-    select(closest);
-    if (closest) placeGrip(specimenGrip, closest.bounds);
-    if (closest) {
-      screen.copy(closest.root.position);
-      screen.y += layout === SETUPS.tall ? 1.25 : 1.42;
-      screen.z += .35;
-      screen.project(camera);
-      reveal.style.setProperty('--x', `${clamp((screen.x + 1) * 50, 18, 82)}%`);
-      reveal.style.setProperty('--y', `${clamp((1 - screen.y) * 50, 18, 83)}%`);
-    }
+    if (!opening) select(closest);
+    if (selected) placeGrip(reveal, selected.bounds);
   }
 
   function ray(event) {
@@ -620,10 +643,12 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
         closest = distance;
       }
     }
-    if (pointed) {
-      targetPoint.copy(pointed.root.position);
-      targetPoint.y += .46;
-      targetPoint.z += .13;
+    if (pointed && atDepth(pointed.root.position.z + .13, targetPoint)) {
+      // A little assist toward the exhibit, with the actual pointer retaining control.
+      contour.copy(pointed.root.position);
+      contour.y += .46;
+      contour.z += .13;
+      targetPoint.lerp(contour, .17);
       return true;
     }
     if (!atDepth(-2.30, targetPoint)) return false;
@@ -651,8 +676,20 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
     return selected && raycaster.ray.intersectsBox(selected.bounds);
   }
 
+  function startOpening(entry, side) {
+    if (!entry || opening) return;
+    entry.side = side || 1;
+    opening = { entry, start: performance.now(), from: Math.min(entry.gesture, .78) };
+    wakeRoom();
+  }
+
+  function inScene(target) {
+    return target === canvas || target === grip || reveal.contains(target);
+  }
+
   room.addEventListener('pointerdown', event => {
-    if (!available || event.button !== 0 || ![canvas, grip, specimenGrip].includes(event.target)) return;
+    if (!available || event.button !== 0 || !inScene(event.target)) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     if (grab) {
       if (event.pointerType === 'touch' && !pinch && grab.id !== event.pointerId) {
         pinch = { id: event.pointerId, x: event.clientX, y: event.clientY,
@@ -662,8 +699,16 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
       return;
     }
     ray(event);
-    if (event.target === grip || overProjector()) {
+    const onExhibit = reveal.contains(event.target) || overSelected();
+    const nearProjector = event.target === grip || overProjector();
+    // Projected rectangles can overlap. Only the visible chassis wins the overlap.
+    projectorHits.length = 0;
+    const onProjector = nearProjector &&
+      (!onExhibit || raycaster.intersectObject(projector, true, projectorHits).length > 0);
+    if (onProjector) {
       if (!atDepth(position.z, pickLocation)) return;
+      opening = null;
+      event.preventDefault();
       grab = {
         id: event.pointerId, x: event.clientX, y: event.clientY,
         lastX: event.clientX, lastY: event.clientY,
@@ -675,13 +720,21 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
       canvas.setPointerCapture(event.pointerId);
       canvas.classList.add('dragging');
       canvas.classList.remove('over-object');
-    } else if (event.target === specimenGrip || overSelected()) {
-      pendingClick = { id: event.pointerId, x: event.clientX, y: event.clientY, entry: selected };
+    } else if (onExhibit) {
+      if (!selected || opening || pendingClick) return;
+      const label = reveal.contains(event.target);
+      const box = reveal.getBoundingClientRect();
+      const side = event.clientX < box.left + box.width * .5 ? -1 : 1;
+      pendingClick = { id: event.pointerId, x: event.clientX, y: event.clientY, entry: selected, label, side };
       canvas.setPointerCapture(event.pointerId);
     }
   });
   room.addEventListener('pointermove', event => {
     if (!available) return;
+    if (event.pointerType === 'mouse' && event.buttons === 0 &&
+        (grab?.id === event.pointerId || pendingClick?.id === event.pointerId)) {
+      finishPointer(event, false);
+    }
     ray(event);
     const inspecting = pendingClick?.id === event.pointerId && pendingClick.entry === selected;
     if (inspecting) {
@@ -689,6 +742,9 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
       const dy = event.clientY - pendingClick.y;
       if (Math.hypot(dx, dy) < 7 && !pendingClick.moved) return;
       pendingClick.moved = true;
+      pendingClick.progress = selected.reaction.gesture(dx, dy);
+      if (Math.abs(dx) > 4) pendingClick.side = Math.sign(dx);
+      selected.side = pendingClick.side;
       canvas.classList.add('inspecting');
       if (!stillsOnly() && particleTime - lastPuff > .16 &&
           Math.hypot(event.movementX, event.movementY) > 4) {
@@ -710,7 +766,7 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
     }
     if (grab?.id !== event.pointerId) {
       if (event.pointerType === 'mouse' && selected &&
-          (event.target === specimenGrip || (event.target === canvas && overSelected()))) {
+          (reveal.contains(event.target) || (event.target === canvas && overSelected()))) {
         screen.copy(selected.root.position);
         screen.y += .53;
         screen.project(camera);
@@ -766,8 +822,9 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
     wakeRoom();
   }, { passive: false });
 
-  function release(event) {
-    if (pinch?.id === event.pointerId) {
+  function finishPointer(event, released) {
+    const id = event.pointerId;
+    if (pinch?.id === id) {
       pinch = null;
       if (grab) {
         ray({ clientX: grab.lastX, clientY: grab.lastY });
@@ -780,33 +837,46 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
         grab.aim.copy(liftedAim);
       }
     }
-    if (grab?.id === event.pointerId) {
+    if (grab?.id === id) {
       downstroke = Boolean(grab.moved && !stillsOnly());
+      const second = pinch?.id;
       grab = null;
       pinch = null;
       goalPosition.y = projectorBase.y;
-      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+      if (second !== undefined && canvas.hasPointerCapture(second)) canvas.releasePointerCapture(second);
       canvas.classList.remove('dragging', 'over-projector');
       wakeRoom();
     }
-    if (pendingClick?.id === event.pointerId) {
-      const click = pendingClick;
+    if (pendingClick?.id === id) {
+      const press = pendingClick;
       pendingClick = null;
       canvas.classList.remove('inspecting');
-      if (click.moved) {
-        inspection.set(0, 0);
-        wakeRoom();
-      } else if (event.type === 'pointerup' && click.entry === selected) {
+      inspection.set(0, 0);
+      if (released && press.entry === selected) {
+        const moved = Math.hypot(event.clientX - press.x, event.clientY - press.y);
         ray(event);
-        if (Math.hypot(event.clientX - click.x, event.clientY - click.y) < 10 && overSelected()) reveal.click();
+        if (press.progress >= 1 ||
+            (!press.moved && moved < 10 && (press.label || overSelected()))) startOpening(press.entry, press.side);
       }
+      wakeRoom();
     }
+    if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
   }
-  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(event, release);
+
+  window.addEventListener('pointerup', event => finishPointer(event, true));
+  window.addEventListener('pointercancel', event => finishPointer(event, false));
+  canvas.addEventListener('lostpointercapture', event => finishPointer(event, false));
+  window.addEventListener('blur', () => {
+    for (const id of [grab?.id, pendingClick?.id, pinch?.id]) {
+      if (id !== undefined) finishPointer({ pointerId: id }, false);
+    }
+  });
   canvas.addEventListener('pointerleave', () => canvas.classList.remove('over-projector', 'over-object'));
 
-  reveal.addEventListener('click', () => {
-    if (selected?.id === 'vision') document.getElementById('project-index').open = true;
+  reveal.addEventListener('click', event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (event.detail === 0) startOpening(selected, selected?.side);
   });
   new ResizeObserver(resize).observe(room);
   new IntersectionObserver(([entry]) => {
@@ -824,6 +894,7 @@ export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
     grab = null;
     pinch = null;
     pendingClick = null;
+    opening = null;
     room.classList.remove('ready');
     grip.hidden = true;
     select(null);

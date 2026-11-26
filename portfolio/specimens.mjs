@@ -78,15 +78,21 @@ function glove(group) {
   palm.scale.set(.122, .163, .067);
   const plate = box(origin, 0, .015, .048, .168, .16, .046, metal);
   plate.rotation.z = -.12;
+  group.userData.fingers = [];
   for (let finger = 0; finger < 5; finger++) {
     const x = (finger - 2) * .048;
     const y = finger === 0 ? .052 : .135;
     const extension = finger === 0 ? .104 : .19 - Math.abs(finger - 2) * .024;
     const curl = .05 + Math.abs(finger - 2) * .022;
-    tube(origin, [[x, y, .013], [x * 1.17, y + extension * .55, .028],
-      [x * 1.32, y + extension, curl]], .019, metal, 10);
-    add(origin, new THREE.SphereGeometry(.024, 12, 8), stock.brass, x * 1.17, y + extension * .55, .026);
-    add(origin, new THREE.SphereGeometry(.023, 12, 8), rubber, x * 1.32, y + extension, curl);
+    const pivot = new THREE.Group();
+    pivot.position.set(x, y, 0);
+    pivot.userData.articulated = true;
+    origin.add(pivot);
+    group.userData.fingers.push(pivot);
+    tube(pivot, [[0, 0, .013], [x * .17, extension * .55, .028],
+      [x * .32, extension, curl]], .019, metal, 10);
+    add(pivot, new THREE.SphereGeometry(.024, 12, 8), stock.brass, x * .17, extension * .55, .026);
+    add(pivot, new THREE.SphereGeometry(.023, 12, 8), rubber, x * .32, extension, curl);
   }
   tube(origin, [[.018,-.12,0],[.036,-.19,.01],[.09,-.29,-.10],[.005,-.46,-.19]], .024, rubber, 12);
 }
@@ -121,6 +127,8 @@ function researchPlate(group) {
     ctx.stroke();
   });
   const front = new THREE.Group();
+  front.userData.articulated = true;
+  group.userData.researchLayer = front;
   front.position.set(-.087, .48, .285);
   front.rotation.y = .11;
   group.add(front);

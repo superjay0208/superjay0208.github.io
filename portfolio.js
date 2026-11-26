@@ -15,9 +15,8 @@ document.querySelectorAll('a[href="#work"]').forEach(link => {
 openIndexForHash();
 
 if ('WebGL2RenderingContext' in window) {
-  import('./assets/portfolio/room.bundle.mjs?v=room-detail').then(({ mountRoom }) => {
-    mountRoom({ room, canvas, grip: document.getElementById('projector-grip'),
-      specimenGrip: document.getElementById('specimen-grip'), reveal, links });
+  import('./assets/portfolio/room.bundle.mjs?v=exhibits').then(({ mountRoom }) => {
+    mountRoom({ room, canvas, grip: document.getElementById('projector-grip'), reveal, links });
     if (room.classList.contains('ready') && !['#work', '#vision'].includes(location.hash)) index.open = false;
     canvas.addEventListener('webglcontextlost', () => {
       index.open = true;

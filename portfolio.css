@@ -86,32 +86,40 @@ a:hover { text-decoration-thickness: .13em; }
 #room-canvas.dragging { cursor: grabbing; }
 #room-canvas.over-object { cursor: grab; }
 #room-canvas.inspecting { cursor: grabbing; }
-#projector-grip, #specimen-grip {
+#projector-grip {
   position: absolute;
-  z-index: 2;
+  z-index: 4;
   inset: auto;
   cursor: grab;
   touch-action: none;
 }
 #room-canvas.dragging + #projector-grip { cursor: grabbing; }
 .reveal-link {
-  display: flex;
-  align-items: center;
-  gap: .75rem;
   position: absolute;
-  z-index: 3;
-  left: var(--x, 50%);
-  top: var(--y, 60%);
-  transform: translate(-50%, -100%);
-  max-width: min(240px, 55%);
-  border: 1px solid #c3b3a0;
-  border-left: 3px solid #d14932;
-  background: #151414f2;
-  padding: .44rem .61rem;
+  z-index: 2;
+  cursor: grab;
+  touch-action: none;
   text-decoration: none;
-  font: 700 clamp(.98rem, 2vw, 1.25rem)/1.04 var(--display);
+  color: #eee3d2;
 }
-.reveal-link:hover { color: #ffd6bf; border-color: #f39c83; }
+.reveal-link span {
+  position: absolute;
+  top: .15rem;
+  left: 50%;
+  width: max-content;
+  max-width: min(27vw, 210px);
+  transform: translate(-50%, -95%);
+  padding: .29em .55em;
+  text-align: center;
+  border-top: 1px solid #988b79;
+  background: #181715ef;
+  font: 700 clamp(.84rem, 1.45vw, 1.04rem)/1.05 var(--display);
+  box-shadow: 0 2px 10px #0d0a0980;
+}
+.reveal-link:is(:hover, :focus-visible) span {
+  color: #fff9ef;
+  border-color: #edb58a;
+}
 
 .index { margin-inline: auto; max-width: 1380px; padding: 0 clamp(1rem, 5vw, 5rem) 2.1rem; }
 .index details { border-top: 1px solid var(--line); }
