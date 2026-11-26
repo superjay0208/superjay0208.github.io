@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f6f2">
-  <meta name="description" content="An interactive research companion by Zixun Wang and collaborators. Explore image coefficients, Gaussian scale mixtures, model fitting, and the evidence behind arXiv:2512.17038.">
-  <title>The Shape of an Image — arXiv:2512.17038 Interactive Companion</title>
+  <meta name="theme-color" content="#1e352b">
+  <meta name="description" content="An interactive research journey by Zixun Wang and collaborators. Explore image coefficients, Gaussian scale mixtures, model fitting, and the evidence behind arXiv:2512.17038.">
+  <title>The Shape of an Image — An interactive research journey</title>
   <link rel="icon" href="../assets/monogram.svg" type="image/svg+xml">
   <link rel="preload" href="../slide-projector/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./research.css">
@@ -14,32 +14,22 @@
 <body>
   <a class="skip" href="#one">Skip to the first experiment</a>
   <header class="topbar">
-    <div class="topbar-brand">
-      <a class="brand" href="../" aria-label="Zixun Wang’s portfolio">zw<span>°</span></a>
-      <a class="back-link" href="../">← Portfolio</a>
-    </div>
-    <a class="topbar-title" href="#title">ARXIV:2512.17038V3 · STATISTICAL IMAGING</a>
-    <div class="topbar-actions">
-      <button class="words-button" id="open-words" type="button" hidden>Glossary <span aria-hidden="true">+</span></button>
-      <a class="paper-top" href="https://arxiv.org/abs/2512.17038" target="_blank" rel="noopener noreferrer">Paper ↗</a>
-      <a class="code-top" href="https://github.com/yashdave003/gengamma-scale-mixture-validation-images" target="_blank" rel="noopener noreferrer">Code ↗</a>
-    </div>
+    <a class="brand" href="../" aria-label="Zixun Wang’s portfolio">zw<span>°</span></a>
+    <a class="back-link" href="../#research">← Portfolio</a>
+    <a class="topbar-title" href="#title">THE SHAPE OF AN IMAGE</a>
+    <button class="words-button" id="open-words" type="button" hidden>Glossary <span aria-hidden="true">＋</span></button>
+    <button id="motion" type="button" aria-pressed="false" hidden>Pause motion</button>
+    <a class="paper-top" href="https://arxiv.org/abs/2512.17038" target="_blank" rel="noopener noreferrer">Paper ↗</a>
   </header>
   <main>
     <section class="hero" aria-labelledby="title">
       <div class="hero-grid">
         <div class="hero-copy">
-          <p class="eyebrow">ARXIV:2512.17038V3 · STATISTICAL IMAGING · APRIL 2026</p>
-          <h1 id="title">The Shape of an Image</h1>
-          <p class="hero-description">Interactive companion to <strong>Do Generalized-Gamma Scale Mixtures of Normals Fit Large Image Datasets?</strong></p>
-          <p class="paper-authors">Brandon Marks, Yash Dave, Zixun Wang, Hannah Chung, Riya Patwa, Simon Cha, Michael Murphy &amp; Alexander Strang</p>
-          <div class="hero-actions">
-            <a class="button dark" href="#one">Start interactive labs <span aria-hidden="true">→</span></a>
-            <a class="button outline" href="https://arxiv.org/abs/2512.17038" target="_blank" rel="noopener noreferrer">arXiv Paper ↗</a>
-            <a class="button outline" href="https://arxiv.org/pdf/2512.17038" target="_blank" rel="noopener noreferrer">PDF ↗</a>
-            <a class="button outline" href="https://github.com/yashdave003/gengamma-scale-mixture-validation-images" target="_blank" rel="noopener noreferrer">GitHub Code ↗</a>
-          </div>
-          <p class="byline">8 numerical &amp; empirical labs · <a href="#sources-title">Sources &amp; field notes ↗</a></p>
+          <p class="eyebrow"><span class="little-star">✳</span> INTERACTIVE RESEARCH COMPANION</p>
+          <h1 id="title">The shape<br>of <em>an image.</em></h1>
+          <p class="hero-description">An image.<br>A thousand hidden patterns.</p>
+          <a class="button light" href="#one">Start exploring <span aria-hidden="true">↗</span></a>
+          <p class="byline">Research by Zixun Wang &amp; collaborators · <a href="#sources-title">Sources &amp; paper ↗</a></p>
         </div>
         <div class="hero-experiment">
           <canvas id="hero-canvas" width="680" height="510" role="img" aria-label="A teaching image transforming into its Haar coefficient distribution"></canvas>
@@ -53,18 +43,18 @@
             <button type="button" data-morph="0.5" aria-pressed="false"><span>02</span> Patterns</button>
             <button type="button" data-morph="1" aria-pressed="false"><span>03</span> Probability</button>
           </div>
-          <p class="art-note">Generated 64×64 teaching image · Actual orthonormal Haar coefficients</p>
+          <p class="art-note">Generated image · Actual Haar coefficients</p>
         </div>
       </div>
       <div class="hero-foot">
-        <span>EIGHT INTERACTIVE EXPERIMENTS · TABLE 4 &amp; FIGURE 8 EVIDENCE</span>
+        <span>EIGHT INTERACTIVE EXPERIMENTS · ARXIV:2512.17038V3</span>
         <a href="#six">Jump to paper findings ↗</a>
       </div>
     </section>
 
     <div class="journey-workspace" id="workspace">
       <nav class="chapter-nav" aria-label="Research chapters">
-        <div class="nav-intro"><span class="eyebrow">INTERACTIVE MODULES</span><strong>Eight experiments <br><em>from the paper.</em></strong></div>
+        <div class="nav-intro"><span class="eyebrow">THE FIELD GUIDE</span><strong>Follow your<br><em>curiosity.</em></strong></div>
         <a href="#one" data-chapter="one"><span class="chapter-number">01</span><span class="chapter-nav-copy">Missing pieces<small>A camera with missing information</small></span><span class="chapter-symbol" aria-hidden="true">◧</span></a>
         <a href="#two" data-chapter="two"><span class="chapter-number">02</span><span class="chapter-nav-copy">Image language<small>Strong details, small coefficients</small></span><span class="chapter-symbol" aria-hidden="true">▦</span></a>
         <a href="#three" data-chapter="three"><span class="chapter-number">03</span><span class="chapter-nav-copy">Probability<small>Areas and mixtures</small></span><span class="chapter-symbol" aria-hidden="true">∩</span></a>
@@ -466,7 +456,7 @@
     </div>
 
     <section id="sources" class="sources shell" aria-labelledby="sources-title">
-      <p class="eyebrow">PAPER &amp; PROVENANCE</p>
+      <p class="eyebrow">FOLLOW THE THREAD</p>
       <h2 id="sources-title">Sources &amp; field notes.</h2>
       <p class="paper-citation"><strong>Do Generalized-Gamma Scale Mixtures of Normals Fit Large Image Datasets?</strong><br>Brandon Marks, Yash Dave, Zixun Wang, Hannah Chung, Riya Patwa, Simon Cha, Michael Murphy &amp; Alexander Strang.<br>arXiv:2512.17038v3 · 10 April 2026 · Preprint.</p>
       <div class="source-links">
@@ -486,28 +476,12 @@
         </div>
       </details>
     </section>
-
-    <section class="more-projects shell" aria-labelledby="more-projects-title">
-      <div class="more-projects-head">
-        <p class="eyebrow" id="more-projects-title">MORE PROJECTS BY ZIXUN WANG</p>
-        <a class="more-projects-all" href="../">View full portfolio ↗</a>
-      </div>
-      <nav class="more-projects-grid" aria-label="More projects by Zixun Wang">
-        <a class="more-card" href="../"><strong>Portfolio</strong><span>Index &amp; all builds</span></a>
-        <a class="more-card" href="https://superjay0208.github.io/crux-motion/" target="_blank" rel="noopener noreferrer"><strong>Crux Motion ↗</strong><span>Webcam 2D climbing</span></a>
-        <a class="more-card" href="../slide-projector/"><strong>Slide Projector</strong><span>Three.js optical darkroom</span></a>
-        <a class="more-card" href="https://superjay0208.github.io/crux/" target="_blank" rel="noopener noreferrer"><strong>Crux ↗</strong><span>24-route physics puzzle</span></a>
-        <a class="more-card" href="../cross-examination/"><strong>Still Counts?</strong><span>Browser judgment game</span></a>
-        <a class="more-card" href="../CS%20184/index.html"><strong>CS 184</strong><span>OpenGL NPR shaders</span></a>
-        <a class="more-card" href="../CS%20180/project5/index.html"><strong>CS 180</strong><span>Vision &amp; diffusion</span></a>
-      </nav>
-    </section>
   </main>
 
   <footer class="footer shell">
     <a href="../" class="brand" aria-label="Back to Zixun Wang’s portfolio">zw<span>°</span></a>
-    <span>Statistical imaging research companion by Zixun Wang · <a href="#sources-title">Sources &amp; field notes ↗</a></span>
-    <button id="motion" class="motion-toggle" type="button" aria-pressed="false" hidden>Pause motion</button>
+    <span>A research companion by Zixun Wang<br><span class="muted">Built to be explored. Grounded in the paper.</span></span>
+    <a href="#sources-title">Sources &amp; field notes ↗</a>
   </footer>
 
   <dialog id="word-dialog" aria-labelledby="word-title">

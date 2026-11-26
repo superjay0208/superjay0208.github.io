@@ -1,7 +1,7 @@
 @font-face{font-family:Inter;src:url('../slide-projector/fonts/InterVariable.woff2') format('woff2');font-weight:100 900;font-display:swap}
 :root{--paper:#f5f0e8;--card:#fffdf7;--ink:#202024;--muted:#75716d;--line:#d9d1c6;--blue:#354ac0;--orange:#b33d15;--yellow:#f6dc7a;--sans:Inter,Arial,Helvetica,sans-serif;--mono:ui-monospace,'Courier New',monospace}
 *{box-sizing:border-box}
-body{margin:0;min-height:100svh;display:flex;flex-direction:column;background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 button:disabled{cursor:default}
 a{color:inherit}
@@ -10,10 +10,10 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid va
 .skip-link{position:fixed;top:-60px;left:20px;z-index:99;background:var(--ink);color:#fff;padding:12px}
 .skip-link:focus{top:10px}
 
-.site-header{width:100%;max-width:1050px;margin:0 auto;padding:22px 32px;display:flex;justify-content:space-between;align-items:center;gap:20px}
-.header-brand{display:flex;align-items:center;gap:14px;min-width:0}
-.portfolio-back{font-size:12px;font-weight:700;text-decoration:none;padding:5px 10px;border:1.5px solid var(--ink);border-radius:4px;background:var(--card);box-shadow:2px 2px 0 var(--ink);white-space:nowrap;transition:transform .12s,box-shadow .12s}
-.portfolio-back:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink)}
+.site-header{max-width:1050px;margin:auto;padding:24px 32px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.header-brand{display:flex;align-items:baseline;gap:16px}
+.portfolio-back{font-family:Georgia,serif;font-weight:700;font-size:22px;letter-spacing:-1.5px;text-decoration:none;opacity:.55;transition:opacity .18s}
+.portfolio-back:hover{opacity:1}
 .wordmark{font-size:26px;font-weight:900;letter-spacing:-1.5px;text-decoration:none;white-space:nowrap}
 .wordmark span{color:var(--blue)}
 .header-controls{display:flex;gap:22px}
@@ -21,7 +21,7 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid va
 .text-button:hover:not(:disabled){text-decoration:underline}
 .text-button:disabled{opacity:.3}
 
-main{flex:1;width:100%;max-width:960px;margin:0 auto;padding:36px 32px 45px}
+main{max-width:960px;margin:auto;padding:48px 32px 45px}
 .play-layout{max-width:600px;margin:auto}
 .topic-intro{text-align:center;margin-bottom:28px}
 .topic-intro h1{font-size:clamp(32px,4.4vw,46px);font-weight:900;letter-spacing:-1.8px;line-height:1.08;margin:0}
@@ -87,23 +87,9 @@ main{flex:1;width:100%;max-width:960px;margin:0 auto;padding:36px 32px 45px}
 .receipt-rows li.spotlight{background:#f6dc7a30}
 .receipt-observation{background:var(--yellow);padding:16px;margin-top:18px}
 .receipt-observation h3{font-size:21px;line-height:1.16;letter-spacing:-.5px;margin:0}
-.receipt-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:16px;padding-top:12px;border-top:1px dashed var(--line);font:10px var(--mono);color:var(--muted)}
-.receipt-footer a{font-weight:700;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 .result-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}
 #export-status{grid-column:1/-1;font:11px/1.5 var(--mono);margin:0}
 .replay-actions{display:flex;justify-content:space-between;margin-top:12px;color:var(--muted)}
-.result-more{margin-top:18px;padding:12px 14px;border:1.5px solid var(--ink);border-radius:5px;background:var(--card);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px;font-size:12px;color:var(--muted)}
-.result-more>span:first-child{font:700 11px var(--mono);color:var(--ink)}
-.result-more a{font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px}
-.result-more a:hover{color:var(--blue)}
-
-.site-footer{width:100%;max-width:1050px;margin:0 auto;padding:18px 32px 26px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px 24px;font-size:12px;color:var(--muted)}
-.footer-portfolio{font-weight:700;color:var(--ink);text-decoration:none}
-.footer-portfolio:hover{text-decoration:underline}
-.footer-links{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
-.footer-label{font:700 11px var(--mono);color:var(--ink)}
-.footer-links a{text-decoration:none;color:var(--ink);font-weight:500}
-.footer-links a:hover{text-decoration:underline;color:var(--blue)}
 
 dialog{width:min(470px,calc(100% - 32px));max-height:90dvh;padding:28px;border:1.5px solid var(--ink);border-radius:6px;background:var(--paper);box-shadow:6px 6px 0 var(--ink)}
 dialog::backdrop{background:#20202488}
@@ -126,18 +112,15 @@ textarea{width:100%;font:12px/1.6 var(--mono);padding:12px;border:1px solid var(
 @keyframes paper{from{transform:translate(0);opacity:1}to{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:0}}
 
 @media(max-width:640px){
-  .site-header{padding:16px 18px;gap:8px 12px;flex-wrap:wrap}
-  .header-brand{gap:10px}
-  .portfolio-back{font-size:11px;padding:4px 8px}
-  .wordmark{font-size:21px}
-  .header-controls{gap:12px}
-  main{padding:24px 18px 28px}
-  .case-card{min-height:210px;padding:24px 18px}
-  .choice{font-size:11.5px;min-height:56px}
+  .site-header{padding:20px 22px}
+  .wordmark{font-size:24px}
+  .header-controls{gap:16px}
+  main{padding:36px 22px 30px}
+  .case-card{min-height:230px;padding:30px 22px}
+  .choice{font-size:11.5px;min-height:58px}
   .review-pair{grid-template-columns:1fr;gap:14px}
   .review-card{min-height:190px;padding:20px 16px}
   .receipt-paper{padding:22px 18px}
   .receipt-rows li{font-size:11px;grid-template-columns:14px 1fr 80px;gap:6px}
-  .site-footer{padding:16px 18px 24px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}#effects{display:none}}

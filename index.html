@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f6f2">
-  <meta name="description" content="Zixun Wang — UC Berkeley CS &amp; Statistics. Interactive 2D/3D graphics, physics browser games, computer vision, and statistical imaging research.">
-  <title>Zixun Wang — Software, Interactive Graphics &amp; Statistical Imaging</title>
+  <meta name="theme-color" content="#141311">
+  <meta name="description" content="Zixun Wang’s corner of the internet. Interactive graphics, browser games, computer vision, and statistical imaging research.">
+  <title>Zixun Wang — Curiosity, in motion.</title>
   <link rel="icon" href="./assets/monogram.svg" type="image/svg+xml">
   <link rel="preload" href="./slide-projector/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="./portfolio.css">
@@ -21,423 +21,276 @@
     .route-tag.motion-tag { background: #181512e6; color: #f4efe6; border: 1px solid #eb9c2855; letter-spacing: .06em; }
   </style>
 </head>
-<body id="top">
-  <a class="skip-link" href="#projects">Skip to projects</a>
-
-  <header class="topbar">
-    <div class="topbar-inner container">
-      <a class="brand" href="#top" aria-label="Zixun Wang home">
-        <span class="brand-mark">zw°</span>
-        <span class="brand-name">Zixun Wang</span>
-      </a>
-      <nav class="topbar-nav" aria-label="Primary navigation">
-        <a href="#projects">Projects</a>
-        <a href="#research">Research</a>
-        <a href="#graphics-vision">Graphics &amp; Vision</a>
-        <a href="#directory">All Links</a>
-      </nav>
-      <a class="topbar-cta" href="https://github.com/superjay0208" target="_blank" rel="noopener noreferrer">
-        GitHub <span aria-hidden="true">↗</span>
-      </a>
-    </div>
+<body>
+  <a class="skip-link" href="#work">Skip to projects</a>
+  <div class="reading-progress" aria-hidden="true"></div>
+  <header class="site-header">
+    <nav class="navigation" aria-label="Main navigation">
+      <a class="identity" href="#home" aria-label="Zixun Wang home"><span class="monogram">zw<span>°</span></span><span class="identity-name">Zixun Wang</span></a>
+      <div class="nav-links"><a href="#work">Work</a><a href="#studies">Studies</a><a href="./research/">Research</a><a href="#about">About</a></div>
+      <a class="nav-github" href="https://github.com/superjay0208" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
   </header>
-
   <main>
-    <section class="intro-band" aria-labelledby="intro-title">
-      <div class="container">
-        <p class="intro-eyebrow">ZIXUN WANG · UC BERKELEY CS &amp; STATISTICS</p>
-        <h1 id="intro-title">Software, interactive graphics, and statistical imaging.</h1>
-        <div class="intro-bottom">
-          <p class="intro-bio">Physics-driven browser games, WebGL 2 optical sandboxes, OpenGL shaders, and statistical imaging tools.</p>
-          <div class="intro-links" aria-label="Quick links">
-            <a class="quick-pill" href="https://superjay0208.github.io/crux-motion/" target="_blank" rel="noopener noreferrer">Crux Motion <span aria-hidden="true">↗</span></a>
-            <a class="quick-pill" href="./slide-projector/">Slide Projector <span aria-hidden="true">↗</span></a>
-            <a class="quick-pill" href="https://arxiv.org/abs/2512.17038" target="_blank" rel="noopener noreferrer">arXiv:2512.17038 <span aria-hidden="true">↗</span></a>
-            <a class="quick-pill" href="https://superjay0208.github.io/crux/" target="_blank" rel="noopener noreferrer">Crux <span aria-hidden="true">↗</span></a>
-            <a class="quick-pill" href="https://github.com/superjay0208" target="_blank" rel="noopener noreferrer">GitHub @superjay0208 <span aria-hidden="true">↗</span></a>
+    <section class="hero" id="home" aria-labelledby="hero-title">
+      <div class="spatial-stage" aria-hidden="true"><div class="stage-glow"></div><canvas id="dust-canvas"></canvas><div class="lens-fallback"></div><canvas id="glass-canvas"></canvas></div>
+      <div class="hero-copy">
+        <p class="eyebrow hero-eyebrow"><span class="status-dot"></span> CREATIVE COMPUTING &amp; RESEARCH</p>
+        <h1 id="hero-title">Curiosity,<br><em>in motion.</em></h1>
+        <p class="hero-intro">Ideas you can play with.</p>
+        <div class="hero-actions">
+          <a class="button button-glass" href="#work">Selected work <span aria-hidden="true">↓</span></a>
+          <a class="hero-research-link" href="./research/">Research lab <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+      <div class="sculpture-surface" aria-hidden="true" title="Drag to turn the glass sculpture"></div>
+      <div class="sculpture-dock" hidden>
+        <div class="dock-row">
+          <div class="form-switch" role="group" aria-label="Glass sculpture form">
+            <button type="button" data-form="0" aria-pressed="true"><span class="form-icon halo-icon" aria-hidden="true"></span>Halo</button>
+            <button type="button" data-form="1" aria-pressed="false"><span class="form-icon orbit-icon" aria-hidden="true"></span>Orbit</button>
+            <button type="button" data-form="2" aria-pressed="false"><span class="form-icon pebble-icon" aria-hidden="true"></span>Pebble</button>
           </div>
+          <button id="hero-motion" class="dock-pause" type="button" aria-pressed="false">Pause</button>
+        </div>
+        <div class="turn-control">
+          <label for="sculpture-turn">Angle</label>
+          <input id="sculpture-turn" type="range" min="-180" max="180" step="1" value="0">
+          <output id="turn-value" for="sculpture-turn">0°</output>
         </div>
       </div>
     </section>
 
-    <section class="section" id="projects" aria-labelledby="projects-heading">
-      <div class="container">
-        <div class="section-head">
+    <section class="work section-shell" id="work" aria-labelledby="work-title">
+      <div class="section-heading reveal"><div><p class="eyebrow">01 / SELECTED WORK</p><h2 id="work-title">Made to<br><em>be played.</em></h2></div></div>
+      <a class="project-feature reveal" href="./slide-projector/" aria-label="Explore Slide Projector, an interactive experiment in light and space">
+        <div class="feature-art" aria-hidden="true">
+          <div class="room-grid"></div>
+          <div class="room-halo"></div>
+          <div class="projected-screen"><video id="projector-video" muted loop playsinline preload="none" poster="./assets/light-poster.svg"><source src="./slide-projector/media/light-study.webm" type="video/webm"></video><div class="screen-overlay"></div></div>
+          <div class="light-beam"></div>
+          <div class="projector-object"><div class="projector-top"></div><div class="projector-front"><i></i><span></span></div><div class="projector-foot foot-one"></div><div class="projector-foot foot-two"></div></div>
+        </div>
+        <div class="feature-content">
           <div>
-            <p class="section-eyebrow">01 / FEATURED WORK</p>
-            <h2 id="projects-heading">Selected Projects</h2>
+            <span class="project-type"><span class="status-dot"></span> INTERACTIVE 3D</span>
+            <h3>Light, at<br>your fingertips.</h3>
+            <p>Steer a physical projector through a dark room of light, film, and optics.</p>
+            <span class="project-link">Enter Slide Projector <span aria-hidden="true">↗</span></span>
           </div>
-          <p class="section-note">Live browser builds, research companion, and public source repositories.</p>
         </div>
+      </a>
 
-        <div class="featured-grid">
-          <article class="project-card">
-            <div class="card-media card-media--crux-motion">
-              <a class="card-media-link" href="https://superjay0208.github.io/crux-motion/" target="_blank" rel="noopener noreferrer" aria-label="Play Crux Motion live">
-                <img src="./assets/previews/crux-motion.webp" alt="Crux Motion camera-controlled 2D bouldering game with dynamic hold grips and climbing route" width="1120" height="630" fetchpriority="high">
-              </a>
+      <div class="project-grid">
+        <article class="project-card debate-card reveal">
+          <div class="card-art debate-art" id="mini-debate" aria-label="Quick preview of Still Counts">
+            <div class="mini-deck-top"><span id="mini-topic">IS IT A SANDWICH?</span><span id="mini-progress">1 / 4</span></div>
+            <div class="mini-prompt-card" id="mini-card">
+              <p id="mini-prompt">A hot dog in a split bun.</p>
+              <span class="mini-stamp" id="mini-stamp" aria-hidden="true"></span>
             </div>
-            <div class="card-body">
-              <div class="card-meta">
-                <span class="card-num">01</span>
-                <span class="card-tag">TypeScript · 120 Hz Physics · MediaPipe Webcam</span>
-              </div>
-              <h3><a href="https://superjay0208.github.io/crux-motion/" target="_blank" rel="noopener noreferrer">Crux Motion</a></h3>
-              <p class="card-desc">Camera-controlled 2D bouldering game with Jug/Crimp/Pinch grip recognition, forearm pump, and 12 routes.</p>
-              <div class="card-actions">
-                <a class="action-pill action-pill--primary" href="https://superjay0208.github.io/crux-motion/" target="_blank" rel="noopener noreferrer">Play Live <span aria-hidden="true">↗</span></a>
-                <a class="action-pill" href="https://github.com/superjay0208/crux-motion" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
-                <a class="action-pill" href="https://superjay0208.github.io/crux-motion/?route=motion-07" target="_blank" rel="noopener noreferrer">Launchpad Route <span aria-hidden="true">↗</span></a>
-              </div>
+            <div class="mini-actions" role="group" aria-label="Make a quick call">
+              <button type="button" class="mini-choice yes" data-mini-verdict="yes">Counts</button>
+              <button type="button" class="mini-choice no" data-mini-verdict="no">No way</button>
             </div>
-          </article>
-
-          <article class="project-card">
-            <div class="card-media card-media--video card-media--projector" id="projector-media">
-              <a class="card-media-link" href="./slide-projector/" aria-label="Enter Slide Projector Room 04">
-                <img src="./assets/previews/slide-projector.webp" alt="Slide Projector Room 04 3D projection darkroom with volumetric beam and mirror reflection" width="1120" height="746" fetchpriority="high">
-                <video id="projector-video" muted loop playsinline preload="none" poster="./assets/previews/slide-projector.webp" aria-hidden="true">
-                  <source src="./slide-projector/media/light-study.webm" type="video/webm">
-                </video>
-              </a>
-              <button id="projector-preview-toggle" class="preview-toggle" type="button" aria-pressed="false" aria-label="Preview Slide Projector video reel">▶ Preview reel</button>
-            </div>
-            <div class="card-body">
-              <div class="card-meta">
-                <span class="card-num">02</span>
-                <span class="card-tag">Three.js · WebGL 2 · Rapier · GLSL</span>
-              </div>
-              <h3><a href="./slide-projector/">Slide Projector</a></h3>
-              <p class="card-desc">Physical 3D projection darkroom (Room 04) with thin-lens bokeh, volumetric light shafts, mirror bounces, and prism dispersion.</p>
-              <div class="card-actions">
-                <a class="action-pill action-pill--primary" href="./slide-projector/">Enter Room 04 <span aria-hidden="true">↗</span></a>
-              </div>
-            </div>
-          </article>
-
-          <article class="project-card project-card--wide" id="research">
-            <div class="card-media card-media--research">
-              <a class="card-media-link" href="./research/" aria-label="Open The Shape of an Image interactive companion">
-                <img src="./assets/previews/research-fig8.webp" alt="Figure 8 comparison of generalized-gamma scale mixture fits across natural and MRI image datasets" width="1120" height="633">
-              </a>
-            </div>
-            <div class="card-body">
-              <div class="card-meta">
-                <span class="card-num">03</span>
-                <span class="card-tag">arXiv:2512.17038 · Statistical Imaging · 8 Interactive Labs</span>
-              </div>
-              <h3><a href="./research/">The Shape of an Image</a></h3>
-              <p class="card-desc">Interactive companion to <em>Do Generalized-Gamma Scale Mixtures of Normals Fit Large Image Datasets?</em> (Marks, Dave, Wang et al.).</p>
-              <p class="card-submeta">Brandon Marks, Yash Dave, <strong>Zixun Wang</strong>, Hannah Chung, Riya Patwa, Simon Cha, Michael Murphy &amp; Alexander Strang</p>
-              <div class="card-actions">
-                <a class="action-pill action-pill--primary" href="./research/">Interactive Companion <span aria-hidden="true">↗</span></a>
-                <a class="action-pill" href="https://arxiv.org/abs/2512.17038" target="_blank" rel="noopener noreferrer">arXiv Paper <span aria-hidden="true">↗</span></a>
-                <a class="action-pill" href="https://arxiv.org/pdf/2512.17038" target="_blank" rel="noopener noreferrer">PDF <span aria-hidden="true">↗</span></a>
-                <a class="action-pill" href="https://github.com/yashdave003/gengamma-scale-mixture-validation-images" target="_blank" rel="noopener noreferrer">GitHub Code <span aria-hidden="true">↗</span></a>
-              </div>
-            </div>
-          </article>
-
-          <article class="project-card">
-            <div class="card-media card-media--crux">
-              <a class="card-media-link" href="https://superjay0208.github.io/crux/" target="_blank" rel="noopener noreferrer" aria-label="Play Crux physics climbing puzzle">
-                <img src="./assets/previews/crux.webp" alt="Crux 24-route physics climbing puzzle showing holds, reach constraints, and reserve meters" width="1120" height="630">
-              </a>
-            </div>
-            <div class="card-body">
-              <div class="card-meta">
-                <span class="card-num">04</span>
-                <span class="card-tag">TypeScript · Planck.js · 24 Routes</span>
-              </div>
-              <h3><a href="https://superjay0208.github.io/crux/" target="_blank" rel="noopener noreferrer">Crux</a></h3>
-              <p class="card-desc">24-route physics climbing puzzle with crimp reserves, timed foot swaps, and Realism fatigue mode.</p>
-              <div class="card-actions">
-                <a class="action-pill action-pill--primary" href="https://superjay0208.github.io/crux/" target="_blank" rel="noopener noreferrer">Play Live <span aria-hidden="true">↗</span></a>
-                <a class="action-pill" href="https://github.com/superjay0208/crux" target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span></a>
-              </div>
-            </div>
-          </article>
-
-          <article class="project-card">
-            <div class="card-media card-media--still-counts">
-              <a class="card-media-link" href="./cross-examination/" aria-label="Play Still Counts browser game">
-                <img src="./assets/previews/still-counts.webp" alt="Still Counts browser game showing quick judgment prompt card and verdict buttons" width="1120" height="630">
-              </a>
-            </div>
-            <div class="card-body">
-              <div class="card-meta">
-                <span class="card-num">05</span>
-                <span class="card-tag">Vanilla JS · Browser Game</span>
-              </div>
-              <h3><a href="./cross-examination/">Still Counts?</a></h3>
-              <p class="card-desc">Eight quick judgment calls on everyday edge cases, contradiction cross-examination, and printable call receipts.</p>
-              <div class="card-actions">
-                <a class="action-pill action-pill--primary" href="./cross-examination/">Play Live <span aria-hidden="true">↗</span></a>
-                <a class="action-pill" href="./cross-examination/?topic=sandwich">Sandwiches</a>
-                <a class="action-pill" href="./cross-examination/?topic=date">Dates</a>
-                <a class="action-pill" href="./cross-examination/?topic=working">Work</a>
-                <a class="action-pill" href="https://github.com/superjay0208/superjay0208.github.io/tree/main/cross-examination" target="_blank" rel="noopener noreferrer">Source <span aria-hidden="true">↗</span></a>
-              </div>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="graphics-vision" aria-labelledby="gv-heading">
-      <div class="container">
-        <div class="section-head">
-          <div>
-            <p class="section-eyebrow">02 / GRAPHICS &amp; COMPUTER VISION</p>
-            <h2 id="gv-heading">Rendering &amp; Computational Photography</h2>
           </div>
-          <p class="section-note">Real-time OpenGL/GLSL shaders and six UC Berkeley CS 180 vision studies.</p>
-        </div>
-
-        <article class="npr-card">
-          <a class="npr-media-link" href="./CS%20184/index.html" aria-label="Open CS 184 Non-Photorealistic Rendering technical report">
-            <img src="./assets/previews/cs184-shaders.webp" alt="Three-panel CS 184 shader render strip showing thermal ramp, polka dot halftone, and lined notebook shaders" width="1120" height="350">
-          </a>
-          <div class="npr-body">
-            <div class="npr-copy">
-              <div class="card-meta">
-                <span class="card-num">CS 184</span>
-                <span class="card-tag">C++ · OpenGL · GLSL · GLFW</span>
-              </div>
-              <h3><a href="./CS%20184/index.html">Non-Photorealistic Rendering</a></h3>
-              <p class="card-desc">Custom C++/OpenGL/GLSL shaders (toon quantization, thermal ramp, halftone stipple, chroma dispersion, notebook lines).</p>
-            </div>
-            <div class="card-actions">
-              <a class="action-pill action-pill--primary" href="./CS%20184/index.html">Technical Report <span aria-hidden="true">↗</span></a>
-              <a class="action-pill" href="https://github.com/superjay0208/cs184_sp25_final_project" target="_blank" rel="noopener noreferrer">GitHub C++ Repo <span aria-hidden="true">↗</span></a>
-              <a class="action-pill" href="https://drive.google.com/file/d/1MA8pasBDFyrZDKzD0pBjy2Qdmx0CHSao/view?usp=sharing" target="_blank" rel="noopener noreferrer">Video Demo <span aria-hidden="true">↗</span></a>
-              <a class="action-pill" href="https://docs.google.com/presentation/d/1RfQtmLIhLqFPoOdPa2pzxL3zuBOIFqItZJ2SWw2I9kE/edit?usp=sharing" target="_blank" rel="noopener noreferrer">Slides <span aria-hidden="true">↗</span></a>
-            </div>
+          <div class="card-content">
+            <span class="card-eyebrow">BROWSER GAME</span>
+            <h3><a class="card-main-link" href="./cross-examination/">Still Counts? <span aria-hidden="true">↗</span></a></h3>
+            <p>Eight quick calls on everyday edge cases—then defend where you drew the line.</p>
           </div>
         </article>
 
-        <div class="vision-block">
-          <div class="vision-head">
-            <h3>CS 180 · Computer Vision &amp; Diffusion</h3>
-            <span class="vision-count">00 – 05 · 6 Studies</span>
+        <article class="project-card crux-card reveal">
+          <div class="card-art crux-art" id="crux-stage">
+            <svg class="climbing-scene" id="crux-svg" viewBox="0 0 600 420" fill="none" aria-label="Interactive climbing wall preview: hover or tap holds to shift the climber’s reach">
+              <path d="M110 420 160 325 146 237 230 155 249 0M430 420 390 302 450 160 404 0" stroke="#c7c5bd" stroke-width="1.5"/>
+              <path d="m282 420 21-97-18-81 65-107-13-135" stroke="#d4d0c8"/>
+              <line id="crux-plumb" x1="286" y1="230" x2="286" y2="420" stroke="#9e9b90" stroke-width="1" stroke-dasharray="3 5" opacity=".55"/>
+              <path id="crux-reach" d="M291 163 349 198" stroke="#d87149" stroke-width="2" stroke-dasharray="4 4" opacity=".75"/>
+              <g id="crux-climber">
+                <path id="crux-limbs" d="M254 302 281 260 319 254 341 206M281 260 264 210 291 163M292 268 310 307 351 325M289 267 258 312 230 318" stroke="#313d3a" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle id="crux-head" cx="273" cy="190" r="15" fill="#313d3a"/>
+                <path d="m280 231 10 36 16-3-12-41" fill="#d87149"/>
+                <path d="M295 267 Q361 375 324 420" stroke="#d87149" stroke-width="2"/>
+              </g>
+              <g class="crux-holds">
+                <circle class="hold-ring" id="crux-ring" cx="346" cy="200" r="16" stroke="#d87149" stroke-width="1.5" opacity=".7"/>
+                <path data-hold="0" data-hx="252" data-hy="74" data-label="TOP HOLD · HIGH COMMIT" d="M240 74l20-8 9 12-26 10Z" fill="#cf7958"/>
+                <path data-hold="1" data-hx="394" data-hy="112" data-label="RIGHT ARÊTE · WIDE REACH" d="M379 111l26-7 7 13-30 10Z" fill="#cf7958"/>
+                <path data-hold="2" data-hx="290" data-hy="156" data-label="CENTER CRIMP · LOCKED" d="m275 155 24-7 9 10-29 13Z" fill="#cf7958"/>
+                <path data-hold="3" data-hx="346" data-hy="200" data-label="CRUX SIDE-PULL · BALANCED" d="M330 197l25-9 10 14-29 9Z" fill="#b85735"/>
+                <path data-hold="4" data-hx="193" data-hy="230" data-label="LEFT GASTON · COUNTERWEIGHT" d="M178 231l23-10 11 12-31 9Z" fill="#cf7958"/>
+                <path data-hold="5" data-hx="232" data-hy="317" data-label="LEFT FOOTHOLD · STABLE" d="M219 315l24-4 3 12-27 8Z" fill="#cf7958"/>
+                <path data-hold="6" data-hx="356" data-hy="326" data-label="HIGH SMEAR · FLAG RIGHT" d="M342 322l23-2 6 13-30 5Z" fill="#cf7958"/>
+              </g>
+            </svg>
+            <span class="route-tag" id="crux-status">CRUX SIDE-PULL · BALANCED</span>
           </div>
-          <div class="vision-grid">
-            <a class="vision-card" href="./CS%20180/project0/index.html">
-              <div class="vision-thumb">
-                <img src="./assets/previews/cs180-p0.webp" alt="CS 180 Project 0 architectural hallway perspective compression study" width="640" height="420">
-              </div>
-              <div class="vision-body">
-                <div class="vision-meta"><span>00 · OPTICS</span><span class="vision-arrow" aria-hidden="true">↗</span></div>
-                <h4>Perspective &amp; Camera Optics</h4>
-                <p>Focal length distortion, portrait perspective compression, and dolly zoom.</p>
-              </div>
-            </a>
-
-            <a class="vision-card" href="./CS%20180/project1/index.html">
-              <div class="vision-thumb">
-                <img src="./assets/previews/cs180-p1.webp" alt="CS 180 Project 1 aligned color reconstruction of Prokudin-Gorskii glass negative" width="640" height="420">
-              </div>
-              <div class="vision-body">
-                <div class="vision-meta"><span>01 · PYRAMID NCC</span><span class="vision-arrow" aria-hidden="true">↗</span></div>
-                <h4>Prokudin-Gorskii Colorization</h4>
-                <p>Multiscale image pyramid alignment across RGB glass plate channels.</p>
-              </div>
-            </a>
-
-            <a class="vision-card" href="./CS%20180/project2/index.html">
-              <div class="vision-thumb">
-                <img src="./assets/previews/cs180-p2.webp" alt="CS 180 Project 2 Laplacian pyramid multi-resolution apple-orange blend" width="640" height="420">
-              </div>
-              <div class="vision-body">
-                <div class="vision-meta"><span>02 · LAPLACIAN</span><span class="vision-arrow" aria-hidden="true">↗</span></div>
-                <h4>Filters &amp; Frequencies</h4>
-                <p>From-scratch convolution, unsharp masking, hybrid images, and spline blending.</p>
-              </div>
-            </a>
-
-            <a class="vision-card" href="./CS%20180/project3/index.html">
-              <div class="vision-thumb">
-                <img src="./assets/previews/cs180-p3.webp" alt="CS 180 Project 3 RANSAC stitched panoramic photo mosaic" width="640" height="420">
-              </div>
-              <div class="vision-body">
-                <div class="vision-meta"><span>03 · RANSAC</span><span class="vision-arrow" aria-hidden="true">↗</span></div>
-                <h4>Warping &amp; Photo Mosaics</h4>
-                <p>Homographies, inverse warping, Harris/ANMS features, and auto-stitched panoramas.</p>
-              </div>
-            </a>
-
-            <a class="vision-card" href="./CS%20180/project4/index.html">
-              <div class="vision-thumb">
-                <img src="./assets/previews/cs180-p4.webp" alt="CS 180 Project 4 NeRF camera pose frustums and sampled 3D rays around the Lego scene" width="640" height="420">
-              </div>
-              <div class="vision-body">
-                <div class="vision-meta"><span>04 · NERF</span><span class="vision-arrow" aria-hidden="true">↗</span></div>
-                <h4>Neural Radiance Fields</h4>
-                <p>ArUco calibration, 2D neural fields, and volumetric multi-view NeRF.</p>
-              </div>
-            </a>
-
-            <a class="vision-card" href="./CS%20180/project5/index.html">
-              <div class="vision-thumb">
-                <img src="./assets/previews/cs180-p5.webp" alt="CS 180 Project 5 UNet diffusion and flow matching image generation grid" width="640" height="420">
-              </div>
-              <div class="vision-body">
-                <div class="vision-meta"><span>05 · FLOW MATCHING</span><span class="vision-arrow" aria-hidden="true">↗</span></div>
-                <h4>Diffusion &amp; Flow Matching</h4>
-                <p>DeepFloyd IF editing, visual anagrams, and MNIST UNet flow matching.</p>
-              </div>
-            </a>
+          <div class="card-content">
+            <span class="card-eyebrow">PHYSICS PUZZLE</span>
+            <h3><a class="card-main-link" href="https://superjay0208.github.io/crux/">Crux <span aria-hidden="true">↗</span></a></h3>
+            <p>A climbing puzzle built around reach, tension, and center of mass.</p>
           </div>
+        </article>
+
+        <article class="project-card crux-motion-card reveal">
+          <a class="card-art crux-motion-art" href="./crux-motion/" tabindex="-1" aria-hidden="true">
+            <svg class="motion-scene" viewBox="0 0 600 420" fill="none">
+              <rect width="600" height="420" fill="#1d1a17"/>
+              <polygon points="0,120 230,175 165,360 0,330" fill="#26211d"/>
+              <polygon points="410,40 600,95 600,290 365,235" fill="#25201c"/>
+              <path d="M0 140H600M0 280H600M195 0V420M405 0V420" stroke="#f4efe6" stroke-opacity=".06" stroke-width="1"/>
+              <rect x="0" y="396" width="600" height="24" fill="#2c353d"/>
+              <line x1="0" y1="396" x2="600" y2="396" stroke="#eb9c28" stroke-width="2.5"/>
+              <path d="M306 196 Q344 134 388 106" stroke="#eb9c28" stroke-opacity=".78" stroke-width="2.2" stroke-dasharray="5 5"/>
+              <g>
+                <polygon points="274,46 312,36 346,50 336,80 282,80" fill="#f5ede0" stroke="#14110f" stroke-width="2.5"/>
+                <line x1="292" y1="80" x2="288" y2="91" stroke="#e55938" stroke-width="3.5" stroke-linecap="round"/>
+                <line x1="324" y1="80" x2="328" y2="91" stroke="#eb9c28" stroke-width="3.5" stroke-linecap="round"/>
+                <circle cx="388" cy="108" r="24" stroke="#f4efe6" stroke-opacity=".55" stroke-width="1.5" stroke-dasharray="4 4"/>
+                <circle cx="388" cy="108" r="18" fill="#2fb370" stroke="#14110f" stroke-width="2.5"/>
+                <path d="M376 104 Q388 113 400 104" fill="#0d3822"/>
+                <rect x="196" y="158" width="46" height="14" rx="3" fill="#eb9c28" stroke="#14110f" stroke-width="2.5"/>
+                <line x1="201" y1="162" x2="237" y2="162" stroke="#fff3d6" stroke-opacity=".8" stroke-width="2"/>
+                <path d="M430 194 C423 194 420 212 423 230 C426 242 440 242 443 230 C446 212 443 194 436 194 Z" fill="#e55938" stroke="#14110f" stroke-width="2.5"/>
+                <circle cx="238" cy="236" r="18" fill="#2fb370" stroke="#14110f" stroke-width="2.5"/>
+                <path d="M226 232 Q238 241 250 232" fill="#0d3822"/>
+              </g>
+              <g stroke="#14110f" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+                <path d="M283 278 L266 332 L254 378" stroke="#e6b897" stroke-width="10"/>
+                <path d="M303 278 L319 332 L331 378" stroke="#e6b897" stroke-width="10"/>
+                <path d="M245 381 L260 376 L262 384 L244 386 Z" fill="#231f1b"/>
+                <path d="M340 381 L325 376 L323 384 L341 386 Z" fill="#231f1b"/>
+                <path d="M274 264 L312 264 L308 292 L296 292 L293 282 L290 292 L278 292 Z" fill="#231f1b"/>
+                <path d="M268 210 L318 210 L311 266 L275 266 Z" fill="#d96b43"/>
+                <path d="M268 210 L282 210 L277 232 L264 226 Z" fill="#292420"/>
+                <path d="M318 210 L304 210 L309 232 L322 226 Z" fill="#292420"/>
+                <path d="M268 216 L242 232 L238 236" stroke="#e6b897" stroke-width="9.5" fill="none"/>
+                <circle cx="238" cy="236" r="5.5" fill="#4d8ef7"/>
+                <path d="M318 214 L348 168 L374 126" stroke="#e6b897" stroke-width="9.5" fill="none"/>
+                <circle cx="374" cy="126" r="5.5" fill="#f2a93b"/>
+                <circle cx="293" cy="186" r="15" fill="#e6b897"/>
+                <path d="M278 182 Q293 166 308 182 Z" fill="#231f1b"/>
+                <rect x="277" y="179" width="32" height="5" rx="2" fill="#eb9c28" stroke="none"/>
+                <path d="M277 182 L266 190 M278 184 L270 195" stroke="#eb9c28" stroke-width="3"/>
+                <rect x="287" y="271" width="12" height="15" rx="3" fill="#4d8ef7"/>
+                <rect x="287" y="271" width="12" height="4" rx="1" fill="#f4efe6"/>
+              </g>
+              <path d="M268 296 Q293 316 318 296" stroke="#2fb370" stroke-width="4" stroke-linecap="round"/>
+              <path d="M258 282 Q262 298 272 304" stroke="#4d8ef7" stroke-width="3" stroke-linecap="round"/>
+              <path d="M328 282 Q324 298 314 304" stroke="#f2a93b" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <span class="route-tag motion-tag pill">Webcam + physics</span>
+          </a>
+          <div class="card-content">
+            <span class="card-eyebrow">BOULDERING TOPO · 12 PROBLEMS</span>
+            <h3><a class="card-main-link" href="./crux-motion/">Crux Motion <span aria-hidden="true">↗</span></a></h3>
+            <p>Webcam 2D bouldering &bull; Jug, Crimp &amp; Pinch, stamina &amp; dynos across 12 boulders</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="studies section-shell" id="studies" aria-labelledby="studies-title">
+      <div class="section-heading reveal"><div><p class="eyebrow">02 / STUDIES</p><h2 id="studies-title">Behind<br><em>the pixels.</em></h2></div></div>
+      <div class="studies-grid">
+        <article class="graphics-study reveal">
+          <div class="graphics-art" id="npr-stage">
+            <canvas id="npr-canvas" width="520" height="280" role="img" aria-label="Interactive stylized shader sphere: move light or switch between toon, thermal, and halftone shading"></canvas>
+            <div class="npr-bar">
+              <div class="npr-switch" role="group" aria-label="Shader style">
+                <button type="button" data-shader="toon" aria-pressed="true">Toon</button>
+                <button type="button" data-shader="thermal" aria-pressed="false">Thermal</button>
+                <button type="button" data-shader="halftone" aria-pressed="false">Halftone</button>
+              </div>
+              <code class="shader-label" id="shader-code">quantize(dot(n, light), 4)</code>
+            </div>
+          </div>
+          <div class="study-card-copy">
+            <span class="eyebrow">CS 184 · COMPUTER GRAPHICS</span>
+            <h3><a class="card-main-link" href="./CS%20184/index.html">A different kind<br>of rendering. <span aria-hidden="true">↗</span></a></h3>
+            <p>Custom GLSL shaders for cel banding, thermal ramps, and procedural halftone surfaces.</p>
+          </div>
+        </article>
+
+        <div class="vision-study reveal">
+          <div class="study-card-copy">
+            <span class="eyebrow">CS 180 · COMPUTER VISION</span>
+            <h3>See beyond<br>the image.</h3>
+            <p>Six experiments in computational photography and how machines see.</p>
+          </div>
+          <ol class="study-list">
+            <li><a href="./CS%20180/project0/index.html"><span class="study-number">00</span><span>Perspective &amp; the camera</span><small>Optics</small><span aria-hidden="true">↗</span></a></li>
+            <li><a href="./CS%20180/project1/index.html"><span class="study-number">01</span><span>A past in full color</span><small>Pyramid NCC</small><span aria-hidden="true">↗</span></a></li>
+            <li><a href="./CS%20180/project2/index.html"><span class="study-number">02</span><span>Filters &amp; frequencies</span><small>Laplacian</small><span aria-hidden="true">↗</span></a></li>
+            <li><a href="./CS%20180/project3/index.html"><span class="study-number">03</span><span>Stitching worlds together</span><small>RANSAC</small><span aria-hidden="true">↗</span></a></li>
+            <li><a href="./CS%20180/project4/index.html"><span class="study-number">04</span><span>Playing with light fields</span><small>NeRF</small><span aria-hidden="true">↗</span></a></li>
+            <li><a href="./CS%20180/project5/index.html"><span class="study-number">05</span><span>Dreaming with diffusion</span><small>Flow matching</small><span aria-hidden="true">↗</span></a></li>
+          </ol>
         </div>
       </div>
     </section>
 
-    <section class="section section--last" id="directory" aria-labelledby="directory-heading">
-      <div class="container">
-        <div class="section-head">
-          <div>
-            <p class="section-eyebrow">03 / COMPLETE INDEX</p>
-            <h2 id="directory-heading">Project &amp; Repository Directory</h2>
+    <section class="research section-shell" id="research" aria-labelledby="research-title">
+      <div class="section-heading reveal"><div><p class="eyebrow">03 / RESEARCH</p><h2 id="research-title">A picture.<br><em>A deeper pattern.</em></h2></div></div>
+      <article class="paper reveal">
+        <div class="paper-visual">
+          <span class="paper-visual-label">UNIT-SCALE DENSITIES · DRAG TO INSPECT</span>
+          <svg id="density-preview" viewBox="0 0 440 300" role="img" aria-label="Laplace probability density: a sharp middle with heavier tails than a normal distribution">
+            <defs><linearGradient id="curve-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#a54c32" stop-opacity=".28"/><stop offset="1" stop-color="#a54c32" stop-opacity="0"/></linearGradient></defs>
+            <path d="M35 244H405M220 42V263M35 166H405M35 88H405" stroke="currentColor" opacity=".13"/>
+            <path id="density-reference" fill="none" stroke="#6c7563" stroke-width="1.3" stroke-dasharray="4 4" opacity=".55"/>
+            <path id="density-area" d="M40,240.7L85,234.9L130,219.3L152.5,203.3L175,176.9L193,143.8L206.5,108.8L220,61.5L233.5,108.8L247,143.8L265,176.9L287.5,203.3L310,219.3L355,234.9L400,240.7L400,244L40,244Z" fill="url(#curve-fill)"/>
+            <path id="density-curve" d="M40,240.7L85,234.9L130,219.3L152.5,203.3L175,176.9L193,143.8L206.5,108.8L220,61.5L233.5,108.8L247,143.8L265,176.9L287.5,203.3L310,219.3L355,234.9L400,240.7" stroke="#a54c32" stroke-width="2.5" fill="none"/>
+            <text x="35" y="268">−4</text><text x="217" y="280">0</text><text x="394" y="268">4</text><text x="40" y="33">density</text>
+          </svg>
+          <div class="density-switch" role="group" aria-label="Preview a probability distribution" hidden>
+            <button type="button" data-density="normal" aria-pressed="false">Normal</button>
+            <button type="button" data-density="laplace" aria-pressed="true">Laplace</button>
+            <button type="button" data-density="cauchy" aria-pressed="false">Cauchy</button>
           </div>
-          <p class="section-note">Direct links to live deployments, write-ups, papers, and verified public GitHub repositories.</p>
+          <p id="density-caption" class="density-caption" aria-live="polite">A sharp middle. Heavier tails than the dashed bell.</p>
         </div>
+        <div class="paper-content">
+          <span class="card-eyebrow">STATISTICS × IMAGING · ARXIV:2512.17038</span>
+          <h3><a href="./research/">The shape<br>of an image.</a></h3>
+          <p>Transform a picture into coefficients, shape a scale-mixture prior, and test how well it fits real image datasets across eight interactive labs.</p>
+          <div class="paper-links">
+            <a class="button button-dark" href="./research/">Enter the research lab <span aria-hidden="true">↗</span></a>
+            <a class="text-link" href="https://arxiv.org/abs/2512.17038" target="_blank" rel="noopener noreferrer">Read paper <span aria-hidden="true">↗</span></a>
+          </div>
+          <details class="paper-details">
+            <summary>Citation &amp; authors</summary>
+            <p><a href="https://arxiv.org/abs/2512.17038" target="_blank" rel="noopener noreferrer">Do Generalized-Gamma Scale Mixtures of Normals Fit Large Image Datasets?</a></p>
+            <p class="paper-authors">Brandon Marks, Yash Dave, <strong>Zixun Wang</strong>, Hannah Chung, Riya Patwa, Simon Cha, Michael Murphy &amp; Alexander Strang</p>
+            <a class="text-link" href="https://arxiv.org/pdf/2512.17038" target="_blank" rel="noopener noreferrer">View PDF ↗</a>
+          </details>
+        </div>
+      </article>
+    </section>
 
-        <div class="directory-wrap">
-          <table class="directory-table">
-            <thead>
-              <tr>
-                <th scope="col">Project</th>
-                <th scope="col">Stack &amp; Focus</th>
-                <th scope="col">Domain</th>
-                <th scope="col">Links</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td data-label="Project">
-                  <strong>Crux Motion</strong>
-                  <span class="row-sub">Camera-controlled 2D bouldering (12 routes)</span>
-                </td>
-                <td data-label="Stack">TypeScript, 120 Hz Canvas, MediaPipe</td>
-                <td data-label="Domain"><span class="domain-badge">Interactive Game</span></td>
-                <td data-label="Links" class="row-links">
-                  <a href="https://superjay0208.github.io/crux-motion/" target="_blank" rel="noopener noreferrer">Play Live ↗</a>
-                  <a href="https://superjay0208.github.io/crux-motion/?route=motion-07" target="_blank" rel="noopener noreferrer">Launchpad ↗</a>
-                  <a href="https://github.com/superjay0208/crux-motion" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="Project">
-                  <strong>Slide Projector (Room 04)</strong>
-                  <span class="row-sub">Physical 3D darkroom &amp; optics sandbox</span>
-                </td>
-                <td data-label="Stack">TypeScript, Three.js WebGL 2, Rapier, GLSL</td>
-                <td data-label="Domain"><span class="domain-badge">3D Graphics</span></td>
-                <td data-label="Links" class="row-links">
-                  <a href="./slide-projector/">Enter Room 04 ↗</a>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="Project">
-                  <strong>The Shape of an Image</strong>
-                  <span class="row-sub">8-lab companion to arXiv:2512.17038</span>
-                </td>
-                <td data-label="Stack">JavaScript ES Modules, Quadrature, Wavelets</td>
-                <td data-label="Domain"><span class="domain-badge">Research</span></td>
-                <td data-label="Links" class="row-links">
-                  <a href="./research/">Companion ↗</a>
-                  <a href="https://arxiv.org/abs/2512.17038" target="_blank" rel="noopener noreferrer">arXiv ↗</a>
-                  <a href="https://arxiv.org/pdf/2512.17038" target="_blank" rel="noopener noreferrer">PDF ↗</a>
-                  <a href="https://github.com/yashdave003/gengamma-scale-mixture-validation-images" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="Project">
-                  <strong>Crux</strong>
-                  <span class="row-sub">24-route climbing puzzle with Realism fatigue</span>
-                </td>
-                <td data-label="Stack">TypeScript, Planck.js</td>
-                <td data-label="Domain"><span class="domain-badge">Physics Puzzle</span></td>
-                <td data-label="Links" class="row-links">
-                  <a href="https://superjay0208.github.io/crux/" target="_blank" rel="noopener noreferrer">Play Live ↗</a>
-                  <a href="https://github.com/superjay0208/crux" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="Project">
-                  <strong>Still Counts?</strong>
-                  <span class="row-sub">Edge-case judgment game &amp; printable receipts</span>
-                </td>
-                <td data-label="Stack">Vanilla JS, Web Audio, Canvas</td>
-                <td data-label="Domain"><span class="domain-badge">Browser Game</span></td>
-                <td data-label="Links" class="row-links">
-                  <a href="./cross-examination/">Play Live ↗</a>
-                  <a href="./cross-examination/?topic=sandwich">Sandwiches</a>
-                  <a href="./cross-examination/?topic=date">Dates</a>
-                  <a href="./cross-examination/?topic=working">Work</a>
-                  <a href="https://github.com/superjay0208/superjay0208.github.io/tree/main/cross-examination" target="_blank" rel="noopener noreferrer">Source ↗</a>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="Project">
-                  <strong>CS 184 · Non-Photorealistic Rendering</strong>
-                  <span class="row-sub">Interactive 3D stylized OBJ shader testbed</span>
-                </td>
-                <td data-label="Stack">C++, OpenGL, GLSL, GLFW, GLM</td>
-                <td data-label="Domain"><span class="domain-badge">Graphics</span></td>
-                <td data-label="Links" class="row-links">
-                  <a href="./CS%20184/index.html">Report ↗</a>
-                  <a href="https://github.com/superjay0208/cs184_sp25_final_project" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-                  <a href="https://drive.google.com/file/d/1MA8pasBDFyrZDKzD0pBjy2Qdmx0CHSao/view?usp=sharing" target="_blank" rel="noopener noreferrer">Demo ↗</a>
-                  <a href="https://docs.google.com/presentation/d/1RfQtmLIhLqFPoOdPa2pzxL3zuBOIFqItZJ2SWw2I9kE/edit?usp=sharing" target="_blank" rel="noopener noreferrer">Slides ↗</a>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="Project">
-                  <strong>CS 180 · Computer Vision &amp; Diffusion</strong>
-                  <span class="row-sub">Six project write-ups (Optics to Flow Matching)</span>
-                </td>
-                <td data-label="Stack">Python, NumPy, PyTorch, Diffusion</td>
-                <td data-label="Domain"><span class="domain-badge">Vision</span></td>
-                <td data-label="Links" class="row-links">
-                  <a href="./CS%20180/project0/index.html">00</a>
-                  <a href="./CS%20180/project1/index.html">01</a>
-                  <a href="./CS%20180/project2/index.html">02</a>
-                  <a href="./CS%20180/project3/index.html">03</a>
-                  <a href="./CS%20180/project4/index.html">04</a>
-                  <a href="./CS%20180/project5/index.html">05</a>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="Project">
-                  <strong>Voice Rizz</strong>
-                  <span class="row-sub">Voice analysis experiment</span>
-                </td>
-                <td data-label="Stack">Audio Signal Analysis</td>
-                <td data-label="Domain"><span class="domain-badge">Repository</span></td>
-                <td data-label="Links" class="row-links">
-                  <a href="https://github.com/superjay0208/voice-rizz" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+    <section class="about section-shell" id="about" aria-labelledby="about-title">
+      <div class="about-rule"></div>
+      <div class="about-layout">
+        <p class="eyebrow reveal">04 / ABOUT</p>
+        <div class="reveal">
+          <h2 id="about-title">Hi, I’m Zixun.<br><em>I make things to explore.</em></h2>
+          <p>UC Berkeley computer science &amp; statistics—building interactive tools where graphics, play, and mathematical modeling meet.</p>
+          <a class="button button-dark" href="https://github.com/superjay0208" target="_blank" rel="noopener noreferrer">GitHub @superjay0208 <span aria-hidden="true">↗</span></a>
         </div>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="container footer-inner">
-      <div class="footer-brand">
-        <span class="brand-mark">zw°</span>
-        <span>Zixun Wang · UC Berkeley CS &amp; Statistics</span>
-      </div>
-      <div class="footer-right">
-        <span>© <span id="year">2026</span> Zixun Wang</span>
-        <a href="https://github.com/superjay0208" target="_blank" rel="noopener noreferrer">GitHub @superjay0208 ↗</a>
-        <a href="#top">Back to top ↑</a>
-      </div>
-    </div>
+  <footer class="footer section-shell">
+    <a class="monogram" href="#home" aria-label="Back to top">zw<span>°</span></a>
+    <span>© <span id="year">2026</span> Zixun Wang</span>
+    <button class="motion-toggle" id="motion-toggle" type="button" aria-pressed="false" hidden>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M2 1h3v10H2zm5 0h3v10H7z"/></svg>
+      <span>Pause motion</span>
+    </button>
+    <a href="#home" class="back-top">Back to top ↑</a>
   </footer>
 </body>
 </html>
