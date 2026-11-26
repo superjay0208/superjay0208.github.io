@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { createProjectorModel } from './projector.ts';
+import { detailSpecimen } from './specimens.mjs';
 import { batch, box, makeExhibit, makeTitle, material, stock, tube } from './objects.mjs';
+
+import { fixtures, makeDust, makeFragments, makeGlows, makeGrain, reflections } from './atmosphere.mjs';
 
 const clamp = THREE.MathUtils.clamp;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -31,45 +34,13 @@ const SETUPS = {
   }
 };
 
-function concrete() {
-  const canvas = document.createElement('canvas');
-  const n = canvas.height = canvas.width = 256;
-  const context = canvas.getContext('2d');
-  const pattern = context.createImageData(n, n);
-  let seed = 1842512;
-  function noise() {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 0x100000000;
-  }
-  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-    const index = (x + y * n) * 4;
-    const pore = noise();
-    const grain = (pore - .51) * 46 - (pore < .019 ? 41 : 0);
-    const board = Math.cos(y * .076) * 11 + Math.cos(x * .05 + .015 * y) * 7;
-    const water = Math.sin(x * .022 + 6) * Math.sin(y * .011 + x * .019) * 23;
-    const value = 164 + grain + board + water;
-    pattern.data.set([value, value - 2, value - 6, 255], index);
-  }
-  context.putImageData(pattern, 0, 0);
-  context.fillStyle = '#373937';
-  for (const x of [13, n - 13]) for (const y of [19, n - 19]) {
-    context.beginPath();
-    context.arc(x, y, 3.7, 0, Math.PI * 2);
-    context.fill();
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 2;
-  return texture;
-}
-
 function structure() {
   const room = new THREE.Group();
   const dark = material(0x232528);
-  const concreteMap = concrete();
-  const walls = material(0xa3a29c, .93, 0, { map: concreteMap, bumpMap: concreteMap, bumpScale: .035 });
-  const floor = material(0x78726d, .83, .04, { map: concreteMap });
-  const casing = material(0x373837, .76, .29);
+  const concreteMap = makeGrain('concrete');
+  const walls = material(0x939392, .96, .04, { map: concreteMap, bumpMap: concreteMap, bumpScale: .048, envMapIntensity: .27 });
+  const floor = material(0x666867, .40, .24, { map: concreteMap, roughnessMap: concreteMap, envMapIntensity: .58 });
+  const casing = material(0x393e40, .69, .36);
   const redLight = material(0x8a1a0c, .45, 0, { emissive: 0xf02512, emissiveIntensity: 2.4 });
   const whiteLight = material(0x6e7a7d, .43, 0, { emissive: 0xa0b5bd, emissiveIntensity: 1.4 });
   box(room, 0, 3.08, -4.85, 27, 6.55, .35, dark);
@@ -105,6 +76,7 @@ function structure() {
     box(room, -5.83, .166, 1.06 + rung * .32, .49, .036, .16, stock.black, false);
   }
   tube(room, [[-7.1,.19,4.65],[-4.1,.15,4.38],[-3.3,.155,5.27],[-1.8,.15,6.7],[.24,.19,6.81],[.32,.78,6.35]], .025, stock.black, 29);
+  fixtures(room, walls, casing);
   batch(room);
   return room;
 }
@@ -112,13 +84,19 @@ function structure() {
 function makeBench(layout) {
   const [x, y, z, width, depth] = layout.bench;
   const bench = new THREE.Group();
-  const laminate = material(0x544942, .82, .1);
+  const laminate = material(0x484743, .65, .32, { map: stock.steel.map, roughnessMap: stock.steel.roughnessMap });
   box(bench, x, y + .042, z, width, .105, depth, laminate);
   box(bench, x, y - .03, z, width - .03, .062, depth - .038, stock.steel);
   for (const side of [-1, 1]) for (const end of [-1, 1]) {
     box(bench, x + side * (width / 2 - .22), y / 2, z + end * (depth / 2 - .19), .104, y, .11, stock.black);
   }
   for (const end of [-1, 1]) box(bench, x, .245, z + end * (depth / 2 - .19), width - .30, .055, .06, stock.black);
+  for (let bolt = 0; bolt < 7; bolt++) {
+    box(bench, x - width * .42 + bolt * width * .14, y + .096, z + depth * .45, .027, .012, .027, stock.steel);
+  }
+  for (const side of [-1, 1]) {
+    box(bench, x + side * (width * .46), y + .068, z, .045, .055, depth * .91, stock.iron);
+  }
   batch(bench);
   return bench;
 }
@@ -129,7 +107,10 @@ function beamVolume() {
       origin: { value: new THREE.Vector3() },
       direction: { value: new THREE.Vector3() },
       throwLength: { value: 0 },
-      angleSquared: { value: 0 }
+      angleSquared: { value: 0 },
+      energy: { value: 0 },
+      occlusion: { value: null },
+      projectorMatrix: { value: new THREE.Matrix4() }
     },
     vertexShader: `
       varying vec3 worldPoint;
@@ -141,7 +122,9 @@ function beamVolume() {
       uniform vec3 origin;
       uniform vec3 direction;
       uniform float throwLength;
-      uniform float angleSquared;
+      uniform float angleSquared, energy;
+      uniform highp sampler2DShadow occlusion;
+      uniform mat4 projectorMatrix;
       varying vec3 worldPoint;
       void main() {
         vec3 ray = normalize(worldPoint - cameraPosition);
@@ -164,10 +147,13 @@ function beamVolume() {
           float width = max(.01, axial * sqrt((1. - angleSquared) / angleSquared));
           float feather = 1. - smoothstep(.60, 1., radius / width);
           float grain = .90 + .10 * sin(16. * point.x + 5. * point.y) * sin(9. * point.z - 13. * point.y);
-          scatter += feather * grain / (1. + axial * axial * .057);
+          vec4 projected = projectorMatrix * vec4(origin + point, 1.);
+          vec3 coordinates = projected.xyz / projected.w;
+          float lit = texture(occlusion, vec3(coordinates.xy, coordinates.z - 0.0007));
+          scatter += lit * feather * grain / (1. + axial * axial * .057);
         }
-        float density = min(.125, scatter * chord * .033);
-        gl_FragColor = vec4(.78, .72, .59, density);
+        float density = min(.18, scatter * chord * (.039 + energy * .026));
+        gl_FragColor = vec4(.63, .75, .91, density);
       }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
   });
@@ -179,44 +165,88 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.16;
+  renderer.toneMappingExposure = 1.23;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x131514);
-  scene.fog = new THREE.FogExp2(0x211f1d, .053);
+  scene.fog = new THREE.FogExp2(0x242a30, .037);
+  const brushed = makeGrain('metal');
+  for (const [name, surface] of Object.entries(stock)) {
+    if (name === 'glass') continue;
+    surface.map = brushed;
+    surface.roughnessMap = brushed;
+    surface.bumpMap = brushed;
+    surface.bumpScale = name === 'ivory' ? .012 : .024;
+    surface.envMapIntensity = name === 'steel' || name === 'brass' ? .87 : .48;
+  }
+  scene.environment = reflections(renderer).texture;
+  scene.environmentIntensity = .48;
   const camera = new THREE.PerspectiveCamera(42, 1, .14, 34);
   scene.add(structure());
   const title = makeTitle();
   scene.add(title);
 
-  scene.add(new THREE.HemisphereLight(0xb8c0c4, 0x594437, 1.02));
-  const strip = new THREE.DirectionalLight(0xc7d7df, 1.18);
-  strip.position.set(-3.9, 6.1, 5);
+  scene.add(new THREE.HemisphereLight(0xa2b7ca, 0x625751, .77));
+  const strip = new THREE.DirectionalLight(0xc0d5f0, 1.25);
+  strip.position.set(-4.9, 6.1, 2.1);
+  strip.castShadow = true;
+  strip.shadow.autoUpdate = false;
+  strip.shadow.mapSize.set(1024, 1024);
+  Object.assign(strip.shadow.camera, { left: -9, right: 9, top: 7, bottom: -7, far: 25 });
+  strip.shadow.bias = -.00022;
+  strip.shadow.normalBias = .027;
+  strip.shadow.radius = 2.75;
   scene.add(strip);
-  const kick = new THREE.PointLight(0xff3821, 47, 11, 2);
-  kick.position.set(5.15, 3.65, -3.30);
+  const kick = new THREE.PointLight(0xff341e, 68, 10.6, 2);
+  kick.position.set(5.65, 3.20, -3.5);
   scene.add(kick);
-  const frontBounce = new THREE.PointLight(0xdab99b, 23, 9, 2);
-  frontBounce.position.set(-3.15, 3.65, 7.2);
+  const blueSpill = new THREE.PointLight(0xbecee9, 27, 8.7, 2);
+  blueSpill.position.set(-4.35, 4.05, -3.06);
+  scene.add(blueSpill);
+  const bounce = new THREE.PointLight(0xf26638, 11, 8, 2);
+  bounce.position.set(6.32, .52, -2.30);
+  scene.add(bounce);
+  const frontBounce = new THREE.PointLight(0xbbd4ed, 34, 9, 2);
+  frontBounce.position.set(-3.4, 3.63, 7.1);
   scene.add(frontBounce);
 
   const projector = createProjectorModel();
+  const projectorMaterials = new Set();
+  projector.traverse(item => {
+    if (!item.isMesh || item.material.map || item.material.emissiveIntensity > 1) return;
+    if (projectorMaterials.has(item.material)) return;
+    projectorMaterials.add(item.material);
+    item.material.map = brushed;
+    item.material.bumpMap = brushed;
+    item.material.bumpScale = .015;
+  });
   batch(projector);
   scene.add(projector);
   const beam = beamVolume();
   scene.add(beam);
-  const spot = new THREE.SpotLight(0xffe9c9, 460, 24, .19, .54, 2);
+  const lensGlow = makeGlows(scene);
+  const dust = makeDust(scene);
+  const driftFragments = makeFragments(scene);
+  const spot = new THREE.SpotLight(0xdcecff, 610, 24, .197, .53, 2);
   spot.castShadow = true;
-  spot.shadow.mapSize.set(1024, 1024);
+  spot.shadow.autoUpdate = false;
+  spot.shadow.mapSize.set(1536, 1536);
   spot.shadow.camera.near = .16;
   spot.shadow.bias = -.00027;
   spot.shadow.normalBias = .017;
-  spot.shadow.radius = 3.2;
+  spot.shadow.radius = 4.25;
   scene.add(spot, spot.target);
+  beam.onBeforeRender = () => {
+    beam.material.uniforms.occlusion.value = spot.shadow.map.depthTexture;
+    beam.material.uniforms.projectorMatrix.value.copy(spot.shadow.matrix);
+  };
 
   const entries = new Map([...links.keys()].map(id => {
     const entry = makeExhibit(id);
+    detailSpecimen(id, entry.work, stock.glass);
+    batch(entry.work);
     entry.bounds = new THREE.Box3();
+    entry.activation = 0;
     scene.add(entry.root);
     return [id, entry];
   }));
@@ -238,6 +268,9 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   const initialAim = new THREE.Vector3();
   const goalPosition = new THREE.Vector3();
   const goalAim = new THREE.Vector3();
+  const wake = new THREE.Vector3();
+  const delta = new THREE.Vector3();
+  const inspection = new THREE.Vector2();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let previousPreference;
   try { previousPreference = localStorage.getItem('zw-motion'); } catch { /* Settings storage is optional. */ }
@@ -246,6 +279,26 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   let visible = true;
   let steered = false;
   let available = true;
+  let lastInput = -Infinity;
+  let particleTime = 0;
+  let dustTimer = 0;
+  let angle = 0;
+  let lastFrame = 0;
+  let lightDirty = true;
+
+  function wakeRoom() {
+    lastInput = performance.now();
+    schedule();
+  }
+
+  function quietRoom() {
+    cancelAnimationFrame(frame);
+    clearTimeout(dustTimer);
+    frame = 0;
+    dustTimer = 0;
+    lastTime = 0;
+    lastFrame = 0;
+  }
 
   function schedule() {
     if (!frame && visible && !document.hidden && available) frame = requestAnimationFrame(draw);
@@ -265,6 +318,15 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     const pixelBudget = next === SETUPS.tall ? 400000 : 780000;
     renderer.setPixelRatio(Math.min(devicePixelRatio, Math.sqrt(pixelBudget / (width * height))));
     renderer.setSize(width, height, false);
+    const [shadowSize, particles] = next === SETUPS.tall ? [1024, 475] : [1536, 950];
+    if (spot.shadow.mapSize.x !== shadowSize) {
+      spot.shadow.mapSize.set(shadowSize, shadowSize);
+      spot.shadow.map?.dispose();
+      spot.shadow.map = null;
+    }
+    dust.geometry.setDrawRange(0, particles);
+    dust.uniforms.scale.value = Math.min(620, canvas.height * .88);
+    lightDirty = true;
     if (next !== layout) {
       if (bench) {
         bench.removeFromParent();
@@ -277,7 +339,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       for (const [id, x, y, z] of next.exhibits) {
         const entry = entries.get(id);
         entry.root.position.set(x, y, z);
-        entry.root.scale.setScalar(next === SETUPS.tall ? .85 : 1);
+        entry.root.scale.setScalar(next === SETUPS.tall ? .91 : 1.13);
         entry.bounds.setFromObject(entry.root).expandByScalar(.075);
         placeBracket(entry, x, y, z);
       }
@@ -292,14 +354,16 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       select(null);
       layout = next;
       refreshLight();
+      strip.shadow.needsUpdate = true;
     }
-    schedule();
+    wakeRoom();
   }
 
   function refreshLight() {
     projector.position.copy(position);
     matrix.lookAt(position, liftedAim, UP);
     projector.quaternion.setFromRotationMatrix(matrix);
+    projector.rotateZ(angle);
     projector.updateMatrixWorld(true);
     source.copy(LENS).applyMatrix4(projector.matrixWorld);
     direction.subVectors(liftedAim, source).normalize();
@@ -315,16 +379,24 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     uniforms.direction.value.copy(direction);
     uniforms.throwLength.value = depth;
     uniforms.angleSquared.value = Math.cos(spot.angle) ** 2;
+    uniforms.energy.value = Math.min(1, wake.length() * .8);
+    lensGlow.position.copy(source).addScaledVector(direction, .07);
+    lensGlow.material.opacity = .86 + uniforms.energy.value * .12;
   }
 
   function draw(now) {
     frame = 0;
     if (!layout || !visible || document.hidden || !available) return;
-    const dt = lastTime ? Math.min(45, now - lastTime) : 16;
+    const dt = lastTime ? Math.min(48, now - lastTime) : 16;
     const immediate = reduced.matches || previousPreference === 'off';
-    const moving = position.distanceToSquared(goalPosition) + liftedAim.distanceToSquared(goalAim) > .00004;
+    const displacement = position.distanceToSquared(goalPosition) + liftedAim.distanceToSquared(goalAim);
+    const moving = displacement > .00004;
+    const targetRoll = grab?.moved && !immediate ? clamp((goalPosition.x - position.x) * -.12, -.11, .11) : 0;
+    const rolling = Math.abs(angle - targetRoll) > .001;
     if (moving && !immediate) {
       const fraction = 1 - Math.exp(-dt / 47);
+      delta.subVectors(goalPosition, position);
+      wake.lerp(delta.multiplyScalar(1.7), .24);
       position.lerp(goalPosition, fraction);
       liftedAim.lerp(goalAim, fraction);
       lastTime = now;
@@ -333,11 +405,61 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       liftedAim.copy(goalAim);
       lastTime = 0;
     }
-    refreshLight();
+    angle = rolling ? THREE.MathUtils.lerp(angle, targetRoll, .22) : targetRoll;
+    if (!moving) wake.multiplyScalar(.84);
+
+    if (displacement || rolling || lightDirty) {
+      refreshLight();
+      updateGrip();
+      updateSelection();
+      spot.shadow.needsUpdate = true;
+      lightDirty = false;
+    }
+    const reacting = animateSpecimens(dt, immediate);
+    const timeStep = lastFrame ? Math.min(80, now - lastFrame) : 16;
+    if (!immediate) particleTime += timeStep * .001;
+    lastFrame = now;
+    const uniforms = dust.uniforms;
+    uniforms.time.value = particleTime;
+    uniforms.origin.value.copy(source);
+    uniforms.heading.value.copy(direction);
+    uniforms.wake.value.copy(wake);
+    uniforms.energy.value = Math.min(1, wake.length() * 1.45);
+    uniforms.resonance.value = selected?.activation ?? 0;
+    if (selected) uniforms.specimen.value.copy(selected.root.position).y += .55;
+    driftFragments(particleTime, source, direction);
     renderer.render(scene, camera);
-    updateGrip();
-    updateSelection();
-    if (moving && !immediate) schedule();
+
+    if (!immediate && (moving || rolling || reacting)) schedule();
+    else if (!immediate && now - lastInput < 5200 && !dustTimer) {
+      dustTimer = setTimeout(() => {
+        dustTimer = 0;
+        schedule();
+      }, 53);
+    }
+  }
+
+  function animateSpecimens(dt, immediate) {
+    const fraction = immediate ? 1 : 1 - Math.exp(-dt / 135);
+    let animating = false;
+    for (const entry of entries.values()) {
+      const focused = entry === selected;
+      const target = focused ? 1 : 0;
+      const previous = entry.activation;
+      const difference = target - previous;
+      entry.activation = Math.abs(difference) < .003 ? target : previous + difference * fraction;
+      const amount = entry.activation;
+      const lift = amount * (layout === SETUPS.tall ? .138 : .185);
+      const yaw = amount * (.12 + (focused ? inspection.x * .27 : 0));
+      const pitch = focused ? amount * inspection.y * .18 : 0;
+      if (amount !== previous || entry.work.rotation.y !== yaw || entry.work.rotation.x !== pitch) {
+        entry.work.position.y = lift;
+        entry.work.rotation.set(pitch, yaw, -.07 * amount);
+        spot.shadow.needsUpdate = true;
+      }
+      if (amount !== target) animating = true;
+    }
+    return animating;
   }
 
   function updateGrip() {
@@ -361,6 +483,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   function select(entry) {
     if (entry === selected) return;
     selected = entry;
+    inspection.set(0, 0);
     if (!entry) {
       reveal.hidden = true;
       return;
@@ -389,7 +512,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     select(closest);
     if (closest) {
       screen.copy(closest.root.position);
-      screen.y += layout === SETUPS.tall ? 1.11 : 1.25;
+      screen.y += layout === SETUPS.tall ? 1.25 : 1.42;
       screen.z += .35;
       screen.project(camera);
       reveal.style.setProperty('--x', `${clamp((screen.x + 1) * 50, 18, 82)}%`);
@@ -476,6 +599,13 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     if (!available) return;
     ray(event);
     if (grab?.id !== event.pointerId) {
+      if (event.pointerType === 'mouse' && selected && event.target === canvas && overSelected()) {
+        screen.copy(selected.root.position);
+        screen.y += .53;
+        screen.project(camera);
+        inspection.set(clamp((cursor.x - screen.x) * 5.5, -1, 1), clamp((screen.y - cursor.y) * 5.5, -1, 1));
+        wakeRoom();
+      }
       const picking = overProjector();
       canvas.classList.toggle('over-projector', picking);
       canvas.classList.toggle('over-object', !picking && overSelected());
@@ -497,7 +627,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     if (pointAim()) {
       goalAim.copy(grab.aim).lerp(targetPoint, clamp((distance - 5) / 48, 0, 1));
     }
-    schedule();
+    wakeRoom();
   });
   function release(event) {
     if (grab?.id === event.pointerId) {
@@ -505,7 +635,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       goalPosition.y = projectorBase.y;
       if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
       canvas.classList.remove('dragging', 'over-projector');
-      schedule();
+      wakeRoom();
     }
     if (pendingClick?.id === event.pointerId) {
       const click = pendingClick;
@@ -525,11 +655,14 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
     if (visible) schedule();
+    else quietRoom();
   }).observe(room);
-  document.addEventListener('visibilitychange', schedule);
+  document.addEventListener('visibilitychange', () => document.hidden ? quietRoom() : schedule());
+  reduced.addEventListener('change', () => { quietRoom(); schedule(); });
   canvas.addEventListener('webglcontextlost', event => {
     event.preventDefault();
     available = false;
+    quietRoom();
     canvas.classList.remove('dragging', 'over-projector', 'over-object');
     grab = null;
     pendingClick = null;
@@ -540,6 +673,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   canvas.addEventListener('webglcontextrestored', () => {
     available = true;
     room.classList.add('ready');
+    strip.shadow.needsUpdate = true;
     resize();
   });
   room.classList.add('ready');

@@ -10,7 +10,7 @@ export const stock = {
   red: material(0x98432f, .74),
   brass: material(0xa78a58, .55, .4),
   blue: material(0x496f79, .59, .27),
-  glass: material(0x426a61, .25, .3)
+  glass: material(0x93c8c1, .20, .43, { envMapIntensity: 1.05 })
 };
 
 export function material(color, roughness = .87, metalness = 0, extra = {}) {
@@ -76,8 +76,10 @@ export function batch(group) {
 
 export function makeTitle() {
   const group = new THREE.Group();
-  const surface = material(0xb8ae9d, .74, .19);
-  const edge = material(0x6a6358, .71, .25);
+  const surface = material(0xc3bfb2, .53, .30, {
+    map: stock.steel.map, bumpMap: stock.steel.bumpMap, bumpScale: .009, envMapIntensity: .62
+  });
+  const edge = material(0x6c665c, .58, .51);
   let advance = 0;
   for (const char of 'ZIXUN WANG') {
     const glyph = titleGlyphs[char];
@@ -93,7 +95,7 @@ export function makeTitle() {
     const shapes = path.toShapes(true);
     if (shapes.length) {
       const geometry = new THREE.ExtrudeGeometry(shapes, {
-        depth: .082, bevelEnabled: true, bevelThickness: .017, bevelSize: .012,
+        depth: .105, bevelEnabled: true, bevelThickness: .017, bevelSize: .012,
         bevelSegments: 1, steps: 1, curveSegments: 5
       });
       const letter = new THREE.Mesh(geometry, [surface, edge]);
@@ -239,8 +241,11 @@ export function makeExhibit(id) {
   box(plinth, 0, -.34, 0, 1.12, .51, .87, stock.black);
   box(plinth, 0, -.16, .441, 1.05, .033, .015, stock.iron, false);
   plaque(plinth, mark[id], -.36, .69);
+  for (const x of [-.49, .49]) {
+    box(plinth, x, -.235, .446, .034, .294, .018, stock.steel);
+    box(plinth, x, -.539, .31, .125, .065, .158, stock.iron);
+  }
   builders[id](work);
   batch(plinth);
-  batch(work);
   return { id, root, plinth, work };
 }
