@@ -3,143 +3,63 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#171916">
+  <meta name="theme-color" content="#101111">
   <meta name="description" content="Zixun Wang’s interactive projects, graphics studies and statistical imaging research.">
   <title>Zixun Wang — Selected Work</title>
   <link rel="icon" href="./assets/monogram.svg" type="image/svg+xml">
-  <link rel="preload" href="./slide-projector/fonts/BarlowCondensed-Bold.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="./portfolio.css">
-  <script src="./portfolio.js" defer></script>
+  <script type="module" src="./portfolio.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#work">Skip to work</a>
-  <header class="masthead" id="home">
-    <a class="signature" href="./">Zixun Wang</a>
-    <nav aria-label="Main navigation">
-      <a href="#work">Work</a>
-      <a href="./research/">Research</a>
-      <a href="https://github.com/superjay0208">GitHub <span aria-hidden="true">↗</span></a>
-    </nav>
-  </header>
+  <a class="skip-link" href="#work">Skip to project index</a>
 
   <main>
-    <section class="projector" aria-labelledby="hero-title">
-      <div class="room" id="projector-room">
-        <picture class="room-plate">
-          <source media="(max-width: 660px)" srcset="./assets/portfolio/room-phone.webp" width="640" height="850">
-          <img src="./assets/portfolio/room.webp" alt="" width="1440" height="690" fetchpriority="high">
-        </picture>
-        <div class="room-ambient" aria-hidden="true"></div>
-        <h1 id="hero-title" class="wall-title"><span>Slide</span> <span>Projector</span></h1>
-        <canvas id="room-light" aria-hidden="true"></canvas>
-        <div class="lamp" id="lamp-control" hidden>
-          <label for="lamp-position">Lamp position</label>
-          <input type="range" id="lamp-position" min="-100" max="100" value="-22">
-        </div>
-        <div class="room-caption">
-          <p>A room for playing with light.</p>
-          <a class="opening-link" href="./slide-projector/">Open Slide Projector <span aria-hidden="true">↗</span></a>
-        </div>
-      </div>
-    </section>
-
-    <section class="work frame" id="work" aria-labelledby="work-title">
-      <header class="section-title">
-        <h2 id="work-title">Selected work</h2>
-        <a href="#studies">Graphics studies <span aria-hidden="true">↓</span></a>
+    <section class="room" id="room" aria-labelledby="site-title">
+      <header class="masthead">
+        <a href="#room" class="signature">Zixun Wang</a>
+        <nav aria-label="Main navigation">
+          <a href="#work">Project index</a>
+          <a href="https://github.com/superjay0208">GitHub <span aria-hidden="true">↗</span></a>
+        </nav>
       </header>
-      <div class="featured">
-        <article class="exhibit climbing">
-          <a class="exhibit-plate" href="https://superjay0208.github.io/crux-motion/" aria-labelledby="climbing-title">
-            <img src="./assets/portfolio/climb.webp" width="680" height="720" loading="lazy" decoding="async" alt="A climber crosses one arm over the other to reach an orange hold on the Cross-Body route">
-          </a>
-          <div class="exhibit-caption">
-            <h3 id="climbing-title"><a href="https://superjay0208.github.io/crux-motion/">Crux Motion <span aria-hidden="true">↗</span></a></h3>
-            <p>Climb with your hands. A camera tracks how you grip.</p>
-          </div>
-        </article>
 
-        <article class="exhibit imaging" id="research">
-          <figure class="image-study">
-            <figcaption>Wavelet reconstruction · teaching example</figcaption>
-            <div class="image-pair">
-              <div>
-                <img src="./assets/portfolio/fields-original.webp" alt="Generated fields and roads seen from above" width="64" height="64" loading="lazy" decoding="async">
-                <span>Original</span>
-              </div>
-              <div>
-                <img id="example-still" src="./assets/portfolio/fields-reconstruction.webp" alt="The same generated scene reconstructed with 8% of its wavelet details" width="64" height="64" loading="lazy" decoding="async">
-                <canvas id="example-image" width="64" height="64" role="img" aria-label="Reconstruction of the same generated scene" hidden></canvas>
-                <span>Reconstruction</span>
-              </div>
-            </div>
-            <div class="details-control" id="details-control" hidden>
-              <label for="image-details">Wavelet details kept</label>
-              <input id="image-details" type="range" min="0" max="100" value="8">
-              <output id="details-value" for="image-details">8%</output>
-            </div>
-          </figure>
-          <div class="exhibit-caption">
-            <h3><a href="./research/">The Shape of an Image <span aria-hidden="true">↗</span></a></h3>
-            <p>How well does a probability model describe the details in an image?</p>
-            <div class="related-links"><a href="./research/#two">Try the image lab</a><a href="https://arxiv.org/abs/2512.17038">Read the paper</a></div>
-          </div>
-        </article>
+      <div class="fallback">
+        <h1 id="site-title">Zixun Wang</h1>
+        <p>Selected work</p>
       </div>
 
-      <div class="other-work">
-        <article id="crux">
-          <a class="small-plate" href="https://superjay0208.github.io/crux/" aria-labelledby="crux-title"><img src="./assets/portfolio/crux.webp" width="720" height="320" loading="lazy" decoding="async" alt=""></a>
-          <h3 id="crux-title"><a href="https://superjay0208.github.io/crux/">Crux <span aria-hidden="true">↗</span></a></h3>
-          <p>A climbing puzzle about foot swaps, balance and tired hands.</p>
-        </article>
-        <article id="still-counts">
-          <a class="small-plate" href="./cross-examination/?topic=working" aria-labelledby="still-title"><img src="./assets/portfolio/still-counts.webp" width="720" height="320" loading="lazy" decoding="async" alt=""></a>
-          <h3 id="still-title"><a href="./cross-examination/">Still Counts? <span aria-hidden="true">↗</span></a></h3>
-          <p>Eight quick judgments about where work starts and stops.</p>
-        </article>
-      </div>
+      <canvas id="room-canvas" aria-hidden="true"></canvas>
+      <div id="projector-grip" aria-hidden="true" hidden></div>
+      <a class="reveal-link" id="reveal-link" hidden><span></span><span aria-hidden="true">↗</span></a>
     </section>
 
-    <section class="graphics" id="studies" aria-labelledby="studies-title">
-      <div class="frame">
-        <header class="section-title">
-          <h2 id="studies-title">Graphics studies</h2>
-        </header>
-        <article class="rendering">
-          <a class="shader-plate" href="./CS%20184/index.html" aria-labelledby="rendering-title">
-            <figure><img src="./assets/portfolio/shader-thermal.webp" width="640" height="480" loading="lazy" decoding="async" alt="The model rendered in bands of blue, green, yellow and red"><figcaption>Thermal ramp</figcaption></figure>
-            <figure><img src="./assets/portfolio/shader-polka.webp" width="640" height="480" loading="lazy" decoding="async" alt="The same model rendered in halftone dots"><figcaption>Halftone</figcaption></figure>
-          </a>
-          <div class="exhibit-caption">
-            <h3 id="rendering-title"><a href="./CS%20184/index.html">Non-Photorealistic Rendering <span aria-hidden="true">↗</span></a></h3>
-            <p>One model, different ways to draw light and shade.</p>
-            <p class="credit">With Minjae Kwak, Shashwat Bansal and Jaymes Ryan Garbe.</p>
-          </div>
-        </article>
-        <div class="coursework">
-          <a class="archive-image" href="./CS%20180/project1/index.html" aria-label="Open the glass plate alignment study">
-            <img src="./assets/portfolio/glass-plate.webp" width="730" height="620" loading="lazy" decoding="async" alt="The Emir of Bukhara, reconstructed in colour from Sergei Prokudin-Gorskii’s glass plate exposures">
-          </a>
-          <div>
-            <h3>Computer vision</h3>
-            <ul class="study-index">
-              <li><a href="./CS%20180/project0/index.html">Perspective and camera optics <span aria-hidden="true">↗</span></a></li>
-              <li><a href="./CS%20180/project1/index.html">Colour from glass plates <span aria-hidden="true">↗</span></a></li>
-              <li><a href="./CS%20180/project2/index.html">Filters and frequencies <span aria-hidden="true">↗</span></a></li>
-              <li><a href="./CS%20180/project3/index.html">Warping and photo mosaics <span aria-hidden="true">↗</span></a></li>
-              <li><a href="./CS%20180/project4/index.html">Neural radiance fields <span aria-hidden="true">↗</span></a></li>
-              <li><a href="./CS%20180/project5/index.html">Diffusion and flow matching <span aria-hidden="true">↗</span></a></li>
-            </ul>
-          </div>
-        </div>
-      </div>
+    <section class="index" id="work" aria-label="Project index">
+      <details id="project-index" open>
+        <summary>Project index</summary>
+        <ul class="projects">
+          <li><a data-object="optics" href="./slide-projector/">Slide Projector</a><p>A physical sandbox for light, mirrors and prisms.</p></li>
+          <li><a data-object="motion" href="https://superjay0208.github.io/crux-motion/">Crux Motion</a><p>A climbing game controlled with your hands.</p></li>
+          <li><a data-object="research" href="./research/">The Shape of an Image</a><p>How well do probability models describe image details?</p><a class="secondary" href="https://arxiv.org/abs/2512.17038">Read the paper</a></li>
+          <li><a data-object="crux" href="https://superjay0208.github.io/crux/">Crux</a><p>A climbing puzzle about balance and tired hands.</p></li>
+          <li><a data-object="counts" href="./cross-examination/">Still Counts?</a><p>A game about drawing the line.</p></li>
+          <li><a data-object="rendering" href="./CS%20184/index.html">Non-Photorealistic Rendering</a><p>Stylized shaders for a shared 3D model.</p></li>
+          <li><a data-object="vision" href="#vision">Computer Vision</a><p>Six studies from camera optics to generative imaging.</p></li>
+        </ul>
+
+        <section class="vision" id="vision" aria-labelledby="vision-heading">
+          <h2 id="vision-heading">Computer vision studies</h2>
+          <ul>
+            <li><a href="./CS%20180/project0/index.html">Perspective and camera optics</a></li>
+            <li><a href="./CS%20180/project1/index.html">Colour from glass plates</a></li>
+            <li><a href="./CS%20180/project2/index.html">Filters and frequencies</a></li>
+            <li><a href="./CS%20180/project3/index.html">Warping and photo mosaics</a></li>
+            <li><a href="./CS%20180/project4/index.html">Neural radiance fields</a></li>
+            <li><a href="./CS%20180/project5/index.html">Diffusion and flow matching</a></li>
+          </ul>
+        </section>
+        <footer><p>Computer science and statistics at UC Berkeley.</p><a href="https://github.com/superjay0208/voice-rizz">Voice Rizz source ↗</a></footer>
+      </details>
     </section>
   </main>
-
-  <footer class="site-footer frame" id="about">
-    <div><strong>Zixun Wang</strong><p>Computer science and statistics at UC Berkeley.</p></div>
-    <div class="related-links"><a href="https://github.com/superjay0208">GitHub <span aria-hidden="true">↗</span></a><a href="https://github.com/superjay0208/voice-rizz">Voice Rizz source <span aria-hidden="true">↗</span></a><a href="#home">Back to top <span aria-hidden="true">↑</span></a></div>
-  </footer>
 </body>
 </html>
