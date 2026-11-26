@@ -150,7 +150,7 @@ export function makeGlows(scene) {
 
 // World-space particles. The projector cone exposes dust that is otherwise nearly invisible.
 export function makeDust(scene) {
-  const maximum = 950;
+  const maximum = 1850;
   const data = new Float32Array(maximum * 3);
   const variation = new Float32Array(maximum * 3);
   const noise = randomSequence(251217038);
@@ -165,13 +165,13 @@ export function makeDust(scene) {
   const uniforms = {
     time: { value: 0 }, energy: { value: 0 }, origin: { value: new THREE.Vector3() },
     heading: { value: new THREE.Vector3() }, wake: { value: new THREE.Vector3() },
-    scale: { value: 360 }, resonance: { value: 0 }, specimen: { value: new THREE.Vector3() }
+    scale: { value: 360 }, aperture: { value: .20 }, resonance: { value: 0 }, specimen: { value: new THREE.Vector3() }
   };
   const dust = new THREE.Points(geometry, new THREE.ShaderMaterial({
     uniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: `
       attribute vec3 variation;
-      uniform float time, energy, scale, resonance;
+      uniform float time, energy, scale, resonance, aperture;
       uniform vec3 origin, heading, wake, specimen;
       varying vec3 color;
       varying float brightness, stripe;
@@ -191,16 +191,16 @@ export function makeDust(scene) {
         offset = point - origin;
         float axial = dot(offset, heading);
         float spread = length(offset - axial * heading);
-        float beam = (1. - smoothstep(.10, .226, spread / max(axial, .05))) * smoothstep(.08, .70, axial);
+        float beam = (1. - smoothstep(aperture * .56, aperture * 1.13, spread / max(axial, .05))) * smoothstep(.08, .70, axial);
         float redZone = smoothstep(1.8, 5.8, point.x) * (1. - smoothstep(-.8, 1.7, point.z));
-        float blink = .63 + .37 * sin(time * speed + variation.z * 45.);
+        float blink = .73 + .27 * sin(time * speed + variation.z * 45.);
         color = mix(vec3(.51, .68, .86), vec3(1., .17, .095), redZone * (1. - beam));
-        brightness = blink * (.035 + redZone * .085 + beam * (.73 + energy * .37) +
+        brightness = blink * (.034 + redZone * .115 + beam * (.74 + energy * .44) +
           resonance * nearExhibit * .30 + local * energy * .11);
         stripe = step(.94, variation.x) * energy;
         vec4 lens = modelViewMatrix * vec4(point, 1.);
         gl_Position = projectionMatrix * lens;
-        gl_PointSize = clamp(scale * (.019 + variation.z * .092) / max(1., -lens.z), 1., 6.2);
+        gl_PointSize = clamp(scale * (.018 + variation.z * .108) / max(1., -lens.z), 1., 9.2);
       }`,
     fragmentShader: `
       varying vec3 color;

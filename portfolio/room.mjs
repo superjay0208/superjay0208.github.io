@@ -3,6 +3,7 @@ import { createProjectorModel } from './projector.ts';
 import { detailSpecimen } from './specimens.mjs';
 import { batch, box, makeExhibit, makeTitle, material, stock, tube } from './objects.mjs';
 
+import { makeRoomParticles } from './room-particles.mjs';
 import { fixtures, makeDust, makeFragments, makeGlows, makeGrain, reflections } from './atmosphere.mjs';
 
 const clamp = THREE.MathUtils.clamp;
@@ -160,7 +161,7 @@ function beamVolume() {
   return new THREE.Mesh(new THREE.ConeGeometry(1, 1, 48, 1, true), surface);
 }
 
-export function mountRoom({ room, canvas, grip, reveal, links }) {
+export function mountRoom({ room, canvas, grip, specimenGrip, reveal, links }) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -226,6 +227,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   scene.add(beam);
   const lensGlow = makeGlows(scene);
   const dust = makeDust(scene);
+  const bursts = makeRoomParticles(scene);
   const driftFragments = makeFragments(scene);
   const spot = new THREE.SpotLight(0xdcecff, 610, 24, .197, .53, 2);
   spot.castShadow = true;
@@ -269,6 +271,9 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   const goalPosition = new THREE.Vector3();
   const goalAim = new THREE.Vector3();
   const wake = new THREE.Vector3();
+  const burstPoint = new THREE.Vector3();
+  const contour = new THREE.Vector3();
+  const hover = new THREE.Vector2();
   const delta = new THREE.Vector3();
   const inspection = new THREE.Vector2();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -285,6 +290,25 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   let angle = 0;
   let lastFrame = 0;
   let lightDirty = true;
+  let downstroke = false, lastPuff = -Infinity;
+  let aperture = spot.angle, targetAperture = spot.angle;
+  let resolutionPenalty = 1, slowFrames = 0;
+  let width = 0, height = 0;
+  let chosenAt = -Infinity;
+  let pinch;
+
+  function stillsOnly() {
+    return reduced.matches || previousPreference === 'off';
+  }
+
+  function renderSize() {
+    const budget = layout === SETUPS.tall ? 1100000 : 2780000;
+    const quality = Math.min(devicePixelRatio || 1, 2.1, Math.sqrt(budget / (width * height)));
+    renderer.setPixelRatio(quality * resolutionPenalty);
+    renderer.setSize(width, height, false);
+    dust.uniforms.scale.value = Math.min(980, canvas.height * .77);
+    bursts.resize(layout === SETUPS.tall, Math.min(1130, canvas.height * .86));
+  }
 
   function wakeRoom() {
     lastInput = performance.now();
@@ -305,8 +329,8 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   }
 
   function resize() {
-    const width = room.clientWidth;
-    const height = room.clientHeight;
+    width = room.clientWidth;
+    height = room.clientHeight;
     if (!width || !height) return;
     const next = width / height < .92 ? SETUPS.tall : SETUPS.wide;
     camera.aspect = width / height;
@@ -315,17 +339,13 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     camera.fov = next.fov;
     camera.updateProjectionMatrix();
     camera.updateMatrixWorld();
-    const pixelBudget = next === SETUPS.tall ? 400000 : 780000;
-    renderer.setPixelRatio(Math.min(devicePixelRatio, Math.sqrt(pixelBudget / (width * height))));
-    renderer.setSize(width, height, false);
-    const [shadowSize, particles] = next === SETUPS.tall ? [1024, 475] : [1536, 950];
+    const [shadowSize, particles] = next === SETUPS.tall ? [1536, 1080] : [2048, 1850];
     if (spot.shadow.mapSize.x !== shadowSize) {
       spot.shadow.mapSize.set(shadowSize, shadowSize);
       spot.shadow.map?.dispose();
       spot.shadow.map = null;
     }
     dust.geometry.setDrawRange(0, particles);
-    dust.uniforms.scale.value = Math.min(620, canvas.height * .88);
     lightDirty = true;
     if (next !== layout) {
       if (bench) {
@@ -353,9 +373,11 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       steered = false;
       select(null);
       layout = next;
+      downstroke = false;
       refreshLight();
       strip.shadow.needsUpdate = true;
     }
+    renderSize();
     wakeRoom();
   }
 
@@ -367,6 +389,8 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     projector.updateMatrixWorld(true);
     source.copy(LENS).applyMatrix4(projector.matrixWorld);
     direction.subVectors(liftedAim, source).normalize();
+    spot.angle = aperture;
+    spot.intensity = 610 * (.197 / aperture) ** .58;
     spot.position.copy(source);
     spot.target.position.copy(liftedAim);
     const depth = Math.min(14, (-4.50 - source.z) / Math.min(-.15, direction.z));
@@ -388,13 +412,17 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     frame = 0;
     if (!layout || !visible || document.hidden || !available) return;
     const dt = lastTime ? Math.min(48, now - lastTime) : 16;
-    const immediate = reduced.matches || previousPreference === 'off';
+    const immediate = stillsOnly();
+    const lensShift = Math.abs(targetAperture - aperture);
+    const focusing = lensShift > .0005;
+    aperture = immediate || !focusing ? targetAperture
+      : THREE.MathUtils.lerp(aperture, targetAperture, 1 - Math.exp(-dt / 86));
     const displacement = position.distanceToSquared(goalPosition) + liftedAim.distanceToSquared(goalAim);
     const moving = displacement > .00004;
     const targetRoll = grab?.moved && !immediate ? clamp((goalPosition.x - position.x) * -.12, -.11, .11) : 0;
     const rolling = Math.abs(angle - targetRoll) > .001;
     if (moving && !immediate) {
-      const fraction = 1 - Math.exp(-dt / 47);
+      const fraction = 1 - Math.exp(-dt / (grab?.moved ? 34 : 58));
       delta.subVectors(goalPosition, position);
       wake.lerp(delta.multiplyScalar(1.7), .24);
       position.lerp(goalPosition, fraction);
@@ -408,7 +436,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     angle = rolling ? THREE.MathUtils.lerp(angle, targetRoll, .22) : targetRoll;
     if (!moving) wake.multiplyScalar(.84);
 
-    if (displacement || rolling || lightDirty) {
+    if (displacement || rolling || lensShift || lightDirty) {
       refreshLight();
       updateGrip();
       updateSelection();
@@ -416,13 +444,37 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       lightDirty = false;
     }
     const reacting = animateSpecimens(dt, immediate);
-    const timeStep = lastFrame ? Math.min(80, now - lastFrame) : 16;
-    if (!immediate) particleTime += timeStep * .001;
+    const elapsed = lastFrame ? now - lastFrame : 16;
+    if (!immediate) particleTime += Math.min(82, elapsed) * .001;
     lastFrame = now;
+    const frantic = !immediate && (grab?.moved || pendingClick?.moved || moving || focusing);
+    slowFrames = frantic && elapsed > 28 ? slowFrames + 1 : 0;
+    if (resolutionPenalty === 1 && slowFrames >= 5) {
+      resolutionPenalty = .78;
+      renderSize();
+    } else if (resolutionPenalty < 1 && !frantic && now - lastInput > 550) {
+      resolutionPenalty = 1;
+      renderSize();
+    }
+
+    if (immediate) downstroke = false;
+    if (downstroke && position.y - projectorBase.y < .054) {
+      burstPoint.copy(position);
+      burstPoint.y = layout.bench[1] + .11;
+      bursts.emit('impact', burstPoint, particleTime, 1);
+      downstroke = false;
+    }
+    if (!immediate && grab?.moved && wake.lengthSq() > .18 && particleTime - lastPuff > .105) {
+      burstPoint.copy(source).addScaledVector(direction, .32);
+      bursts.emit('wake', burstPoint, particleTime, wake.length());
+      lastPuff = particleTime;
+    }
+    bursts.update(particleTime, source, direction, aperture, !immediate);
     const uniforms = dust.uniforms;
     uniforms.time.value = particleTime;
     uniforms.origin.value.copy(source);
     uniforms.heading.value.copy(direction);
+    uniforms.aperture.value = Math.tan(aperture);
     uniforms.wake.value.copy(wake);
     uniforms.energy.value = Math.min(1, wake.length() * 1.45);
     uniforms.resonance.value = selected?.activation ?? 0;
@@ -430,7 +482,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     driftFragments(particleTime, source, direction);
     renderer.render(scene, camera);
 
-    if (!immediate && (moving || rolling || reacting)) schedule();
+    if (!immediate && (moving || rolling || reacting || focusing)) schedule();
     else if (!immediate && now - lastInput < 5200 && !dustTimer) {
       dustTimer = setTimeout(() => {
         dustTimer = 0;
@@ -449,22 +501,28 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       const difference = target - previous;
       entry.activation = Math.abs(difference) < .003 ? target : previous + difference * fraction;
       const amount = entry.activation;
-      const lift = amount * (layout === SETUPS.tall ? .138 : .185);
-      const yaw = amount * (.12 + (focused ? inspection.x * .27 : 0));
-      const pitch = focused ? amount * inspection.y * .18 : 0;
-      if (amount !== previous || entry.work.rotation.y !== yaw || entry.work.rotation.x !== pitch) {
+      const lift = amount * (layout === SETUPS.tall ? .16 : .23);
+      const yaw = amount * (.12 + (focused ? inspection.x * .66 : 0));
+      const pitch = focused ? amount * inspection.y * .41 : 0;
+      const rotation = entry.work.rotation;
+      const error = Math.abs(rotation.y - yaw) + Math.abs(rotation.x - pitch);
+      const pivot = immediate || error < .003 ? 1 : Math.min(1, fraction * 2.1);
+      if (amount !== previous || error || entry.work.position.y !== lift) {
         entry.work.position.y = lift;
-        entry.work.rotation.set(pitch, yaw, -.07 * amount);
+        rotation.set(
+          THREE.MathUtils.lerp(rotation.x, pitch, pivot),
+          THREE.MathUtils.lerp(rotation.y, yaw, pivot),
+          -.07 * amount - (focused ? inspection.x * .045 : 0)
+        );
         spot.shadow.needsUpdate = true;
       }
-      if (amount !== target) animating = true;
+      if (amount !== target || (!immediate && error > .003)) animating = true;
     }
     return animating;
   }
 
-  function updateGrip() {
-    projectorBounds.setFromObject(projector).expandByScalar(.13);
-    const { min, max } = projectorBounds;
+  function placeGrip(element, bounds) {
+    const { min, max } = bounds;
     let left = 1, right = -1, bottom = 1, top = -1;
     for (const x of [min.x, max.x]) for (const y of [min.y, max.y]) for (const z of [min.z, max.z]) {
       witness.set(x, y, z).project(camera);
@@ -473,11 +531,16 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       bottom = Math.min(bottom, witness.y);
       top = Math.max(top, witness.y);
     }
-    grip.style.left = `${(left + 1) * 50}%`;
-    grip.style.top = `${(1 - top) * 50}%`;
-    grip.style.width = `${(right - left) * 50}%`;
-    grip.style.height = `${(top - bottom) * 50}%`;
-    grip.hidden = false;
+    element.style.left = `${(left + 1) * 50}%`;
+    element.style.top = `${(1 - top) * 50}%`;
+    element.style.width = `${(right - left) * 50}%`;
+    element.style.height = `${(top - bottom) * 50}%`;
+    element.hidden = false;
+  }
+
+  function updateGrip() {
+    projectorBounds.setFromObject(projector).expandByScalar(.13);
+    placeGrip(grip, projectorBounds);
   }
 
   function select(entry) {
@@ -486,8 +549,17 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     inspection.set(0, 0);
     if (!entry) {
       reveal.hidden = true;
+      specimenGrip.hidden = true;
       return;
     }
+    if (performance.now() - chosenAt > 160 && !stillsOnly()) {
+      contour.copy(entry.root.position);
+      contour.y += .51;
+      contour.z += .18;
+      bursts.emit('exhibit', contour, particleTime);
+      chosenAt = performance.now();
+    }
+    placeGrip(specimenGrip, entry.bounds);
     const link = links.get(entry.id);
     reveal.href = link.href;
     reveal.firstElementChild.textContent = link.textContent;
@@ -497,7 +569,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   function updateSelection() {
     if (!steered) return;
     let closest = null;
-    let best = .992;
+    let best = Math.cos(Math.min(aperture * .83, .127));
     for (const entry of entries.values()) {
       toObject.copy(entry.root.position);
       toObject.y += .46;
@@ -510,6 +582,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       }
     }
     select(closest);
+    if (closest) placeGrip(specimenGrip, closest.bounds);
     if (closest) {
       screen.copy(closest.root.position);
       screen.y += layout === SETUPS.tall ? 1.25 : 1.42;
@@ -579,36 +652,86 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   }
 
   room.addEventListener('pointerdown', event => {
-    if (!available || grab || event.button !== 0 || ![canvas, grip].includes(event.target)) return;
+    if (!available || event.button !== 0 || ![canvas, grip, specimenGrip].includes(event.target)) return;
+    if (grab) {
+      if (event.pointerType === 'touch' && !pinch && grab.id !== event.pointerId) {
+        pinch = { id: event.pointerId, x: event.clientX, y: event.clientY,
+          span: Math.max(20, Math.hypot(event.clientX - grab.lastX, event.clientY - grab.lastY)), aperture: targetAperture };
+        canvas.setPointerCapture(event.pointerId);
+      }
+      return;
+    }
     ray(event);
     if (event.target === grip || overProjector()) {
       if (!atDepth(position.z, pickLocation)) return;
       grab = {
         id: event.pointerId, x: event.clientX, y: event.clientY,
+        lastX: event.clientX, lastY: event.clientY,
         offsetX: position.x - pickLocation.x, startZ: position.z, aim: liftedAim.clone()
       };
+      downstroke = false;
       pendingClick = null;
+      canvas.classList.remove('inspecting');
       canvas.setPointerCapture(event.pointerId);
       canvas.classList.add('dragging');
       canvas.classList.remove('over-object');
-    } else if (overSelected()) {
+    } else if (event.target === specimenGrip || overSelected()) {
       pendingClick = { id: event.pointerId, x: event.clientX, y: event.clientY, entry: selected };
+      canvas.setPointerCapture(event.pointerId);
     }
   });
   room.addEventListener('pointermove', event => {
     if (!available) return;
     ray(event);
+    const inspecting = pendingClick?.id === event.pointerId && pendingClick.entry === selected;
+    if (inspecting) {
+      const dx = event.clientX - pendingClick.x;
+      const dy = event.clientY - pendingClick.y;
+      if (Math.hypot(dx, dy) < 7 && !pendingClick.moved) return;
+      pendingClick.moved = true;
+      canvas.classList.add('inspecting');
+      if (!stillsOnly() && particleTime - lastPuff > .16 &&
+          Math.hypot(event.movementX, event.movementY) > 4) {
+        burstPoint.copy(selected.root.position);
+        burstPoint.y += .59;
+        burstPoint.z += .27;
+        bursts.emit('wake', burstPoint, particleTime, .58);
+        lastPuff = particleTime;
+      }
+      inspection.set(clamp(dx / 88, -1.4, 1.4), clamp(-dy / 78, -1, 1));
+      wakeRoom();
+      return;
+    }
+    if (pinch?.id === event.pointerId) {
+      pinch.x = event.clientX;
+      pinch.y = event.clientY;
+      adjustPinch();
+      return;
+    }
     if (grab?.id !== event.pointerId) {
-      if (event.pointerType === 'mouse' && selected && event.target === canvas && overSelected()) {
+      if (event.pointerType === 'mouse' && selected &&
+          (event.target === specimenGrip || (event.target === canvas && overSelected()))) {
         screen.copy(selected.root.position);
         screen.y += .53;
         screen.project(camera);
-        inspection.set(clamp((cursor.x - screen.x) * 5.5, -1, 1), clamp((screen.y - cursor.y) * 5.5, -1, 1));
+        hover.set(clamp((cursor.x - screen.x) * 5.5, -1, 1), clamp((screen.y - cursor.y) * 5.5, -1, 1));
+        if (hover.distanceToSquared(inspection) > .002) {
+          inspection.copy(hover);
+          wakeRoom();
+        }
+      } else if (inspection.lengthSq() > 0) {
+        inspection.set(0, 0);
         wakeRoom();
       }
       const picking = overProjector();
       canvas.classList.toggle('over-projector', picking);
       canvas.classList.toggle('over-object', !picking && overSelected());
+      return;
+    }
+    grab.lastX = event.clientX;
+    grab.lastY = event.clientY;
+    if (pinch) {
+      adjustPinch();
       return;
     }
     const dx = event.clientX - grab.x;
@@ -629,9 +752,38 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     }
     wakeRoom();
   });
+  function adjustPinch() {
+    const span = Math.hypot(pinch.x - grab.lastX, pinch.y - grab.lastY);
+    targetAperture = clamp(pinch.aperture * (span / pinch.span) ** .75, .117, .33);
+    wakeRoom();
+  }
+
+  room.addEventListener('wheel', event => {
+    if (!grab) return;
+    event.preventDefault();
+    const step = event.deltaMode === 0 ? .00033 : .027;
+    targetAperture = clamp(targetAperture + clamp(event.deltaY * step, -.045, .045), .117, .33);
+    wakeRoom();
+  }, { passive: false });
+
   function release(event) {
+    if (pinch?.id === event.pointerId) {
+      pinch = null;
+      if (grab) {
+        ray({ clientX: grab.lastX, clientY: grab.lastY });
+        if (atDepth(position.z, pickLocation)) {
+          grab.offsetX = position.x - pickLocation.x;
+          grab.startZ = position.z;
+        }
+        grab.x = grab.lastX;
+        grab.y = grab.lastY;
+        grab.aim.copy(liftedAim);
+      }
+    }
     if (grab?.id === event.pointerId) {
+      downstroke = Boolean(grab.moved && !stillsOnly());
       grab = null;
+      pinch = null;
       goalPosition.y = projectorBase.y;
       if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
       canvas.classList.remove('dragging', 'over-projector');
@@ -640,9 +792,14 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     if (pendingClick?.id === event.pointerId) {
       const click = pendingClick;
       pendingClick = null;
-      ray(event);
-      if (event.type === 'pointerup' && click.entry === selected &&
-          Math.hypot(event.clientX - click.x, event.clientY - click.y) < 10 && overSelected()) reveal.click();
+      canvas.classList.remove('inspecting');
+      if (click.moved) {
+        inspection.set(0, 0);
+        wakeRoom();
+      } else if (event.type === 'pointerup' && click.entry === selected) {
+        ray(event);
+        if (Math.hypot(event.clientX - click.x, event.clientY - click.y) < 10 && overSelected()) reveal.click();
+      }
     }
   }
   for (const event of ['pointerup', 'pointercancel', 'lostpointercapture']) canvas.addEventListener(event, release);
@@ -663,8 +820,9 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     event.preventDefault();
     available = false;
     quietRoom();
-    canvas.classList.remove('dragging', 'over-projector', 'over-object');
+    canvas.classList.remove('dragging', 'over-projector', 'over-object', 'inspecting');
     grab = null;
+    pinch = null;
     pendingClick = null;
     room.classList.remove('ready');
     grip.hidden = true;

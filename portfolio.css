@@ -84,8 +84,9 @@ a:hover { text-decoration-thickness: .13em; }
 .room.ready #room-canvas { display: block; }
 #room-canvas.over-projector { cursor: grab; }
 #room-canvas.dragging { cursor: grabbing; }
-#room-canvas.over-object { cursor: pointer; }
-#projector-grip {
+#room-canvas.over-object { cursor: grab; }
+#room-canvas.inspecting { cursor: grabbing; }
+#projector-grip, #specimen-grip {
   position: absolute;
   z-index: 2;
   inset: auto;
