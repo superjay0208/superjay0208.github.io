@@ -94,6 +94,24 @@ a:hover { text-decoration-thickness: .13em; }
   touch-action: none;
 }
 #room-canvas.dragging + #projector-grip { cursor: grabbing; }
+#service-breaker {
+  position: absolute;
+  z-index: 5;
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#service-breaker::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: max(100%, 44px); height: max(100%, 44px);
+}
+.room:not(.ready) #service-breaker, .room.entering #service-breaker { visibility: hidden; }
 .reveal-link {
   position: absolute;
   z-index: 2;

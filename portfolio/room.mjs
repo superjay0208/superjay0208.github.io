@@ -3,6 +3,7 @@ import { createProjectorModel } from './projector.ts';
 import { detailSpecimen } from './specimens.mjs';
 import { batch, box, makeExhibit, makeTitle, material, stock, tube } from './objects.mjs';
 
+import { makeServiceLight } from './service-light.mjs';
 import { makeProjectPassage } from './project-passage.mjs';
 import { makeExhibitReaction } from './exhibit-reactions.mjs';
 import { makeRoomParticles } from './room-particles.mjs';
@@ -42,7 +43,8 @@ function structure() {
   const dark = material(0x232528);
   const concreteMap = makeGrain('concrete');
   const walls = material(0x939392, .96, .04, { map: concreteMap, bumpMap: concreteMap, bumpScale: .048, envMapIntensity: .27 });
-  const floor = material(0x666867, .40, .24, { map: concreteMap, roughnessMap: concreteMap, envMapIntensity: .58 });
+  const floorMap = makeGrain('floor');
+  const floor = material(0x696966, .47, .20, { map: floorMap, roughnessMap: floorMap, envMapIntensity: .52 });
   const casing = material(0x393e40, .69, .36);
   const redLight = material(0x8a1a0c, .45, 0, { emissive: 0xf02512, emissiveIntensity: 2.4 });
   const whiteLight = material(0x6e7a7d, .43, 0, { emissive: 0xa0b5bd, emissiveIntensity: 1.4 });
@@ -80,6 +82,7 @@ function structure() {
   }
   tube(room, [[-7.1,.19,4.65],[-4.1,.15,4.38],[-3.3,.155,5.27],[-1.8,.15,6.7],[.24,.19,6.81],[.32,.78,6.35]], .025, stock.black, 29);
   fixtures(room, walls, casing);
+  room.userData.fluorescent = whiteLight;
   batch(room);
   return room;
 }
@@ -112,6 +115,7 @@ function beamVolume() {
       throwLength: { value: 0 },
       angleSquared: { value: 0 },
       energy: { value: 0 },
+      tint: { value: new THREE.Color(.63, .75, .91) },
       occlusion: { value: null },
       projectorMatrix: { value: new THREE.Matrix4() }
     },
@@ -126,6 +130,7 @@ function beamVolume() {
       uniform vec3 direction;
       uniform float throwLength;
       uniform float angleSquared, energy;
+      uniform vec3 tint;
       uniform highp sampler2DShadow occlusion;
       uniform mat4 projectorMatrix;
       varying vec3 worldPoint;
@@ -156,7 +161,7 @@ function beamVolume() {
           scatter += lit * feather * grain / (1. + axial * axial * .057);
         }
         float density = min(.18, scatter * chord * (.039 + energy * .026));
-        gl_FragColor = vec4(.63, .75, .91, density);
+        gl_FragColor = vec4(tint, density);
       }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
   });
@@ -186,12 +191,17 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   scene.environmentIntensity = .48;
   const camera = new THREE.PerspectiveCamera(42, 1, .14, 34);
   const passage = makeProjectPassage(room, camera);
-  scene.add(structure());
+  const architecture = structure();
+  scene.add(architecture);
+  const service = makeServiceLight(scene);
+  const breakerButton = room.querySelector('#service-breaker');
+  let servicePower = false;
   const title = makeTitle();
   scene.add(title);
 
-  scene.add(new THREE.HemisphereLight(0xa2b7ca, 0x625751, .77));
-  const strip = new THREE.DirectionalLight(0xc0d5f0, 1.25);
+  const ambient = new THREE.HemisphereLight(0xc0c4bd, 0x706257, .77);
+  scene.add(ambient);
+  const strip = new THREE.DirectionalLight(0xdfebe4, 1.36);
   strip.position.set(-4.9, 6.1, 2.1);
   strip.castShadow = true;
   strip.shadow.autoUpdate = false;
@@ -201,16 +211,16 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   strip.shadow.normalBias = .027;
   strip.shadow.radius = 2.75;
   scene.add(strip);
-  const kick = new THREE.PointLight(0xff341e, 68, 10.6, 2);
+  const kick = new THREE.PointLight(0xff2417, 50, 10.6, 2);
   kick.position.set(5.65, 3.20, -3.5);
   scene.add(kick);
-  const blueSpill = new THREE.PointLight(0xbecee9, 27, 8.7, 2);
+  const blueSpill = new THREE.PointLight(0xbdcfce, 26, 8.7, 2);
   blueSpill.position.set(-4.35, 4.05, -3.06);
   scene.add(blueSpill);
   const bounce = new THREE.PointLight(0xf26638, 11, 8, 2);
   bounce.position.set(6.32, .52, -2.30);
   scene.add(bounce);
-  const frontBounce = new THREE.PointLight(0xbbd4ed, 34, 9, 2);
+  const frontBounce = new THREE.PointLight(0xd7e5df, 42, 9, 2);
   frontBounce.position.set(-3.4, 3.63, 7.1);
   scene.add(frontBounce);
 
@@ -228,7 +238,12 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   scene.add(projector);
   const beam = beamVolume();
   scene.add(beam);
-  const lensGlow = makeGlows(scene);
+  const glows = makeGlows(scene);
+  const lensGlow = glows.lens;
+  const workingLight = new THREE.Color(0xe7f0e4);
+  const inspectionLight = new THREE.Color(0xffc48a);
+  const whiteHaze = new THREE.Color(.66, .76, .73);
+  const warmHaze = new THREE.Color(.98, .53, .27);
   const dust = makeDust(scene);
   const bursts = makeRoomParticles(scene);
   const driftFragments = makeFragments(scene);
@@ -382,6 +397,9 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
         bench.removeFromParent();
         bench.traverse(item => { if (item.isMesh) item.geometry.dispose(); });
       }
+      const narrow = next === SETUPS.tall;
+      kick.position.set(narrow ? 3.40 : 5.65, narrow ? 3.74 : 3.20, -3.5);
+      blueSpill.position.set(narrow ? -2.78 : -4.35, narrow ? 4.59 : 4.05, -2.75);
       bench = makeBench(next);
       scene.add(bench);
       title.position.set(...next.title);
@@ -407,6 +425,8 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       refreshLight();
       strip.shadow.needsUpdate = true;
     }
+    service.layout(layout === SETUPS.tall, layout.bench, camera.aspect);
+    placeGrip(breakerButton, service.hitBounds, service.breaker.matrixWorld);
     renderSize();
     wakeRoom();
   }
@@ -512,6 +532,25 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     uniforms.energy.value = Math.min(1, wake.length() * 1.45);
     uniforms.resonance.value = selected?.activation ?? 0;
     if (selected) uniforms.specimen.value.copy(selected.root.position).y += .55;
+    const circuit = service.update(Math.min(elapsed, 85), particleTime, servicePower, immediate,
+      source, direction, Math.tan(aperture), canvas.height);
+    if (circuit.shadowDirty) {
+      spot.shadow.needsUpdate = true;
+      strip.shadow.needsUpdate = true;
+    }
+    const power = circuit.level;
+    spot.color.copy(workingLight).lerp(inspectionLight, power);
+    beam.material.uniforms.tint.value.copy(whiteHaze).lerp(warmHaze, power);
+    uniforms.tint.value.copy(beam.material.uniforms.tint.value);
+    lensGlow.material.color.copy(spot.color);
+    glows.ceiling.forEach((light, i) => { light.material.opacity = (i ? .29 : .61) * (1 - .92 * power); });
+    architecture.userData.fluorescent.emissiveIntensity = 1.4 - power * 1.32;
+    ambient.intensity = .82 - .25 * power;
+    strip.intensity = 1.36 - 1.05 * power;
+    kick.intensity = 50 + 82 * power;
+    blueSpill.intensity = 26 - 21 * power;
+    frontBounce.intensity = 42 - 17 * power;
+    bounce.intensity = 10 + 13 * power;
     driftFragments(particleTime, source, direction);
     renderer.render(scene, camera);
 
@@ -520,7 +559,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       departure ||= requestAnimationFrame(() => finishOpening(immediate));
       return;
     }
-    if (!immediate && (moving || rolling || reacting || focusing)) schedule();
+    if (!immediate && (moving || rolling || reacting || focusing || circuit.settling)) schedule();
     else if (!immediate && now - lastInput < 5200 && !dustTimer) {
       dustTimer = setTimeout(() => {
         dustTimer = 0;
@@ -673,6 +712,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       targetPoint.lerp(contour, .17);
       return true;
     }
+    if (service.aimAt(raycaster.ray, targetPoint, closest)) return true;
     if (!atDepth(-2.30, targetPoint)) return false;
     targetPoint.x = clamp(targetPoint.x, -6.7, 6.7);
     targetPoint.y = clamp(targetPoint.y, .22, 5.76);
@@ -748,7 +788,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   }
 
   function inScene(target) {
-    return target === canvas || target === grip || reveal.contains(target);
+    return target === canvas || target === grip || target === breakerButton || reveal.contains(target);
   }
 
   room.addEventListener('pointerdown', event => {
@@ -763,6 +803,13 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       return;
     }
     ray(event);
+    if (event.target === breakerButton) {
+      // The handle can pass behind the projector when the chassis is carried to the end of its rail.
+      projectorHits.length = 0;
+      const front = overProjector() && raycaster.intersectObject(projector, true, projectorHits)[0];
+      const hardware = raycaster.intersectObject(service.breaker, true)[0];
+      if (!front || (hardware && hardware.distance < front.distance)) return;
+    }
     const onExhibit = reveal.contains(event.target) || overSelected();
     const nearProjector = event.target === grip || overProjector();
     // Projected rectangles can overlap. Only the visible chassis wins the overlap.
@@ -939,6 +986,13 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     }
   });
   canvas.addEventListener('pointerleave', () => canvas.classList.remove('over-projector', 'over-object'));
+
+  breakerButton.addEventListener('click', () => {
+    if (!available || opening || grab) return;
+    servicePower = !servicePower;
+    breakerButton.setAttribute('aria-pressed', String(servicePower));
+    wakeRoom();
+  });
 
   reveal.addEventListener('click', event => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;

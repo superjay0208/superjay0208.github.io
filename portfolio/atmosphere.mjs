@@ -27,6 +27,24 @@ export function makeGrain(kind) {
   }
   ctx.putImageData(image, 0, 0);
   if (kind !== 'metal') {
+    if (kind === 'concrete') {
+      // Fine plank impressions remain in the cast face after the form is stripped.
+      for (let board = 0; board < 6; board++) {
+        const base = board * dim / 6;
+        ctx.fillStyle = board % 2 ? 'rgba(60,52,42,.027)' : 'rgba(242,236,221,.035)';
+        ctx.fillRect(base, 0, dim / 6, dim);
+        ctx.fillStyle = 'rgba(61,56,48,.18)';
+        ctx.fillRect(base, 0, 1, dim);
+        for (let fibre = 0; fibre < 28; fibre++) {
+          const x = base + 2 + noise() * 60, y = noise() * dim;
+          const length = 9 + noise() ** 2 * 145;
+          ctx.strokeStyle = fibre % 3 ? 'rgba(44,39,35,.055)' : 'rgba(239,233,219,.11)';
+          ctx.beginPath(); ctx.moveTo(x, y);
+          ctx.bezierCurveTo(x+.9, y+length*.42, x-1.5, y+length*.62, x+.3, y+length);
+          ctx.stroke();
+        }
+      }
+    }
     for (let i = 0; i < 18; i++) {
       const x = noise() * dim;
       const y = noise() * dim;
@@ -42,7 +60,7 @@ export function makeGrain(kind) {
       ctx.fillRect(x - size, y - size, size * 2, size * 2);
       ctx.restore();
     }
-    for (const x of [18, dim - 18]) for (const y of [28, dim - 28]) {
+    if (kind === 'concrete') for (const x of [18, dim - 18]) for (const y of [28, dim - 28]) {
       ctx.fillStyle = '#545350';
       ctx.beginPath();
       ctx.arc(x, y, 4.4, 0, Math.PI * 2);
@@ -143,9 +161,9 @@ export function makeGlows(scene) {
     return sprite;
   };
   glow(0xdf311d, .82, 2.43, 1.38, 5.95, 2.67, -3.87);
-  glow(0xb2d3ff, .61, 3.8, .78, -4.96, 5.32, -2.29);
-  glow(0xc2d8f2, .29, 3.6, .54, 4.96, 5.33, -2.29);
-  return glow(0xa3cbf1, .76, .88, .43, 0, 0, 0);
+  const ceiling = [glow(0xcbddd7, .61, 3.8, .78, -4.96, 5.32, -2.29),
+    glow(0xd9e8dc, .29, 3.6, .54, 4.96, 5.33, -2.29)];
+  return { ceiling, lens: glow(0xb4d6d2, .76, .88, .43, 0, 0, 0) };
 }
 
 // World-space particles. The projector cone exposes dust that is otherwise nearly invisible.
@@ -163,7 +181,7 @@ export function makeDust(scene) {
   geometry.setAttribute('position', new THREE.BufferAttribute(data, 3));
   geometry.setAttribute('variation', new THREE.BufferAttribute(variation, 3));
   const uniforms = {
-    time: { value: 0 }, energy: { value: 0 }, origin: { value: new THREE.Vector3() },
+    tint: { value: new THREE.Color() }, time: { value: 0 }, energy: { value: 0 }, origin: { value: new THREE.Vector3() },
     heading: { value: new THREE.Vector3() }, wake: { value: new THREE.Vector3() },
     scale: { value: 360 }, aperture: { value: .20 }, resonance: { value: 0 }, specimen: { value: new THREE.Vector3() }
   };
@@ -172,7 +190,7 @@ export function makeDust(scene) {
     vertexShader: `
       attribute vec3 variation;
       uniform float time, energy, scale, resonance, aperture;
-      uniform vec3 origin, heading, wake, specimen;
+      uniform vec3 origin, heading, wake, specimen, tint;
       varying vec3 color;
       varying float brightness, stripe;
       void main() {
@@ -194,7 +212,7 @@ export function makeDust(scene) {
         float beam = (1. - smoothstep(aperture * .56, aperture * 1.13, spread / max(axial, .05))) * smoothstep(.08, .70, axial);
         float redZone = smoothstep(1.8, 5.8, point.x) * (1. - smoothstep(-.8, 1.7, point.z));
         float blink = .73 + .27 * sin(time * speed + variation.z * 45.);
-        color = mix(vec3(.51, .68, .86), vec3(1., .17, .095), redZone * (1. - beam));
+        color = mix(tint, vec3(1., .17, .095), redZone * (1. - beam));
         brightness = blink * (.034 + redZone * .115 + beam * (.74 + energy * .44) +
           resonance * nearExhibit * .30 + local * energy * .11);
         stripe = step(.94, variation.x) * energy;
