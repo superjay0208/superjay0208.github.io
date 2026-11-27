@@ -532,12 +532,8 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     uniforms.energy.value = Math.min(1, wake.length() * 1.45);
     uniforms.resonance.value = selected?.activation ?? 0;
     if (selected) uniforms.specimen.value.copy(selected.root.position).y += .55;
-    const circuit = service.update(Math.min(elapsed, 85), particleTime, servicePower, immediate,
-      source, direction, Math.tan(aperture), canvas.height);
-    if (circuit.shadowDirty) {
-      spot.shadow.needsUpdate = true;
-      strip.shadow.needsUpdate = true;
-    }
+    const circuit = service.update(Math.min(elapsed, 125), particleTime, servicePower, immediate,
+      source, direction, Math.tan(aperture), canvas.height, Boolean(opening));
     const power = circuit.level;
     spot.color.copy(workingLight).lerp(inspectionLight, power);
     beam.material.uniforms.tint.value.copy(whiteHaze).lerp(warmHaze, power);
@@ -560,11 +556,11 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       return;
     }
     if (!immediate && (moving || rolling || reacting || focusing || circuit.settling)) schedule();
-    else if (!immediate && now - lastInput < 5200 && !dustTimer) {
+    else if (!immediate && (circuit.paperFlying || now - lastInput < 5200) && !dustTimer) {
       dustTimer = setTimeout(() => {
         dustTimer = 0;
         schedule();
-      }, 53);
+      }, circuit.paperFlying ? 25 : 53);
     }
   }
 
@@ -803,6 +799,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       return;
     }
     ray(event);
+    if (event.isPrimary) service.steerPaper(raycaster.ray);
     if (event.target === breakerButton) {
       // The handle can pass behind the projector when the chassis is carried to the end of its rail.
       projectorHits.length = 0;
@@ -846,6 +843,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       finishPointer(event, false);
     }
     ray(event);
+    if (event.isPrimary) service.steerPaper(raycaster.ray);
     const inspecting = pendingClick?.id === event.pointerId && pendingClick.entry === selected;
     if (inspecting) {
       const dx = event.clientX - pendingClick.x;

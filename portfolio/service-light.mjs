@@ -144,76 +144,205 @@ function makeShutters(scene) {
   return { root, hot, vanes, shafts, pool };
 }
 
-// Every folded sheet holds a ninth of the same optical resolution target.
-function makeContactSheets(scene) {
-  const stockPrint = document.createElement('canvas');
-  stockPrint.width = 480;
-  stockPrint.height = 672;
-  const print = stockPrint.getContext('2d');
-  print.scale(.5, .5);
-  print.fillStyle = '#c4bcaa';
-  print.fillRect(0, 0, 960, 1344);
-  for (let i = 0; i < 9; i++) {
-    const x = (i % 3) * 320, y = Math.floor(i / 3) * 448;
-    print.fillStyle = '#bcb29e';
-    print.fillRect(x + 19, y + 48, 281, 332);
-    print.fillStyle = '#544d42';
-    print.fillRect(x + 22, y + 32, 276, 2);
-    print.font = 'bold 12px monospace';
-    print.fillText('OPTICAL ALIGNMENT', x + 22, y + 24);
-    print.font = '22px monospace';
-    print.fillText(String(i + 1).padStart(2, '0'), x + 251, y + 31);
-    print.fillRect(x + 23, y + 391, 274, 1);
-    print.font = '10px monospace';
-    print.fillText('PLATE  /  04', x + 23, y + 410);
-    print.strokeStyle = '#9b4a35'; print.lineWidth = 2;
-    print.strokeRect(x + 211, y + 396, 84, 28);
-    print.fillStyle = '#914831'; print.font = 'bold 12px monospace';
-    print.fillText('ARCHIVE', x + 222, y + 415);
-  }
-  const cx = 480, cy = 672;
-  print.fillStyle = '#393b36';
-  for (let i = 0; i < 36; i++) {
-    const a = (i * Math.PI) / 18;
+const STACK_SIZE = 4;
+const PAPER_LIMIT = 30;
+const PAPER_VARIANTS = 9;
+
+function makeArchivePaper(tray) {
+  const atlas = document.createElement('canvas');
+  atlas.width = 480;
+  atlas.height = 672;
+  const print = atlas.getContext('2d');
+  const colours = ['#bcb298', '#cdc3ae', '#c8bb9c'];
+  print.scale(0.5, 0.5);
+  for (let i = 0; i < PAPER_VARIANTS; i++) {
+    const x = (i % 3) * 320,
+      y = Math.floor(i / 3) * 448;
+    print.save();
+    print.translate(x, y);
+    print.fillStyle = colours[i % colours.length];
+    print.fillRect(0, 0, 320, 448);
+    print.fillStyle = '#50483c';
+    print.fillRect(24, 52, 272, 2);
+    print.font = 'bold 17px monospace';
+    print.fillText('OPTICAL RECORD', 24, 37);
+    print.font = '14px monospace';
+    print.fillText(String(i + 1).padStart(2, '0'), 275, 37);
+    print.strokeStyle = '#524e46';
+    print.strokeRect(26, 84, 268, 173);
     print.beginPath();
-    print.moveTo(cx, cy);
-    print.arc(cx, cy, 421, a, a + Math.PI / 36);
-    print.closePath();
-    print.fill();
+    for (let j = 0; j <= 34; j++) {
+      const sample = (j - 17) / (3.2 + i * 0.4);
+      const value = Math.exp(-sample * sample * 0.5) * (Math.cos(sample * (3.2 + i * 0.15)) * 0.28 + 0.72);
+      print.lineTo(33 + j * 7.4, 232 - value * 113);
+    }
+    print.stroke();
+    for (let j = 0; j < 7; j++) {
+      print.fillRect(27, 281 + j * 15, 105 + noise() * 158, 2.1);
+    }
+    print.translate(203, 407);
+    print.rotate(-0.13 + i * 0.022);
+    print.strokeStyle = '#833c2b';
+    print.strokeRect(0, 0, 86, 23);
+    print.fillStyle = '#833c2b';
+    print.font = 'bold 13px monospace';
+    print.fillText('ARCHIVE', 14, 16);
+    print.restore();
   }
-  print.strokeStyle = '#a74632'; print.lineWidth = 8;
-  for (const r of [98,443]) {
-    print.beginPath(); print.arc(cx, cy, r, 0, Math.PI * 2); print.stroke();
-  }
-  for (let i = 0; i < 2400; i++) {
-    print.fillStyle = noise() > .5 ? '#fff2' : '#2412';
+  for (let i = 0; i < 1900; i++) {
+    print.fillStyle = noise() > 0.5 ? '#fff2' : '#2412';
     print.fillRect(noise() * 960, noise() * 1344, 1 + noise() * 2, 1);
   }
-  const texture = new THREE.CanvasTexture(stockPrint);
+  const texture = new THREE.CanvasTexture(atlas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  const geo = new THREE.PlaneGeometry(0.42, 0.56, 6, 8);
-  const vertices = geo.attributes.position;
-  for (let i = 0; i < vertices.count; i++) {
-    const x = vertices.getX(i),
-      y = vertices.getY(i);
-    vertices.setZ(i, 0.16 * Math.abs(x + 0.035) + 0.4 * y * y + 0.045 * Math.sin(y * 10 + 0.7) * x);
+  const geometry = new THREE.PlaneGeometry(0.42, 0.56, 5, 7);
+  const positions = geometry.attributes.position;
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i),
+      y = positions.getY(i);
+    positions.setZ(i, 0.24 * Math.abs(x + 0.035) + 0.42 * y * y + 0.2 * x * y);
   }
-  geo.computeVertexNormals();
-  const surface = material(0xf2e5cb, 0.91, 0.02, { map: texture, side: THREE.DoubleSide });
+  geometry.computeVertexNormals();
+  const surface = material(0xf2e5cb, 0.91, 0.02, {
+    map: texture,
+    side: THREE.DoubleSide,
+    emissive: 0x746859,
+    emissiveMap: texture,
+    emissiveIntensity: 0.36,
+  });
   surface.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader.replace(
       '#include <uv_vertex>',
       `#include <uv_vertex>
-      vMapUv=(vMapUv+vec2(float(gl_InstanceID % 3),float(2-gl_InstanceID / 3)))/3.;`,
+      int page = gl_InstanceID % ${PAPER_VARIANTS};
+      vec2 cell = vec2(float(page % 3), float(2 - page / 3));
+      vMapUv = (vMapUv + cell) / 3.;
+      vEmissiveMapUv = (vEmissiveMapUv + cell) / 3.;`,
     );
   };
-  const paper = new THREE.InstancedMesh(geo, surface, 9);
-  paper.castShadow = true;
-  paper.receiveShadow = true;
-  paper.frustumCulled = false;
-  paper.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  scene.add(paper);
-  return paper;
+  const sheets = new THREE.InstancedMesh(geometry, surface, STACK_SIZE + PAPER_LIMIT);
+  sheets.count = STACK_SIZE;
+  sheets.receiveShadow = true;
+  sheets.frustumCulled = false;
+  sheets.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  tray.add(sheets);
+
+  const transform = new THREE.Object3D();
+  for (let i = 0; i < STACK_SIZE; i++) {
+    transform.position.set((noise() - 0.5) * 0.29, 0.075 + i * 0.023, (noise() - 0.5) * 0.11);
+    transform.rotation.set(-Math.PI / 2, 0, (noise() - 0.5) * 1.3);
+    transform.updateMatrix();
+    sheets.setMatrixAt(i, transform.matrix);
+  }
+  const wind = new THREE.Vector3();
+  const target = new THREE.Vector3(-0.95, 0.34, -0.38);
+  const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1));
+  const aim = new THREE.Vector3();
+  const pool = Array.from({ length: PAPER_LIMIT }, () => ({
+    age: 0,
+    x: 0,
+    y: 0,
+    z: 0,
+    vx: 0,
+    vy: 0,
+    vz: 0,
+    life: 0,
+    spin: 0,
+    roll: 0,
+    phase: 0,
+    size: 0,
+  }));
+  let timeToNext = 0;
+  let phone = false;
+
+  function steer(ray) {
+    plane.constant = -tray.position.z;
+    if (!ray.intersectPlane(plane, aim)) return;
+    target.set(
+      clamp((aim.x - tray.position.x) * (phone ? 1.28 : 0.83), -2.8, 2.15),
+      clamp((aim.y - 1.7) * 0.55, -1, 1),
+      clamp((0.74 - aim.y) * 0.51, -1.34, 1.05),
+    );
+  }
+
+  function launch(sheet) {
+    sheet.age = 0;
+    sheet.life = 2.2 + noise() * 0.78;
+    sheet.x = (noise() - 0.5) * 0.59;
+    sheet.y = 0.19;
+    sheet.z = (noise() - 0.5) * 0.35;
+    sheet.vx = wind.x * 0.42 + (noise() - 0.5) * 1.8;
+    sheet.vy = (phone ? 6.1 : 5.76) + noise() * 1.65 + wind.y * 0.78;
+    sheet.vz = wind.z * 0.38 + (noise() - 0.5) * 1.7;
+    sheet.spin = (noise() > 0.5 ? 1 : -1) * (0.9 + noise() * 3.2);
+    sheet.roll = (noise() - 0.5) * 8;
+    sheet.phase = noise() * Math.PI * 2;
+    sheet.size = 0.68 + noise() * 0.54;
+  }
+
+  function resize(narrow) {
+    if (phone === narrow) return;
+    phone = narrow;
+    for (const sheet of pool) sheet.life = 0;
+    timeToNext = 0;
+  }
+
+  function update(dt, pressure, still) {
+    if (still) {
+      if (sheets.count !== STACK_SIZE) {
+        sheets.count = STACK_SIZE;
+        timeToNext = 0;
+        for (const sheet of pool) sheet.life = 0;
+      }
+      return false;
+    }
+    wind.lerp(target, 1 - Math.exp(-dt * 7));
+    const intervalScale = phone ? 1.48 : 1;
+    if (pressure > 0.14) {
+      timeToNext -= dt;
+      if (timeToNext <= 0) {
+        const sheet = pool.find((sheet) => sheet.age >= sheet.life);
+        if (sheet) launch(sheet);
+        timeToNext = ((0.105 + noise() * 0.072) * intervalScale) / (0.32 + pressure * 0.68);
+      }
+    } else timeToNext = 0;
+
+    let count = STACK_SIZE;
+    const steerAmount = 1 - Math.exp(-dt * 3.4);
+    const side = phone ? 3.6 : 6.6;
+    for (const sheet of pool) {
+      if (sheet.age >= sheet.life) continue;
+      sheet.age += dt;
+      const flutter = sheet.phase + sheet.age * 8;
+      sheet.vx += (wind.x * (phone ? 1.51 : 1.12) - sheet.vx) * steerAmount;
+      sheet.vz += (wind.z - sheet.vz) * steerAmount;
+      const gravity = (phone ? 6.25 : 5.62) - wind.y * 0.64;
+      sheet.x = clamp(sheet.x + (sheet.vx + 0.6 * Math.sin(flutter)) * dt, -side, side * 0.66);
+      sheet.z = clamp(sheet.z + (sheet.vz + 0.52 * Math.cos(flutter)) * dt, -4.4, 3.4);
+      sheet.y += (sheet.vy - 0.5 * gravity * dt) * dt;
+      sheet.vy -= gravity * dt;
+      if (sheet.y <= 0.07 || sheet.age >= sheet.life) {
+        sheet.life = 0;
+        continue;
+      }
+      const end = 1 - THREE.MathUtils.smoothstep(sheet.age, sheet.life - 0.26, sheet.life);
+      const landing = sheet.vy < 0 ? THREE.MathUtils.smoothstep(sheet.y, 0.07, 0.42) : 1;
+      transform.position.set(sheet.x, sheet.y, sheet.z);
+      transform.rotation.set(
+        -1.4 + sheet.age * sheet.spin + 0.28 * Math.sin(flutter),
+        sheet.phase + sheet.age * sheet.roll,
+        0.48 * Math.sin(flutter * 0.67) + sheet.age * sheet.spin * 0.32,
+      );
+      transform.scale.setScalar(sheet.size * end * landing);
+      transform.updateMatrix();
+      sheets.setMatrixAt(count++, transform.matrix);
+    }
+    sheets.count = count;
+    if (count > STACK_SIZE) sheets.instanceMatrix.needsUpdate = true;
+    return count > STACK_SIZE || pressure > 0.14;
+  }
+
+  return { resize, steer, update };
 }
 
 // Fibres collecting against a pressure difference; both ends are fixed in room coordinates.
@@ -267,18 +396,12 @@ function makeFilings(scene) {
 }
 
 export function makeServiceLight(scene) {
-  const breaker = makeBreaker(scene),
-    shutters = makeShutters(scene),
-    sheets = makeContactSheets(scene);
+  const breaker = makeBreaker(scene);
+  const shutters = makeShutters(scene);
   const { filings, uniforms } = makeFilings(scene);
   const transform = new THREE.Object3D(),
     point = new THREE.Vector3(),
     offset = new THREE.Vector3();
-  const anchors = Array.from({ length: sheets.count }, (_, i) => ({
-    s: i / (sheets.count - 1),
-    twist: noise() * 2 - 1,
-    lift: 0,
-  }));
   const tray = new THREE.Group();
   const liner = material(0x66584a, 0.78, 0.16, { map: stock.steel.map });
   box(tray, 0, 0, 0, 1.1, 0.065, 0.84, stock.iron);
@@ -288,6 +411,7 @@ export function makeServiceLight(scene) {
   box(tray, 0, 0.052, 0.4, 1.04, 0.08, 0.037, stock.iron);
   batch(tray);
   scene.add(tray);
+  const paper = makeArchivePaper(tray);
   const trayBounds = new THREE.Box3();
   const shutterBounds = new THREE.Box3();
   const rayHit = new THREE.Vector3();
@@ -295,10 +419,8 @@ export function makeServiceLight(scene) {
   let phone = false,
     level = 0,
     gate = 0,
-    vaneAngle = Infinity,
-    lastShadowPose = -1;
-  let sheetsDirty = true;
-  const state = { level: 0, settling: false, shadowDirty: false };
+    vaneAngle = Infinity;
+  const state = { level: 0, settling: false, paperFlying: false };
   function layout(narrow, bench, aspect) {
     phone = narrow;
     const [x, y, z, w] = bench;
@@ -317,9 +439,9 @@ export function makeServiceLight(scene) {
     );
     tray.position.set(phone ? 1.12 : Math.min(3.91, 2.12 * aspect), 0.155, phone ? 2.46 : 2.5);
     tray.scale.setScalar(phone ? 0.62 : 0.87);
-    sheetsDirty = true;
+    paper.resize(phone);
     tray.rotation.y = -0.18;
-    trayBounds.setFromObject(tray).expandByScalar(.035);
+    trayBounds.setFromObject(tray).expandByScalar(0.035);
     shutterBounds.setFromObject(shutters.root.children[0]);
     filings.position.copy(shutters.root.position);
     filings.scale.copy(shutters.root.scale);
@@ -327,18 +449,18 @@ export function makeServiceLight(scene) {
   }
   function aimAt(ray, target, nearest) {
     let found = false;
-    for (const bounds of [trayBounds, sheets.boundingBox, shutterBounds]) {
-      if (!bounds || !ray.intersectBox(bounds, rayHit)) continue;
+    for (const bounds of [trayBounds, shutterBounds]) {
+      if (!ray.intersectBox(bounds, rayHit)) continue;
       const distance = ray.origin.distanceToSquared(rayHit);
       if (distance >= nearest) continue;
       nearest = distance;
       target.copy(rayHit);
-      if (bounds === trayBounds) target.y += .19 * tray.scale.y;
+      if (bounds === trayBounds) target.y += 0.19 * tray.scale.y;
       found = true;
     }
     return found;
   }
-  function update(dt, time, active, still, source, heading, tangent, pixels) {
+  function update(dt, time, active, still, source, heading, tangent, pixels, entering) {
     const blend = still ? 1 : 1 - Math.exp(-dt / 138);
     const approach = (current, target) =>
       Math.abs(current - target) < 0.003 ? target : current + (target - current) * blend;
@@ -346,7 +468,7 @@ export function makeServiceLight(scene) {
     breaker.lever.rotation.x = THREE.MathUtils.lerp(0.88, -0.88, level);
     breaker.pilot.emissiveIntensity = 0.64 + level * 1.75;
     point.copy(shutters.root.position);
-    const distanceToWall = (point.z - source.z) / Math.min(-.01, heading.z);
+    const distanceToWall = (point.z - source.z) / Math.min(-0.01, heading.z);
     const halfHeight = 1.33 * shutters.root.scale.y;
     point.y = clamp(source.y + heading.y * distanceToWall, point.y - halfHeight, point.y + halfHeight);
     const incidence = beamAt(point, source, heading, tangent, offset);
@@ -370,53 +492,13 @@ export function makeServiceLight(scene) {
     uniforms.circuit.value = level;
     uniforms.heat.value = gate;
     uniforms.pixelScale.value = pixels * 0.68;
-    let settling = level !== Number(active) || Math.abs(gate - incidence) > 0.003;
-    let shadowPose = 0;
-    const scale = tray.scale.x;
-    let uploaded = false;
-    for (let i = 0; i < anchors.length; i++) {
-      const p = anchors[i],
-        col = (i % 3) - 1,
-        row = 1 - Math.floor(i / 3);
-      point.copy(tray.position);
-      point.x += col * 0.19 * scale;
-      point.y += (0.44 + row * 0.11) * scale;
-      const heat = beamAt(point, source, heading, tangent, offset);
-      const target = Math.max(heat, level);
-      const previousLift = p.lift;
-      p.lift = approach(p.lift, target);
-      settling ||= Math.abs(p.lift - target) > 0.003;
-      const rise = THREE.MathUtils.smoothstep(p.lift, p.s * 0.17, 0.85 + p.s * 0.15);
-      shadowPose += rise / anchors.length;
-      if (!sheetsDirty && previousLift === p.lift && (still || rise === 0 || rise === 1)) continue;
-      const phase = time * 0.81 + p.s * 4;
-      const flutter = Math.sin(phase) * rise * (1 - rise);
-      transform.position.copy(tray.position);
-      transform.position.x += scale * THREE.MathUtils.lerp(p.twist * 0.2, col * 0.401, rise);
-      transform.position.y +=
-        scale * THREE.MathUtils.lerp(0.079 + i * 0.011, 0.99 + row * 0.53, rise) + flutter * 0.11;
-      transform.position.z += scale * THREE.MathUtils.lerp(p.twist * 0.09, -0.14 + (1 - row) * 0.068, rise);
-      transform.rotation.set(
-        -1.54 + 1.4 * rise + flutter * 0.36,
-        0.08 + p.twist * 0.11 * (1 - rise),
-        p.twist * 0.44 * (1 - rise) + flutter * 0.3,
-      );
-      transform.scale.setScalar(scale * 0.94);
-      transform.updateMatrix();
-      sheets.setMatrixAt(i, transform.matrix);
-      uploaded = true;
-    }
-    if (uploaded) {
-      sheets.instanceMatrix.needsUpdate = true;
-      sheets.computeBoundingBox();
-      sheetsDirty = false;
-    }
+    point.copy(tray.position);
+    point.y += 0.25 * tray.scale.y;
+    const trayHeat = beamAt(point, source, heading, tangent, offset);
     state.level = level;
-    state.settling = settling;
-    state.shadowDirty =
-      Math.abs(lastShadowPose - shadowPose) > 0.04 || (!settling && lastShadowPose !== shadowPose);
-    if (state.shadowDirty) lastShadowPose = shadowPose;
+    state.settling = level !== Number(active) || gate !== incidence;
+    state.paperFlying = paper.update(dt * 0.001, entering ? 0 : Math.max(level, trayHeat), still);
     return state;
   }
-  return { layout, update, aimAt, breaker: breaker.body, hitBounds };
+  return { layout, update, aimAt, steerPaper: paper.steer, breaker: breaker.body, hitBounds };
 }
