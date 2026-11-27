@@ -3,7 +3,7 @@ import { generateTeachingImage, retainHaarDetails } from '../research/image-lab.
 import { haar2D, inverseHaar2D } from '../research/math.mjs';
 
 const config = {
-  optics:    { duration: 980, anchor: [.09, .43, .08], arc: [-.19, .09, .12] },
+  optics:    { duration: 980, anchor: [.08, .48, -.04], arc: [-.19, .09, .12] },
   motion:    { duration: 920, anchor: [.26, .73, .33], arc: [.23, .28, -.12] },
   research:  { duration: 1070, anchor: [-.10, .48, .35], arc: [-.13, .04, .035] },
   crux:      { duration: 1030, anchor: [-.21, 1.04, .32], arc: [-.24, -.53, .15] },
@@ -33,21 +33,30 @@ function ring(ctx, x, y, radius, tone, width = 1) {
   ctx.stroke();
 }
 
-function prism(ctx, p, span) {
+function prism(ctx, p, span, _side, direction) {
   const colors = ['#eb482a','#ee8f38','#f1c65d','#95d779','#65cfbe','#579ada','#886ec4'];
-  const split = smooth(p, .16, .78);
-  const length = span * (.35 + split * 1.34);
-  ctx.rotate(-.48 - split * .37);
+  const split = smooth(p, .16, .84);
+  const length = span * (.29 + split * 1.46);
+  ctx.rotate(direction);
   ctx.globalCompositeOperation = 'screen';
-  for (let i = 0; i < colors.length; i++) {
-    const offset = (i - 3) * (.027 + split * .075);
+  for (const [i, color] of colors.entries()) {
     ctx.save();
-    ctx.rotate(offset);
-    const shaft = ctx.createLinearGradient(-length * .04, 0, length, 0);
-    shaft.addColorStop(0, colors[i]);
-    shaft.addColorStop(.73, colors[i] + '88');
-    shaft.addColorStop(1, colors[i] + '00');
-    polygon(ctx, [[-length * .05,0],[length,-length * .04],[length,length * .04]], shaft);
+    ctx.rotate((i - 3) * (.024 + split * .11));
+    const shaft = ctx.createLinearGradient(0, 0, length, 0);
+    shaft.addColorStop(0, color + '00');
+    shaft.addColorStop(.18, color + '9b');
+    shaft.addColorStop(.64, color + '84');
+    shaft.addColorStop(1, color + '00');
+    ctx.shadowColor = color + '98';
+    ctx.shadowBlur = span * .009;
+    polygon(ctx, [[0,0],[length,-length * .014],[length,length * .014]], shaft);
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = span * .0013;
+    ctx.strokeStyle = shaft;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(length,0);
+    ctx.stroke();
     ctx.restore();
   }
 }
@@ -274,7 +283,15 @@ export function makeProjectPassage(room, camera) {
       ctx.save();
       ctx.translate(x,y);
       ctx.globalAlpha = smooth(p, .24, .64) * (1 - .31 * smooth(p, .79, 1));
-      effects[passage.entry.id](ctx,p,span,passage.entry.side ?? 1);
+      let direction = -1.18;
+      const spectrumEnd = passage.entry.reaction.spectrumEnd;
+      if (spectrumEnd) {
+        eye.copy(spectrumEnd).project(camera);
+        const dx = (eye.x - projected.x) * bounds.width;
+        const dy = (projected.y - eye.y) * bounds.height;
+        if (Math.hypot(dx,dy) > 1) direction = Math.atan2(dy,dx);
+      }
+      effects[passage.entry.id](ctx,p,span,passage.entry.side ?? 1,direction);
       ctx.restore();
       ctx.globalAlpha = smooth(p,.78,.985);
       ctx.fillStyle = DARK;

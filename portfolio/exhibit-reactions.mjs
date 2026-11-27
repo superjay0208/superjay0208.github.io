@@ -60,6 +60,7 @@ function gradientTexture() {
 
 function prism(entry, local, room) {
   const receivers = new THREE.Group();
+  const spectrumEnd = new THREE.Vector3();
   room.add(receivers);
   const baseTexture = gradientTexture();
   const wavelengths = [
@@ -82,6 +83,7 @@ function prism(entry, local, room) {
   });
   return {
     gesture: axis('x', 52),
+    spectrumEnd,
     update({ power, x, progress, source }) {
       receivers.visible = power > .007;
       if (!receivers.visible) return;
@@ -97,6 +99,7 @@ function prism(entry, local, room) {
         end.set(at.x + (azimuth * .35 + .065 + x * .24 + spread) * distance,
           at.y + (.30 + x * .060 + spread * .63) * distance, -4.496);
         wall.position.copy(end);
+        if (wave === 541) spectrumEnd.copy(end);
         wall.material.opacity = power * (.69 + progress * .22);
         beamDirection.subVectors(end, at);
         shaft.scale.set(1, beamDirection.length(), 1);
