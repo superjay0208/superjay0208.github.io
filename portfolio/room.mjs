@@ -147,9 +147,11 @@ function beamVolume() {
         float chord = abs(a) < 0.00001 ? 0. : max(0., -2. * halfB / a);
         float endPlane = alongRay > 0. ? throwLength : 0.;
         if (abs(alongRay) > 0.00001) chord = min(chord, max(0., (endPlane - axialStart) / alongRay));
+        // Stagger the shadow samples so thin moving blockers leave a continuous wake in the haze.
+        float jitter = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(.06711056, .00583715))));
         float scatter = 0.;
-        for (int i = 0; i < 5; ++i) {
-          vec3 point = fromLens + ray * chord * ((float(i) + .5) / 5.);
+        for (int i = 0; i < 6; ++i) {
+          vec3 point = fromLens + ray * chord * ((float(i) + .25 + jitter * .5) / 6.);
           float axial = dot(point, direction);
           float radius = length(point - direction * axial);
           float width = max(.01, axial * sqrt((1. - angleSquared) / angleSquared));
@@ -160,7 +162,7 @@ function beamVolume() {
           float lit = texture(occlusion, vec3(coordinates.xy, coordinates.z - 0.0007));
           scatter += lit * feather * grain / (1. + axial * axial * .057);
         }
-        float density = min(.18, scatter * chord * (.039 + energy * .026));
+        float density = min(.18, scatter * chord * (.033 + energy * .022));
         gl_FragColor = vec4(tint, density);
       }`,
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
@@ -244,7 +246,6 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   const inspectionLight = new THREE.Color(0xffc48a);
   const whiteHaze = new THREE.Color(.66, .76, .73);
   const warmHaze = new THREE.Color(.98, .53, .27);
-  const dust = makeDust(scene);
   const bursts = makeRoomParticles(scene);
   const driftFragments = makeFragments(scene);
   const spot = new THREE.SpotLight(0xdcecff, 610, 24, .197, .53, 2);
@@ -256,6 +257,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   spot.shadow.normalBias = .017;
   spot.shadow.radius = 4.25;
   scene.add(spot, spot.target);
+  const dust = makeDust(scene, spot.shadow);
   beam.onBeforeRender = () => {
     beam.material.uniforms.occlusion.value = spot.shadow.map.depthTexture;
     beam.material.uniforms.projectorMatrix.value.copy(spot.shadow.matrix);
@@ -317,9 +319,10 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   let angle = 0;
   let lastFrame = 0;
   let lightDirty = true;
+  let paperInLastShadow = false;
   let downstroke = false, lastPuff = -Infinity;
   let aperture = spot.angle, targetAperture = spot.angle;
-  let resolutionPenalty = 1, slowFrames = 0;
+  let resolutionPenalty = 1, slowFrames = 0, lastDemand = -Infinity;
   let width = 0, height = 0;
   let chosenAt = -Infinity;
   let pinch;
@@ -440,6 +443,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     source.copy(LENS).applyMatrix4(projector.matrixWorld);
     direction.subVectors(liftedAim, source).normalize();
     spot.angle = aperture;
+    spot.shadow.radius = 2.45 + aperture * 8.2;
     spot.intensity = 610 * (.197 / aperture) ** .58;
     spot.position.copy(source);
     spot.target.position.copy(liftedAim);
@@ -500,12 +504,13 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     const elapsed = lastFrame ? now - lastFrame : 16;
     if (!immediate) particleTime += Math.min(82, elapsed) * .001;
     lastFrame = now;
-    const frantic = !immediate && (grab?.moved || pendingClick?.moved || opening || moving || focusing);
+    const frantic = !immediate && (grab?.moved || pendingClick?.moved || opening || moving || focusing || paperInLastShadow);
+    if (frantic) lastDemand = now;
     slowFrames = frantic && elapsed > 28 ? slowFrames + 1 : 0;
     if (resolutionPenalty === 1 && slowFrames >= 5) {
       resolutionPenalty = .78;
       renderSize();
-    } else if (resolutionPenalty < 1 && !frantic && now - lastInput > 550) {
+    } else if (resolutionPenalty < 1 && now - Math.max(lastInput, lastDemand) > 650) {
       resolutionPenalty = 1;
       renderSize();
     }
@@ -534,6 +539,8 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     if (selected) uniforms.specimen.value.copy(selected.root.position).y += .55;
     const circuit = service.update(Math.min(elapsed, 125), particleTime, servicePower, immediate,
       source, direction, Math.tan(aperture), canvas.height, Boolean(opening));
+    if (circuit.paperInBeam || paperInLastShadow) spot.shadow.needsUpdate = true;
+    paperInLastShadow = circuit.paperInBeam;
     const power = circuit.level;
     spot.color.copy(workingLight).lerp(inspectionLight, power);
     beam.material.uniforms.tint.value.copy(whiteHaze).lerp(warmHaze, power);

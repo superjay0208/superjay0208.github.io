@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { batch, box, material, stock, tube } from './objects.mjs';
 import { randomSequence } from './atmosphere.mjs';
+import { makePaperMaterials } from './paper-material.mjs';
 
 const clamp = THREE.MathUtils.clamp;
 const noise = randomSequence(31907);
@@ -203,26 +204,15 @@ function makeArchivePaper(tray) {
     positions.setZ(i, 0.24 * Math.abs(x + 0.035) + 0.42 * y * y + 0.2 * x * y);
   }
   geometry.computeVertexNormals();
-  const surface = material(0xf2e5cb, 0.91, 0.02, {
-    map: texture,
-    side: THREE.DoubleSide,
-    emissive: 0x746859,
-    emissiveMap: texture,
-    emissiveIntensity: 0.36,
-  });
-  surface.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader.replace(
-      '#include <uv_vertex>',
-      `#include <uv_vertex>
-      int page = gl_InstanceID % ${PAPER_VARIANTS};
-      vec2 cell = vec2(float(page % 3), float(2 - page / 3));
-      vMapUv = (vMapUv + cell) / 3.;
-      vEmissiveMapUv = (vEmissiveMapUv + cell) / 3.;`,
-    );
-  };
+  const { surface, depth } = makePaperMaterials(texture, PAPER_VARIANTS);
   const sheets = new THREE.InstancedMesh(geometry, surface, STACK_SIZE + PAPER_LIMIT);
+  const curl = new THREE.InstancedBufferAttribute(new Float32Array((STACK_SIZE + PAPER_LIMIT) * 2), 2);
+  curl.setUsage(THREE.DynamicDrawUsage);
+  geometry.setAttribute('paperCurl', curl);
   sheets.count = STACK_SIZE;
+  sheets.castShadow = true;
   sheets.receiveShadow = true;
+  sheets.customDepthMaterial = depth;
   sheets.frustumCulled = false;
   sheets.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   tray.add(sheets);
@@ -238,6 +228,8 @@ function makeArchivePaper(tray) {
   const target = new THREE.Vector3(-0.95, 0.34, -0.38);
   const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1));
   const aim = new THREE.Vector3();
+  const lensOffset = new THREE.Vector3();
+  const status = { flying: false, inBeam: false };
   const pool = Array.from({ length: PAPER_LIMIT }, () => ({
     age: 0,
     x: 0,
@@ -287,14 +279,16 @@ function makeArchivePaper(tray) {
     timeToNext = 0;
   }
 
-  function update(dt, pressure, still) {
+  function update(dt, pressure, still, source, heading, tangent) {
+    status.flying = false;
+    status.inBeam = false;
     if (still) {
       if (sheets.count !== STACK_SIZE) {
         sheets.count = STACK_SIZE;
         timeToNext = 0;
         for (const sheet of pool) sheet.life = 0;
       }
-      return false;
+      return status;
     }
     wind.lerp(target, 1 - Math.exp(-dt * 7));
     const intervalScale = phone ? 1.48 : 1;
@@ -335,11 +329,25 @@ function makeArchivePaper(tray) {
       );
       transform.scale.setScalar(sheet.size * end * landing);
       transform.updateMatrix();
-      sheets.setMatrixAt(count++, transform.matrix);
+      sheets.setMatrixAt(count, transform.matrix);
+      curl.setXY(count, 0.48 * Math.sin(flutter * 0.72), 0.74 * Math.cos(flutter * 0.56 + sheet.roll));
+      count++;
+
+      // Test a sphere around the curled sheet so even the edge of the beam updates its shadow.
+      lensOffset.copy(transform.position).applyMatrix4(tray.matrixWorld).sub(source);
+      const distance = lensOffset.dot(heading);
+      const extent = 0.43 * transform.scale.x * tray.scale.x;
+      const coneRadius = Math.max(0, distance) * tangent + extent * 1.12;
+      status.inBeam ||=
+        distance > -extent && lensOffset.lengthSq() - distance * distance < coneRadius * coneRadius;
     }
     sheets.count = count;
-    if (count > STACK_SIZE) sheets.instanceMatrix.needsUpdate = true;
-    return count > STACK_SIZE || pressure > 0.14;
+    if (count > STACK_SIZE) {
+      sheets.instanceMatrix.needsUpdate = true;
+      curl.needsUpdate = true;
+    }
+    status.flying = count > STACK_SIZE || pressure > 0.14;
+    return status;
   }
 
   return { resize, steer, update };
@@ -420,7 +428,7 @@ export function makeServiceLight(scene) {
     level = 0,
     gate = 0,
     vaneAngle = Infinity;
-  const state = { level: 0, settling: false, paperFlying: false };
+  const state = { level: 0, settling: false, paperFlying: false, paperInBeam: false };
   function layout(narrow, bench, aspect) {
     phone = narrow;
     const [x, y, z, w] = bench;
@@ -497,7 +505,16 @@ export function makeServiceLight(scene) {
     const trayHeat = beamAt(point, source, heading, tangent, offset);
     state.level = level;
     state.settling = level !== Number(active) || gate !== incidence;
-    state.paperFlying = paper.update(dt * 0.001, entering ? 0 : Math.max(level, trayHeat), still);
+    const motion = paper.update(
+      dt * 0.001,
+      entering ? 0 : Math.max(level, trayHeat),
+      still,
+      source,
+      heading,
+      tangent,
+    );
+    state.paperFlying = motion.flying;
+    state.paperInBeam = motion.inBeam;
     return state;
   }
   return { layout, update, aimAt, steerPaper: paper.steer, breaker: breaker.body, hitBounds };

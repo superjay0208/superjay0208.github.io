@@ -167,7 +167,7 @@ export function makeGlows(scene) {
 }
 
 // World-space particles. The projector cone exposes dust that is otherwise nearly invisible.
-export function makeDust(scene) {
+export function makeDust(scene, shadow) {
   const maximum = 1850;
   const data = new Float32Array(maximum * 3);
   const variation = new Float32Array(maximum * 3);
@@ -181,6 +181,7 @@ export function makeDust(scene) {
   geometry.setAttribute('position', new THREE.BufferAttribute(data, 3));
   geometry.setAttribute('variation', new THREE.BufferAttribute(variation, 3));
   const uniforms = {
+    projectorMatrix: { value: shadow.matrix }, occlusion: { value: null },
     tint: { value: new THREE.Color() }, time: { value: 0 }, energy: { value: 0 }, origin: { value: new THREE.Vector3() },
     heading: { value: new THREE.Vector3() }, wake: { value: new THREE.Vector3() },
     scale: { value: 360 }, aperture: { value: .20 }, resonance: { value: 0 }, specimen: { value: new THREE.Vector3() }
@@ -191,6 +192,8 @@ export function makeDust(scene) {
       attribute vec3 variation;
       uniform float time, energy, scale, resonance, aperture;
       uniform vec3 origin, heading, wake, specimen, tint;
+      uniform mat4 projectorMatrix;
+      uniform highp sampler2DShadow occlusion;
       varying vec3 color;
       varying float brightness, stripe;
       void main() {
@@ -210,6 +213,11 @@ export function makeDust(scene) {
         float axial = dot(offset, heading);
         float spread = length(offset - axial * heading);
         float beam = (1. - smoothstep(aperture * .56, aperture * 1.13, spread / max(axial, .05))) * smoothstep(.08, .70, axial);
+        if (beam > .003) {
+          vec4 projected = projectorMatrix * vec4(point, 1.);
+          vec3 coords = projected.xyz / projected.w;
+          beam *= texture(occlusion, vec3(coords.xy, coords.z - .00042));
+        }
         float redZone = smoothstep(1.8, 5.8, point.x) * (1. - smoothstep(-.8, 1.7, point.z));
         float blink = .73 + .27 * sin(time * speed + variation.z * 45.);
         color = mix(tint, vec3(1., .17, .095), redZone * (1. - beam));
@@ -229,6 +237,7 @@ export function makeDust(scene) {
         gl_FragColor = vec4(color, shape * shape * brightness);
       }`
   }));
+  dust.onBeforeRender = () => { uniforms.occlusion.value = shadow.map.depthTexture; };
   dust.frustumCulled = false;
   scene.add(dust);
   return { geometry, uniforms };
