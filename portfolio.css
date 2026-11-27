@@ -141,3 +141,17 @@ a:hover { text-decoration-thickness: .13em; }
 @media (max-height: 530px) and (orientation: landscape) {
   .room { min-height: 440px; }
 }
+
+.archive-passage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 20;
+  pointer-events: none;
+}
+.room.entering .masthead, .room.entering .reveal-link {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .20s ease-out;
+}

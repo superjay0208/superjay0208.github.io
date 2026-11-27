@@ -3,6 +3,7 @@ import { createProjectorModel } from './projector.ts';
 import { detailSpecimen } from './specimens.mjs';
 import { batch, box, makeExhibit, makeTitle, material, stock, tube } from './objects.mjs';
 
+import { makeProjectPassage } from './project-passage.mjs';
 import { makeExhibitReaction } from './exhibit-reactions.mjs';
 import { makeRoomParticles } from './room-particles.mjs';
 import { fixtures, makeDust, makeFragments, makeGlows, makeGrain, reflections } from './atmosphere.mjs';
@@ -184,6 +185,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   scene.environment = reflections(renderer).texture;
   scene.environmentIntensity = .48;
   const camera = new THREE.PerspectiveCamera(42, 1, .14, 34);
+  const passage = makeProjectPassage(room, camera);
   scene.add(structure());
   const title = makeTitle();
   scene.add(title);
@@ -283,6 +285,9 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   const inspection = new THREE.Vector2();
   const response = {power:0, progress:0, side:0, lastSide:1, time:0, x:0, y:0, source};
   let opening;
+  let departure = 0;
+  let recovery = 0;
+  const warmedDestinations = new Set();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let previousPreference;
   try { previousPreference = localStorage.getItem('zw-motion'); } catch { /* Settings storage is optional. */ }
@@ -332,7 +337,27 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   }
 
   function schedule() {
-    if (!frame && visible && !document.hidden && available) frame = requestAnimationFrame(draw);
+    if (!frame && !opening?.leaving && (visible || opening) && !document.hidden && available) frame = requestAnimationFrame(draw);
+  }
+
+  function resetCamera(view) {
+    camera.position.set(...view.eye);
+    camera.lookAt(...view.look);
+    camera.fov = view.fov;
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+  }
+
+  function cancelEntry() {
+    cancelAnimationFrame(departure);
+    clearTimeout(recovery);
+    departure = 0;
+    recovery = 0;
+    opening = null;
+    passage.restore();
+    if (layout) resetCamera(layout);
+    lightDirty = true;
+    schedule();
   }
 
   function resize() {
@@ -341,11 +366,9 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     if (!width || !height) return;
     const next = width / height < .92 ? SETUPS.tall : SETUPS.wide;
     camera.aspect = width / height;
-    camera.position.set(...next.eye);
-    camera.lookAt(...next.look);
-    camera.fov = next.fov;
-    camera.updateProjectionMatrix();
-    camera.updateMatrixWorld();
+    if (opening && next !== layout) cancelEntry();
+    if (!opening) resetCamera(next);
+    else camera.updateProjectionMatrix();
     const [shadowSize, particles] = next === SETUPS.tall ? [1536, 1080] : [2048, 1850];
     if (spot.shadow.mapSize.x !== shadowSize) {
       spot.shadow.mapSize.set(shadowSize, shadowSize);
@@ -378,7 +401,6 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       liftedAim.copy(initialAim);
       goalAim.copy(initialAim);
       steered = false;
-      opening = null;
       select(null);
       layout = next;
       downstroke = false;
@@ -418,7 +440,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
 
   function draw(now) {
     frame = 0;
-    if (!layout || !visible || document.hidden || !available) return;
+    if (!layout || (!visible && !opening) || document.hidden || !available) return;
     const dt = lastTime ? Math.min(48, now - lastTime) : 16;
     const immediate = stillsOnly();
     const lensShift = Math.abs(targetAperture - aperture);
@@ -451,11 +473,14 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       spot.shadow.needsUpdate = true;
       lightDirty = false;
     }
-    const reacting = animateSpecimens(dt, immediate, now);
+    if (opening) {
+      opening.progress = immediate ? 1 : passage.position(opening, now);
+    }
+    const reacting = animateSpecimens(dt, immediate);
     const elapsed = lastFrame ? now - lastFrame : 16;
     if (!immediate) particleTime += Math.min(82, elapsed) * .001;
     lastFrame = now;
-    const frantic = !immediate && (grab?.moved || pendingClick?.moved || moving || focusing);
+    const frantic = !immediate && (grab?.moved || pendingClick?.moved || opening || moving || focusing);
     slowFrames = frantic && elapsed > 28 ? slowFrames + 1 : 0;
     if (resolutionPenalty === 1 && slowFrames >= 5) {
       resolutionPenalty = .78;
@@ -490,11 +515,10 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     driftFragments(particleTime, source, direction);
     renderer.render(scene, camera);
 
-    if (opening?.complete) {
-      const destination = links.get(opening.entry.id);
-      if (opening.entry.id === 'vision') document.getElementById('project-index').open = true;
-      opening = null;
-      destination.click();
+    if (opening && !immediate) passage.paint(opening, opening.progress);
+    if (opening?.progress === 1) {
+      departure ||= requestAnimationFrame(() => finishOpening(immediate));
+      return;
     }
     if (!immediate && (moving || rolling || reacting || focusing)) schedule();
     else if (!immediate && now - lastInput < 5200 && !dustTimer) {
@@ -505,7 +529,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     }
   }
 
-  function animateSpecimens(dt, immediate, now) {
+  function animateSpecimens(dt, immediate) {
     const blend = immediate ? 1 : 1 - Math.exp(-dt / 124);
     let animating = Boolean(opening);
     for (const entry of entries.values()) {
@@ -519,12 +543,10 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       const drag = pendingClick?.entry === entry ? pendingClick : null;
       let goal = drag?.progress ?? 0;
       if (opening?.entry === entry) {
-        const elapsed = immediate ? 1 : clamp((now - opening.start) / 650, 0, 1);
-        goal = opening.from + (1 - opening.from) * THREE.MathUtils.smoothstep(elapsed * 1.7, 0, 1);
-        if (elapsed === 1) opening.complete = true;
+        goal = opening.startGesture + (1 - opening.startGesture) * THREE.MathUtils.smoothstep(opening.progress, 0, .69);
       }
       const gap = goal - entry.gesture;
-      entry.gesture = Math.abs(gap) < .004 ? goal : entry.gesture + gap * blend;
+      entry.gesture = immediate || Math.abs(gap) < .004 ? goal : entry.gesture + gap * blend;
       response.power = entry.activation;
       response.progress = entry.gesture;
       response.time = particleTime;
@@ -679,8 +701,50 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   function startOpening(entry, side) {
     if (!entry || opening) return;
     entry.side = side || 1;
-    opening = { entry, start: performance.now(), from: Math.min(entry.gesture, .78) };
+    opening = passage.begin(entry, performance.now());
+    opening.startGesture = Math.min(entry.gesture, .78);
+    if (!stillsOnly()) {
+      passage.cover();
+      const link = links.get(entry.id);
+      const url = new URL(link.href);
+      if (url.origin === location.origin && url.pathname !== location.pathname && !warmedDestinations.has(url.href)) {
+        warmedDestinations.add(url.href);
+        const warmup = document.createElement('link');
+        warmup.rel = 'prefetch';
+        warmup.href = url.href;
+        document.head.append(warmup);
+      }
+    }
     wakeRoom();
+  }
+
+  function finishOpening(immediate) {
+    departure = 0;
+    if (!opening || opening.leaving) return;
+    opening.leaving = true;
+    const { entry } = opening;
+    const destination = links.get(entry.id);
+    if (entry.id === 'vision') {
+      document.getElementById('project-index').open = true;
+      opening = null;
+      resetCamera(layout);
+      lightDirty = true;
+      destination.click();
+      passage.unveil();
+      schedule();
+      return;
+    }
+
+    if (!immediate && ['optics', 'research', 'counts', 'rendering'].includes(entry.id)) {
+      try {
+        const url = new URL(destination.href);
+        sessionStorage.setItem('archive-project-entry', JSON.stringify({ path: url.pathname, time: Date.now() }));
+      } catch {
+        // The destination still opens when browser storage is unavailable.
+      }
+    }
+    destination.click();
+    recovery = window.setTimeout(cancelEntry, 4500);
   }
 
   function inScene(target) {
@@ -688,7 +752,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   }
 
   room.addEventListener('pointerdown', event => {
-    if (!available || event.button !== 0 || !inScene(event.target)) return;
+    if (!available || opening || event.button !== 0 || !inScene(event.target)) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     if (grab) {
       if (event.pointerType === 'touch' && !pinch && grab.id !== event.pointerId) {
@@ -707,7 +771,6 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
       (!onExhibit || raycaster.intersectObject(projector, true, projectorHits).length > 0);
     if (onProjector) {
       if (!atDepth(position.z, pickLocation)) return;
-      opening = null;
       event.preventDefault();
       grab = {
         id: event.pointerId, x: event.clientX, y: event.clientY,
@@ -730,7 +793,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     }
   });
   room.addEventListener('pointermove', event => {
-    if (!available) return;
+    if (!available || opening) return;
     if (event.pointerType === 'mouse' && event.buttons === 0 &&
         (grab?.id === event.pointerId || pendingClick?.id === event.pointerId)) {
       finishPointer(event, false);
@@ -815,6 +878,10 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
   }
 
   room.addEventListener('wheel', event => {
+    if (opening) {
+      event.preventDefault();
+      return;
+    }
     if (!grab) return;
     event.preventDefault();
     const step = event.deltaMode === 0 ? .00033 : .027;
@@ -878,11 +945,17 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     event.preventDefault();
     if (event.detail === 0) startOpening(selected, selected?.side);
   });
+  window.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && opening) cancelEntry();
+  });
+  window.addEventListener('pageshow', event => {
+    if (event.persisted) cancelEntry();
+  });
   new ResizeObserver(resize).observe(room);
   new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
     if (visible) schedule();
-    else quietRoom();
+    else if (!opening) quietRoom();
   }).observe(room);
   document.addEventListener('visibilitychange', () => document.hidden ? quietRoom() : schedule());
   reduced.addEventListener('change', () => { quietRoom(); schedule(); });
@@ -894,7 +967,7 @@ export function mountRoom({ room, canvas, grip, reveal, links }) {
     grab = null;
     pinch = null;
     pendingClick = null;
-    opening = null;
+    cancelEntry();
     room.classList.remove('ready');
     grip.hidden = true;
     select(null);

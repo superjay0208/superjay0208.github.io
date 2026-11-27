@@ -15,7 +15,7 @@ document.querySelectorAll('a[href="#work"]').forEach(link => {
 openIndexForHash();
 
 if ('WebGL2RenderingContext' in window) {
-  import('./assets/portfolio/room.bundle.mjs?v=exhibits').then(({ mountRoom }) => {
+  import('./assets/portfolio/room.bundle.mjs?v=object-passage').then(({ mountRoom }) => {
     mountRoom({ room, canvas, grip: document.getElementById('projector-grip'), reveal, links });
     if (room.classList.contains('ready') && !['#work', '#vision'].includes(location.hash)) index.open = false;
     canvas.addEventListener('webglcontextlost', () => {
